@@ -21,6 +21,15 @@ class User(UserMixin, db.Model):
     last_login      = db.Column(db.DateTime)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     
+    def __init__(self, username: str, email: str, full_name: str = '',
+                 role: str = 'admin', is_active: bool = True, **kwargs):
+        super().__init__(**kwargs)
+        self.username  = username
+        self.email     = email
+        self.full_name = full_name
+        self.role      = role
+        self.is_active = is_active
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
