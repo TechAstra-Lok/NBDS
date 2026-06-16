@@ -46,9 +46,12 @@
             </td>
             <td class="text-end pe-4">
               <div class="btn-group btn-group-sm">
-                <a href="{{ url_for('admin.toggle_ad', id=ad.id) }}" class="btn btn-outline-{{ 'warning' if ad.is_valid else 'success' }}">
-                  {{ 'Deactivate' if ad.is_valid else 'Activate' }}
-                </a>
+                <form method="POST" action="{{ url_for('admin.toggle_ad', id=ad.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-outline-{{ 'warning' if ad.is_valid else 'success' }}">
+                    {{ 'Deactivate' if ad.is_valid else 'Activate' }}
+                  </button>
+                </form>
                 <form method="POST" action="{{ url_for('admin.delete_advertisement', id=ad.id) }}" class="d-inline">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                   <button type="submit" class="btn btn-outline-danger">
