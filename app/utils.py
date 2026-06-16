@@ -46,10 +46,10 @@ def save_image(file_obj, subfolder, max_width=1200, max_height=800):
     if not file_obj or not file_obj.filename:
         return None
     
-    filename = secure_filename(file_obj.filename)
-    if '.' not in filename:
+    orig_filename = file_obj.filename
+    if '.' not in orig_filename:
         raise ValueError('Invalid image file.')
-    ext = filename.rsplit('.', 1)[1].lower()
+    ext = orig_filename.rsplit('.', 1)[1].lower()
     if ext not in current_app.config['ALLOWED_IMAGE_EXTENSIONS']:
         raise ValueError('Unsupported image type.')
     
@@ -87,10 +87,10 @@ def save_file(file_obj, subfolder):
     if not file_obj or not file_obj.filename:
         return None, None
     
-    filename = secure_filename(file_obj.filename)
-    if '.' not in filename:
+    orig_filename = file_obj.filename
+    if '.' not in orig_filename:
         raise ValueError('Invalid file upload.')
-    ext = filename.rsplit('.', 1)[1].lower()
+    ext = orig_filename.rsplit('.', 1)[1].lower()
     if ext not in current_app.config['ALLOWED_FILE_EXTENSIONS']:
         raise ValueError('Unsupported file type.')
     unique_name = f"{uuid.uuid4().hex}.{ext}"
