@@ -1,0 +1,367 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Donor — Admin{% endblock %}
+{% block page_title %}{{ action }} Donor{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted small mb-0">
+    {% if action == 'Edit' and donor %}
+      Editing donor <strong>{{ donor.donor_id }}</strong> — {{ donor.full_name }}
+    {% else %}
+      Fill in the details below to register a new blood donor.
+    {% endif %}
+  </p>
+  <a href="{{ url_for('admin.donors') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Back to Donors
+  </a>
+</div>
+
+<form method="POST"
+      action="{{ url_for('admin.edit_donor', id=donor.id) if action == 'Edit' and donor else url_for('admin.add_donor') }}"
+      novalidate id="donorForm">
+  {{ form.hidden_tag() }}
+  {% if action == 'Edit' and donor %}
+    {{ form.donor_id() }}
+  {% endif %}
+
+  <!-- ══════ PERSONAL INFORMATION ══════ -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header border-0 rounded-top-4 py-3 px-4"
+         style="background: linear-gradient(135deg,#991B1B,#DC2626);">
+      <h6 class="text-white fw-bold mb-0">
+        <i class="fas fa-user me-2"></i>Personal Information
+      </h6>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3">
+        <!-- Full Name -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+          <input type="text"
+                 class="form-control {% if form.full_name.errors %}is-invalid{% endif %}"
+                 name="full_name" placeholder="Donor's full legal name"
+                 value="{{ form.full_name.data or '' }}" required>
+          {% for e in form.full_name.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <!-- Age -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Age <span class="text-danger">*</span></label>
+          <input type="number"
+                 class="form-control {% if form.age.errors %}is-invalid{% endif %}"
+                 name="age" min="18" max="65" placeholder="18–65"
+                 value="{{ form.age.data or '' }}" required>
+          {% for e in form.age.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <!-- Weight -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Weight (kg) <span class="text-danger">*</span></label>
+          <input type="number" step="0.1"
+                 class="form-control {% if form.weight.errors %}is-invalid{% endif %}"
+                 name="weight" min="50" max="150" placeholder="Min. 50 kg"
+                 value="{{ form.weight.data or '' }}" required>
+          {% for e in form.weight.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ PERMANENT ADDRESS ══════ -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header border-0 rounded-top-4 py-3 px-4 bg-light">
+      <h6 class="fw-bold mb-0 text-secondary">
+        <i class="fas fa-home me-2"></i>Permanent Address
+        <span class="fw-normal small text-muted">(Optional)</span>
+      </h6>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Province</label>
+          <select class="form-select" name="perm_province">
+            <option value="">— Select Province —</option>
+            {% for p in ['Koshi Pradesh','Madhesh Pradesh','Bagmati Pradesh',
+                         'Gandaki Pradesh','Lumbini Pradesh','Karnali Pradesh',
+                         'Sudurpashchim Pradesh'] %}
+            <option value="{{ p }}" {{ 'selected' if form.perm_province.data == p }}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">District</label>
+          <input type="text" class="form-control" name="perm_district"
+                 id="permDistrict" list="districtList"
+                 placeholder="e.g. Kathmandu"
+                 value="{{ form.perm_district.data or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">City / Village</label>
+          <input type="text" class="form-control" name="perm_city"
+                 placeholder="e.g. Baneshwor"
+                 value="{{ form.perm_city.data or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Local Level / Municipality</label>
+          <input type="text" class="form-control" name="perm_local_level"
+                 placeholder="e.g. Kathmandu Metropolitan City"
+                 value="{{ form.perm_local_level.data or '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ CURRENT ADDRESS ══════ -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header border-0 rounded-top-4 py-3 px-4"
+         style="background: rgba(220,38,38,0.07);">
+      <div class="d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0 text-danger">
+          <i class="fas fa-location-dot me-2"></i>Current Address
+          <span class="text-danger">*</span>
+        </h6>
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="sameAddressCheckbox">
+          <label class="form-check-label small" for="sameAddressCheckbox">
+            Same as permanent address
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Province <span class="text-danger">*</span></label>
+          <select class="form-select {% if form.curr_province.errors %}is-invalid{% endif %}"
+                  name="curr_province" required>
+            <option value="">— Select Province —</option>
+            {% for p in ['Koshi Pradesh','Madhesh Pradesh','Bagmati Pradesh',
+                         'Gandaki Pradesh','Lumbini Pradesh','Karnali Pradesh',
+                         'Sudurpashchim Pradesh'] %}
+            <option value="{{ p }}" {{ 'selected' if form.curr_province.data == p }}>{{ p }}</option>
+            {% endfor %}
+          </select>
+          {% for e in form.curr_province.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">District <span class="text-danger">*</span></label>
+          <input type="text"
+                 class="form-control {% if form.curr_district.errors %}is-invalid{% endif %}"
+                 name="curr_district" id="currDistrict" list="districtList"
+                 placeholder="e.g. Kathmandu"
+                 value="{{ form.curr_district.data or '' }}" required>
+          {% for e in form.curr_district.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">City / Town <span class="text-danger">*</span></label>
+          <input type="text"
+                 class="form-control {% if form.curr_city.errors %}is-invalid{% endif %}"
+                 name="curr_city" placeholder="e.g. Thamel"
+                 value="{{ form.curr_city.data or '' }}" required>
+          {% for e in form.curr_city.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Local Level / Municipality</label>
+          <input type="text" class="form-control" name="curr_local_level"
+                 placeholder="e.g. Kathmandu Metropolitan-Ward 14"
+                 value="{{ form.curr_local_level.data or '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ CONTACT INFORMATION ══════ -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header border-0 rounded-top-4 py-3 px-4 bg-light">
+      <h6 class="fw-bold mb-0">
+        <i class="fas fa-phone me-2 text-success"></i>Contact Information
+      </h6>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3">
+        <!-- Primary Phone -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Primary Phone <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text">🇳🇵 +977</span>
+            <input type="tel"
+                   class="form-control {% if form.phone1.errors %}is-invalid{% endif %}"
+                   name="phone1" id="phone1"
+                   placeholder="98XXXXXXXX" maxlength="10"
+                   value="{{ form.phone1.data or '' }}" required>
+            {% for e in form.phone1.errors %}
+            <div class="invalid-feedback">{{ e }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-text">Visible to people searching for donors.</div>
+        </div>
+        <!-- Secondary Phone -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Secondary Phone (Optional)</label>
+          <div class="input-group">
+            <span class="input-group-text">🇳🇵 +977</span>
+            <input type="tel" class="form-control" name="phone2" id="phone2"
+                   placeholder="98XXXXXXXX" maxlength="10"
+                   value="{{ form.phone2.data or '' }}">
+          </div>
+        </div>
+        <!-- Social Link -->
+        <div class="col-md-12">
+          <label class="form-label fw-semibold">Social Media Profile (Optional)</label>
+          <input type="url" class="form-control" name="social_link"
+                 placeholder="https://facebook.com/yourprofile"
+                 value="{{ form.social_link.data or '' }}">
+          <div class="form-text">Facebook / Instagram / LinkedIn</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ BLOOD & DONATION INFO ══════ -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header border-0 rounded-top-4 py-3 px-4"
+         style="background: rgba(220,38,38,0.07);">
+      <h6 class="fw-bold mb-0 text-danger">
+        <i class="fas fa-droplet me-2"></i>Blood &amp; Donation Information
+      </h6>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3">
+        <!-- Blood Group -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Blood Group <span class="text-danger">*</span></label>
+          <select class="form-select {% if form.blood_group.errors %}is-invalid{% endif %}"
+                  name="blood_group" required>
+            <option value="">— Select —</option>
+            {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+            <option value="{{ bg }}" {{ 'selected' if form.blood_group.data == bg }}>{{ bg }}</option>
+            {% endfor %}
+          </select>
+          {% for e in form.blood_group.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <!-- Donor Type -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Donor Type <span class="text-danger">*</span></label>
+          <select class="form-select {% if form.donor_type.errors %}is-invalid{% endif %}"
+                  name="donor_type" required>
+            <option value="">— Select —</option>
+            <option value="occasional" {{ 'selected' if form.donor_type.data == 'occasional' }}>Occasional</option>
+            <option value="regular"    {{ 'selected' if form.donor_type.data == 'regular' }}>Regular</option>
+            <option value="emergency"  {{ 'selected' if form.donor_type.data == 'emergency' }}>Emergency Only</option>
+          </select>
+          {% for e in form.donor_type.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <!-- Last Donation Date -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Last Donation Date</label>
+          <input type="date" class="form-control" name="last_donation_date"
+                 value="{{ form.last_donation_date.data.strftime('%Y-%m-%d') if form.last_donation_date.data else '' }}"
+                 max="{{ now.strftime('%Y-%m-%d') if now is defined else '' }}">
+          <div class="form-text">Leave blank if never donated.</div>
+        </div>
+        <!-- Total Donations -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Total Donations Made</label>
+          <input type="number" class="form-control" name="donation_times"
+                 min="0" max="500" placeholder="0"
+                 value="{{ form.donation_times.data if form.donation_times.data is not none else 0 }}">
+        </div>
+
+        <!-- Availability Status — EDIT ONLY -->
+        {% if action == 'Edit' and form.availability_status is defined %}
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Availability Status <span class="text-danger">*</span></label>
+          <select class="form-select {% if form.availability_status.errors %}is-invalid{% endif %}"
+                  name="availability_status">
+            <option value="available"   {{ 'selected' if form.availability_status.data == 'available' }}>✅ Available to Donate</option>
+            <option value="unavailable" {{ 'selected' if form.availability_status.data == 'unavailable' }}>⛔ Currently Unavailable</option>
+          </select>
+          {% for e in form.availability_status.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- District datalist -->
+  <datalist id="districtList">
+    {% set districts = ['Achham','Arghakhanchi','Baglung','Baitadi','Bajhang','Bajura','Banke','Bara',
+      'Bardiya','Bhaktapur','Bhojpur','Chitwan','Dadeldhura','Dailekh','Dang','Darchula','Dhading',
+      'Dhankuta','Dhanusa','Dolakha','Dolpa','Doti','Gorkha','Gulmi','Humla','Ilam','Jajarkot',
+      'Jhapa','Jumla','Kailali','Kalikot','Kanchanpur','Kapilvastu','Kaski','Kathmandu','Kavrepalanchok',
+      'Khotang','Lalitpur','Lamjung','Mahottari','Makwanpur','Manang','Morang','Mugu','Mustang',
+      'Myagdi','Nawalparasi East','Nawalparasi West','Nuwakot','Okhaldhunga','Palpa','Panchthar',
+      'Parbat','Parsa','Pyuthan','Ramechhap','Rasuwa','Rautahat','Rolpa','Rukum East','Rukum West',
+      'Rupandehi','Salyan','Sankhuwasabha','Saptari','Sarlahi','Sindhuli','Sindhupalchok','Siraha',
+      'Solukhumbu','Sunsari','Surkhet','Syangja','Taplejung','Terhathum','Udayapur'] %}
+    {% for d in districts %}
+    <option value="{{ d }}">
+    {% endfor %}
+  </datalist>
+
+  <!-- ══════ ACTIONS ══════ -->
+  <div class="d-flex justify-content-between gap-2 flex-wrap mt-2">
+    <a href="{{ url_for('admin.donors') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-times me-1"></i> Cancel
+    </a>
+    <button type="submit" class="btn btn-danger px-5 fw-semibold">
+      <i class="fas fa-{{ 'save' if action == 'Edit' else 'user-plus' }} me-2"></i>
+      {{ form.submit.label.text }}
+    </button>
+  </div>
+
+</form>
+
+<script>
+  // Phone number live validation
+  ['phone1', 'phone2'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', function() {
+      var cleaned = el.value.replace(/\D/g, '');
+      el.setCustomValidity(/^\d{10}$/.test(cleaned) ? '' : 'Enter a valid 10-digit Nepal phone number.');
+    });
+  });
+
+  // "Same as permanent address" checkbox
+  var sameBox = document.getElementById('sameAddressCheckbox');
+  if (sameBox) {
+    sameBox.addEventListener('change', function() {
+      if (!sameBox.checked) return;
+      var fields = {
+        perm_province:    document.querySelector('select[name="perm_province"]'),
+        perm_district:    document.getElementById('permDistrict'),
+        perm_city:        document.querySelector('input[name="perm_city"]'),
+        perm_local_level: document.querySelector('input[name="perm_local_level"]')
+      };
+      var targets = {
+        perm_province:    document.querySelector('select[name="curr_province"]'),
+        perm_district:    document.getElementById('currDistrict'),
+        perm_city:        document.querySelector('input[name="curr_city"]'),
+        perm_local_level: document.querySelector('input[name="curr_local_level"]')
+      };
+      Object.keys(fields).forEach(function(k) {
+        if (fields[k] && targets[k]) targets[k].value = fields[k].value;
+      });
+    });
+  }
+</script>
+
+{% endblock %}
