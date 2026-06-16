@@ -1,0 +1,54 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} News Article{% endblock %}
+{% block page_title %}{{ action }} News Article{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ form.title.label.text }}</label>
+          {{ form.title(class_='form-control') }}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ form.short_desc.label.text }}</label>
+          {{ form.short_desc(class_='form-control') }}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ form.content.label.text }}</label>
+          {{ form.content(class_='form-control') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.category.label.text }}</label>
+          {{ form.category(class_='form-select') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.author.label.text }}</label>
+          {{ form.author(class_='form-control') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.tags.label.text }}</label>
+          {{ form.tags(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.featured_image.label.text }}</label>
+          {{ form.featured_image(class_='form-control') }}
+        </div>
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check mt-3">
+            {{ form.is_published(class_='form-check-input') }}
+            <label class="form-check-label">{{ form.is_published.label.text }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.news') }}" class="btn btn-outline-secondary">Back to News</a>
+        {{ form.submit(class_='btn btn-danger') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

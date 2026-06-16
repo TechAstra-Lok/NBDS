@@ -1,0 +1,99 @@
+{% extends "admin/layout.html" %}
+{% block title %}Advertisements{% endblock %}
+{% block page_title %}Advertisement Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <p class="text-muted small mb-0">Total: <strong>{{ pagination.total }}</strong> advertisements</p>
+  </div>
+  <a href="{{ url_for('admin.add_advertisement') }}" class="btn btn-danger fw-semibold">
+    <i class="fas fa-plus me-2"></i>Add Advertisement
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4 py-3">Ad</th>
+            <th>Type</th>
+            <th>Clicks</th>
+            <th>Impressions</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ad in pagination.items %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-2">
+                <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="rounded-3" style="width:60px;height:40px;object-fit:cover;" />
+                <div>
+                  <div class="fw-semibold small">{{ ad.title }}</div>
+                  <div class="text-muted small">{{ ad.description[:70] }}{% if ad.description|length > 70 %}...{% endif %}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ ad.ad_type|title }}</td>
+            <td>{{ ad.clicks }}</td>
+            <td>{{ ad.impressions }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if ad.is_valid else 'secondary' }}">{{ 'Active' if ad.is_valid else 'Inactive' }}</span>
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.toggle_ad', id=ad.id) }}" class="btn btn-outline-{{ 'warning' if ad.is_valid else 'success' }}">
+                  {{ 'Deactivate' if ad.is_valid else 'Activate' }}
+                </a>
+                <form method="POST" action="{{ url_for('admin.delete_advertisement', id=ad.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-outline-danger">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="fas fa-ad fa-2x mb-2 d-block"></i>No advertisements found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for('admin.advertisements', page=pagination.prev_num) }}">
+        <i class="fas fa-chevron-left fa-xs"></i>
+      </a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+    {% if p %}
+    <li class="page-item {{ 'active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('admin.advertisements', page=p) }}">{{ p }}</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">…</span></li>
+    {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for('admin.advertisements', page=pagination.next_num) }}">
+        <i class="fas fa-chevron-right fa-xs"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

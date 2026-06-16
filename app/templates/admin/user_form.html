@@ -1,0 +1,50 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Admin User{% endblock %}
+{% block page_title %}{{ action }} Admin User{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body">
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ form.username.label.text }}</label>
+          {{ form.username(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.email.label.text }}</label>
+          {{ form.email(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.full_name.label.text }}</label>
+          {{ form.full_name(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.role.label.text }}</label>
+          {{ form.role(class_='form-select') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.password.label.text }}</label>
+          {{ form.password(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.confirm_pw.label.text }}</label>
+          {{ form.confirm_pw(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <div class="form-check mt-4">
+            {{ form.is_active(class_='form-check-input') }}
+            <label class="form-check-label">{{ form.is_active.label.text }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Back to Users</a>
+        {{ form.submit(class_='btn btn-danger') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

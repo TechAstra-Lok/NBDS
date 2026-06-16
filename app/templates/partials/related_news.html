@@ -1,0 +1,21 @@
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-header border-0 bg-transparent pt-3">
+    <h6 class="fw-bold mb-0"><i class="fas fa-th-list text-danger me-2"></i>Related</h6>
+  </div>
+  <div class="card-body">
+    <ul class="list-unstyled small mb-0">
+      {% if related and related|length > 0 %}
+        {% for r in related %}
+        <li class="mb-2">
+          <a href="{{ url_for('public.news_detail', slug=r.slug) }}" class="text-dark text-decoration-none">
+            <div class="fw-semibold">{{ r.title }}</div>
+            <div class="text-muted small">{{ r.created_at.strftime('%b %d, %Y') }}</div>
+          </a>
+        </li>
+        {% endfor %}
+      {% else %}
+        <li class="mb-2 text-muted">No related posts. See <a href="{{ url_for('public.news_list') }}">News</a>.</li>
+      {% endif %}
+    </ul>
+  </div>
+</div>

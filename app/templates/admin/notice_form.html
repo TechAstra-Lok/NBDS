@@ -1,0 +1,46 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Notice{% endblock %}
+{% block page_title %}{{ action }} Notice{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">{{ form.title.label.text }}</label>
+          {{ form.title(class_='form-control') }}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ form.content.label.text }}</label>
+          {{ form.content(class_='form-control') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.expiry_date.label.text }}</label>
+          {{ form.expiry_date(class_='form-control') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.priority.label.text }}</label>
+          {{ form.priority(class_='form-select') }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.attachment.label.text }}</label>
+          {{ form.attachment(class_='form-control') }}
+        </div>
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check mt-3">
+            {{ form.is_active(class_='form-check-input') }}
+            <label class="form-check-label">{{ form.is_active.label.text }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.notices') }}" class="btn btn-outline-secondary">Back to Notices</a>
+        {{ form.submit(class_='btn btn-danger') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

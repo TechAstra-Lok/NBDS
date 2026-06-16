@@ -1,0 +1,199 @@
+{% extends "admin/layout.html" %}
+{% block title %}Donor Management{% endblock %}
+{% block page_title %}Donor Management{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <p class="text-muted small mb-0">
+      Total: <strong>{{ total }}</strong> donors registered
+    </p>
+  </div>
+  <a href="{{ url_for('admin.add_donor') }}" class="btn btn-danger fw-semibold">
+    <i class="fas fa-user-plus me-2"></i>Add New Donor
+  </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body p-3">
+    <form method="GET" action="{{ url_for('admin.donors') }}" class="row g-2">
+      <div class="col-md-4">
+        <input type="text" class="form-control" name="q"
+               placeholder="Search name, ID, phone, district..."
+               value="{{ search }}">
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="bg">
+          <option value="">All Groups</option>
+          {% for bg in blood_groups %}
+          <option value="{{ bg }}" {{ 'selected' if selected_bg == bg }}>{{ bg }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="status">
+          <option value="">All Status</option>
+          <option value="available" {{ 'selected' if selected_status == 'available' }}>Available</option>
+          <option value="unavailable" {{ 'selected' if selected_status == 'unavailable' }}>Unavailable</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="type">
+          <option value="">All Types</option>
+          {% for t in ['occasional','regular','emergency'] %}
+          <option value="{{ t }}" {{ 'selected' if selected_type == t }}>{{ t|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-danger flex-grow-1">
+          <i class="fas fa-search me-1"></i>Search
+        </button>
+        <a href="{{ url_for('admin.donors') }}" class="btn btn-outline-secondary">
+          <i class="fas fa-rotate-left"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4 py-3">Donor</th>
+            <th>Blood Group</th>
+            <th>Location</th>
+            <th>Phone</th>
+            <th>Type</th>
+            <th>Last Donation</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for donor in pagination.items %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold flex-shrink-0"
+                     style="width:36px;height:36px;font-size:0.9rem;background:linear-gradient(135deg,#DC2626,#991B1B);">
+                  {{ donor.full_name[0].upper() }}
+                </div>
+                <div>
+                  <div class="fw-semibold small">{{ donor.full_name }}</div>
+                  <div class="text-muted" style="font-size:0.7rem;">{{ donor.donor_id }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-danger fw-bold fs-6" style="min-width:40px;">
+                {{ donor.blood_group }}
+              </span>
+            </td>
+            <td class="small text-muted">
+              {{ donor.curr_city }}, {{ donor.curr_district }}
+            </td>
+            <td class="small">
+              <a href="tel:{{ donor.phone1 }}" class="text-dark text-decoration-none">
+                {{ donor.phone1 }}
+              </a>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border small">
+                {{ donor.donor_type|title if donor.donor_type else '-' }}
+              </span>
+            </td>
+            <td class="small text-muted">
+              {{ donor.last_donation_date.strftime('%b %d, %Y') if donor.last_donation_date else 'Never' }}
+            </td>
+            <td>
+              <span class="badge bg-{{ 'success' if donor.availability_status == 'available' else 'secondary' }}">
+                {{ donor.availability_status|title }}
+              </span>
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.edit_donor', id=donor.id) }}"
+                   class="btn btn-outline-primary" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <button class="btn btn-outline-{{ 'warning' if donor.availability_status == 'available' else 'success' }}"
+                        onclick="toggleStatus({{ donor.id }})"
+                        title="Toggle Status">
+                  <i class="fas fa-toggle-{{ 'on' if donor.availability_status == 'available' else 'off' }}"
+                     id="toggle-icon-{{ donor.id }}"></i>
+                </button>
+                <form method="POST"
+                      action="{{ url_for('admin.delete_donor', id=donor.id) }}"
+                      data-confirm="Delete donor {{ donor.full_name }}? This cannot be undone."
+                      class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-outline-danger" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="fas fa-users fa-2x mb-2 d-block"></i>No donors found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for('admin.donors', page=pagination.prev_num,
+         q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">
+        <i class="fas fa-chevron-left fa-xs"></i>
+      </a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+    {% if p %}
+    <li class="page-item {{ 'active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('admin.donors', page=p,
+         q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">{{ p }}</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">…</span></li>
+    {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for('admin.donors', page=pagination.next_num,
+         q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">
+        <i class="fas fa-chevron-right fa-xs"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+<script>
+function toggleStatus(donorId) {
+  fetch(`/admin/donors/${donorId}/toggle-status`, {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+  .then(r => r.json())
+  .then(data => {
+    location.reload();
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+/* ════════════════════════════════════════
+   NBD ADMIN PANEL CSS
+   ════════════════════════════════════════ */
+
+:root {
+  --sidebar-width: 260px;
+  --topbar-height: 60px;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: rgba(220,38,38,0.15);
+  --sidebar-active: #DC2626;
+}
+
+/* ── Layout ── */
+.admin-body { display: flex; min-height: 100vh; background: #F1F5F9; font-family: 'Inter', sans-serif; }
+
+/* ── Sidebar ── */
+.admin-sidebar {
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  height: 100vh;
+  position: fixed;
+  left: 0; top: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1050;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  scrollbar-width: thin;
+  scrollbar-color: #374151 transparent;
+}
+.admin-sidebar::-webkit-scrollbar { width: 4px; }
+.admin-sidebar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky; top: 0;
+  background: var(--sidebar-bg);
+  z-index: 1;
+}
+
+.sidebar-nav { padding: 0.5rem 0 2rem; }
+
+.nav-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.3);
+  padding: 1rem 1rem 0.3rem;
+}
+
+.sidebar-nav .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0;
+  transition: all 0.2s;
+  margin: 1px 0;
+  border-left: 3px solid transparent;
+}
+.sidebar-nav .nav-item:hover {
+  color: #fff;
+  background: var(--sidebar-hover);
+  border-left-color: var(--sidebar-active);
+}
+.sidebar-nav .nav-item.active {
+  color: #fff;
+  background: rgba(220,38,38,0.2);
+  border-left-color: var(--sidebar-active);
+  font-weight: 600;
+}
+.sidebar-nav .nav-item i { width: 18px; text-align: center; font-size: 0.9rem; }
+
+/* ── Main ── */
+.admin-main {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  transition: margin-left 0.3s;
+}
+
+/* ── Topbar ── */
+.admin-topbar {
+  height: var(--topbar-height);
+  background: #fff;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  position: sticky; top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.topbar-title { font-weight: 700; font-size: 1.1rem; color: #111827; }
+
+/* ── Content ── */
+.admin-content { min-height: calc(100vh - 60px); }
+
+/* ── Stat Cards ── */
+.admin-stat-card { transition: all 0.25s cubic-bezier(.4,0,.2,1); }
+.admin-stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important; }
+.stat-val { font-weight: 900; line-height: 1; }
+
+/* ── Soft backgrounds ── */
+.bg-danger-soft { background: rgba(220,38,38,0.1) !important; }
+.bg-success-soft { background: rgba(34,197,94,0.1) !important; }
+.bg-warning-soft { background: rgba(234,179,8,0.1) !important; }
+.bg-info-soft { background: rgba(6,182,212,0.1) !important; }
+.bg-primary-soft { background: rgba(99,102,241,0.1) !important; }
+.bg-secondary-soft { background: rgba(107,114,128,0.1) !important; }
+
+/* ── Tables ── */
+.table { font-size: 0.875rem; }
+.table th { font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; background: #F9FAFB; }
+.table-hover tbody tr:hover { background: #FEF2F2; }
+.table td { vertical-align: middle; }
+
+/* ── Forms ── */
+.form-control, .form-select { border-radius: 8px; border-color: #E5E7EB; font-size: 0.9rem; padding: 0.55rem 0.9rem; }
+.form-control:focus, .form-select:focus { border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+.form-label { font-weight: 600; font-size: 0.82rem; color: #374151; }
+
+/* ── Cards ── */
+.card { border-radius: 16px !important; }
+.card-header { border-radius: 16px 16px 0 0 !important; }
+
+/* ── Sidebar Overlay (Mobile) ── */
+.sidebar-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1049;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+
+/* ── Mobile Sidebar ── */
+@media (max-width: 991px) {
+  .admin-sidebar { transform: translateX(-100%); }
+  .admin-sidebar.show { transform: translateX(0); }
+  .admin-main { margin-left: 0; }
+}
+
+/* ── Dark Mode Admin ── */
+[data-bs-theme="dark"] .admin-body { background: #0f172a; }
+[data-bs-theme="dark"] .admin-topbar { background: #1e293b; border-color: #334155; }
+[data-bs-theme="dark"] .topbar-title { color: #F1F5F9; }
+[data-bs-theme="dark"] .card { background: #1e293b; border-color: #334155; }
+[data-bs-theme="dark"] .table { color: #E2E8F0; }
+[data-bs-theme="dark"] .table th { background: #334155; color: #94A3B8; }
+[data-bs-theme="dark"] .table-hover tbody tr:hover { background: rgba(220,38,38,0.05); }
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select { background: #1e293b; border-color: #475569; color: #E2E8F0; }
+[data-bs-theme="dark"] .admin-content { color: #E2E8F0; }
+[data-bs-theme="dark"] .bg-light { background: #1e293b !important; }
+[data-bs-theme="dark"] .bg-white { background: #1e293b !important; }
+[data-bs-theme="dark"] .text-dark { color: #E2E8F0 !important; }
+[data-bs-theme="dark"] .border-bottom { border-color: #334155 !important; }
+
+/* ── Stat flash animation (used when metric updates) ── */
+.stat-flash {
+  animation: statFlash 900ms ease-in-out;
+}
+@keyframes statFlash {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.0); }
+  30% { transform: scale(1.06); box-shadow: 0 8px 20px -8px rgba(16,185,129,0.28); }
+  60% { transform: scale(1.02); box-shadow: 0 6px 14px -6px rgba(16,185,129,0.16); }
+ 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.0); }
+}
+
+/* Delta indicators */
+.stat-delta { font-size:0.85rem; margin-left:8px; vertical-align:middle; opacity:0.95; }
+.stat-delta-up { color: #16A34A; }
+.stat-delta-down { color: #DC2626; }
+.stat-delta.animate { transform: translateY(-4px); transition: transform 350ms ease-out, opacity 600ms; }

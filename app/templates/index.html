@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site_name }} — {{ site_tagline }}{% endblock %}
+
+{% block full_width %}
+<!-- ═══════ HERO SECTION ═══════ -->
+<section class="hero-section position-relative overflow-hidden">
+  <div class="hero-bg">
+    <div class="hero-overlay"></div>
+    <div class="hero-pattern"></div>
+  </div>
+  <div class="container position-relative py-5" style="z-index:2;">
+    <div class="row align-items-center g-4 py-3">
+      <div class="col-lg-7 animate__animated animate__fadeInLeft">
+        <span class="badge bg-danger-soft text-danger fs-6 mb-3 px-3 py-2 rounded-pill">
+          <i class="fas fa-heartbeat me-1 blink text-danger"></i> Save Lives in Nepal
+        </span>
+        <h1 class="hero-title fw-black mb-4">
+          रगत दान गर्नुहोस्,<br/>
+          <span class="text-danger">जीवन बचाउनुहोस्!</span>
+        </h1>
+        <p class="hero-subtitle text-white-75 fs-5 mb-4">
+          Donate Blood · Save Lives<br/>
+          <span class="small">Join Nepal's largest blood donor network. 
+          Your single donation can save up to 3 lives.</span>
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-lg shadow px-4">
+            <i class="fas fa-plus-circle me-2"></i>Request Blood
+          </a>
+          <a href="{{ url_for('public.become_donor') }}" class="btn btn-light btn-lg px-4">
+            <i class="fas fa-heart me-2"></i>Become a Donor
+          </a>
+          <a href="{{ url_for('public.find_donors') }}" class="btn btn-outline-light btn-lg px-4">
+            <i class="fas fa-search me-2"></i>Find Donors
+          </a>
+        </div>
+
+        <!-- Blood Group Quick Search -->
+        <div class="mt-4 p-3 rounded-3" style="background:rgba(255,255,255,0.1); backdrop-filter:blur(10px);">
+          <div class="small text-white-75 mb-2 fw-semibold">
+            <i class="fas fa-tint me-1"></i> Quick Find by Blood Group:
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+            <a href="{{ url_for('public.find_donors', blood_group=bg) }}"
+               class="btn btn-sm bg-danger text-white border-0 rounded-pill fw-bold px-3">
+              {{ bg }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5 d-none d-lg-block animate__animated animate__fadeInRight">
+        <div class="hero-stats-card bg-white rounded-4 p-4 shadow-lg">
+          <div class="text-center mb-4">
+            <div class="blood-drop-icon mb-2">
+              <i class="fas fa-droplet text-danger" style="font-size:4rem;"></i>
+            </div>
+            <h4 class="fw-bold text-dark">Our Community</h4>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="stat-mini text-center bg-danger-soft rounded-3 p-3">
+                <div class="stat-number text-danger fw-black fs-3" id="totalDonors">{{ total_donors }}</div>
+                <div class="small text-muted">Total Donors</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-mini text-center bg-success-soft rounded-3 p-3">
+                <div class="stat-number text-success fw-black fs-3" id="availDonors">{{ avail_donors }}</div>
+                <div class="small text-muted">Available Now</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-mini text-center bg-warning-soft rounded-3 p-3">
+                <div class="stat-number text-warning fw-black fs-3">{{ total_requests }}</div>
+                <div class="small text-muted">Total Requests</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-mini text-center bg-info-soft rounded-3 p-3">
+                <div class="stat-number text-info fw-black fs-3">{{ fulfilled }}</div>
+                <div class="small text-muted">Lives Saved</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ BANNER ADS ═══════ -->
+{% if banner_ads %}
+<section class="banner-ads py-3 bg-light">
+  <div class="container">
+    {% if banner_ads | length > 1 %}
+    <div id="bannerCarousel" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-inner rounded-3 overflow-hidden shadow-sm">
+        {% for ad in banner_ads %}
+        <div class="carousel-item {{ 'active' if loop.first }}">
+          <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener">
+            <img src="{{ ad.image_url }}" class="d-block w-100"
+                 style="max-height:120px; object-fit:cover;" alt="{{ ad.title }}">
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <a href="{{ url_for('public.ad_click', ad_id=banner_ads[0].id) }}" target="_blank" rel="noopener">
+      <img src="{{ banner_ads[0].image_url }}" class="img-fluid rounded-3 shadow-sm w-100"
+           style="max-height:120px; object-fit:cover;" alt="{{ banner_ads[0].title }}">
+    </a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<div class="container-xl">
+  <div class="row g-4">
+
+    <!-- MAIN COLUMN -->
+    <div class="col-lg-9">
+
+      <!-- ═══════ STATS STRIP ═══════ -->
+      <section class="stats-strip py-4">
+        <div class="row g-3">
+          {% set stat_items = [
+            ('fa-users', total_donors, 'Total Donors', 'danger'),
+            ('fa-check-circle', avail_donors, 'Available', 'success'),
+            ('fa-tint', total_requests|default(0), 'Requests', 'warning'),
+            ('fa-heart', fulfilled, 'Fulfilled', 'info'),
+          ] %}
+          {% for icon, val, label, color in stat_items %}
+          <div class="col-6 col-md-3">
+            <div class="stat-card card border-0 shadow-sm rounded-4 text-center h-100 hover-lift">
+              <div class="card-body py-3">
+                <div class="stat-icon mb-2 text-{{ color }}">
+                  <i class="fas {{ icon }} fa-2x"></i>
+                </div>
+                <div class="stat-value fw-black fs-3 text-{{ color }}">{{ val }}</div>
+                <div class="stat-label small text-muted">{{ label }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- ═══════ EMERGENCY BLOOD REQUESTS ═══════ -->
+      <section class="emergency-requests py-3">
+        <div class="section-header d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h2 class="h4 fw-bold mb-1">
+              <span class="text-danger blink me-2">🆘</span>Emergency Blood Requests
+            </h2>
+            <p class="text-muted small mb-0">Active requests needing immediate attention</p>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('public.blood_request_board') }}" class="btn btn-outline-danger btn-sm">
+              View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+            <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-sm">
+              <i class="fas fa-plus me-1"></i> Post Request
+            </a>
+          </div>
+        </div>
+
+        {% if active_requests %}
+        <div class="row g-3">
+          {% for req in active_requests %}
+          <div class="col-md-6 col-xl-4">
+            <div class="blood-req-card card border-0 shadow-sm rounded-4 h-100 hover-lift
+                        {{ 'border-start border-5 border-danger' if req.is_emergency }}">
+              <div class="card-body p-3">
+                <!-- Header -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="blood-group-badge bg-danger text-white rounded-3 fw-black px-3 py-2 fs-5">
+                    {{ req.blood_group }}
+                  </div>
+                  <div class="d-flex flex-column align-items-end gap-1">
+                    {% if req.is_emergency %}
+                    <span class="badge bg-danger blink">🔴 URGENT</span>
+                    {% endif %}
+                    <span class="badge bg-{{ req.status_badge }}">{{ req.status|title }}</span>
+                  </div>
+                </div>
+
+                <!-- Patient Info -->
+                <h6 class="fw-semibold mb-1">{{ req.patient_name }}</h6>
+                <p class="small text-muted mb-2">
+                  <i class="fas fa-notes-medical text-danger me-1"></i>{{ req.case_details }}
+                </p>
+
+                <!-- Details -->
+                <div class="req-details small">
+                  <div class="d-flex align-items-center mb-1">
+                    <i class="fas fa-hospital text-danger me-2" style="width:14px;"></i>
+                    <span class="text-truncate">{{ req.hospital }}</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-1">
+                    <i class="fas fa-vials text-warning me-2" style="width:14px;"></i>
+                    <span>{{ req.units_needed }} unit(s) needed</span>
+                  </div>
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-user text-info me-2" style="width:14px;"></i>
+                    <span>{{ req.contact_person }}</span>
+                  </div>
+                </div>
+
+                <!-- CTA -->
+                <div class="d-flex gap-2 mt-2">
+                  <a href="tel:{{ req.contact_number }}" class="btn btn-danger btn-sm flex-grow-1">
+                    <i class="fas fa-phone me-1"></i>{{ req.contact_number }}
+                  </a>
+                  <button class="btn btn-outline-secondary btn-sm"
+                          onclick="copyText('{{ req.contact_number }}')" title="Copy">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+                <div class="text-muted mt-2" style="font-size:0.75rem;">
+                  <i class="fas fa-clock me-1"></i>{{ req.age_label }} · ID: {{ req.request_id }}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 bg-light rounded-4">
+          <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+          <h5>No Active Blood Requests</h5>
+          <p class="text-muted">Great news! No urgent requests at the moment.</p>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- ═══════ SEARCH DONORS SECTION ═══════ -->
+      <section class="search-donors py-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-gradient-danger text-white overflow-hidden">
+          <div class="card-body p-4">
+            <h3 class="fw-bold mb-1"><i class="fas fa-search me-2"></i>Find Blood Donors</h3>
+            <p class="opacity-75 mb-3">Search for available donors in your area</p>
+            <form action="{{ url_for('public.find_donors') }}" method="GET">
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <select class="form-select" name="blood_group">
+                    <option value="">🩸 Blood Group</option>
+                    {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                    <option value="{{ bg }}">{{ bg }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control" name="district"
+                         placeholder="📍 District (e.g. Kathmandu)">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control" name="city"
+                         placeholder="🏙️ City / Town">
+                </div>
+                <div class="col-md-3">
+                  <button type="submit" class="btn btn-light text-danger w-100 fw-semibold">
+                    <i class="fas fa-search me-1"></i> Search Donors
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ BLOOD GROUP STATS ═══════ -->
+      {% if bg_stats %}
+      <section class="bg-stats py-3">
+        <h4 class="fw-bold mb-3">Donors by Blood Group</h4>
+        <div class="row g-2">
+          {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+          {% set data = bg_stats.get(bg, {'total': 0, 'available': 0}) %}
+          <div class="col-6 col-sm-3">
+            <a href="{{ url_for('public.find_donors', blood_group=bg) }}"
+               class="card border-0 shadow-sm text-decoration-none hover-lift rounded-3">
+              <div class="card-body text-center py-3">
+                <div class="bg-badge text-danger fw-black fs-4">{{ bg }}</div>
+                <div class="small text-success fw-semibold">{{ data.available }} available</div>
+                <div class="small text-muted">{{ data.total }} total</div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- ═══════ LATEST NEWS ═══════ -->
+      {% if latest_news %}
+      <section class="latest-news py-4">
+        <div class="section-header d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h2 class="h4 fw-bold mb-1"><i class="fas fa-newspaper text-danger me-2"></i>Latest News & Events</h2>
+            <p class="text-muted small mb-0">Stay updated with blood donation activities</p>
+          </div>
+          <a href="{{ url_for('public.news_list') }}" class="btn btn-outline-danger btn-sm">
+            View All <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+        <div class="row g-3">
+          {% for post in latest_news %}
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift overflow-hidden">
+              <div class="news-img-wrap" style="height:160px; overflow:hidden;">
+                <img src="{{ post.image_url }}" class="card-img-top w-100 h-100"
+                     style="object-fit:cover; transition:transform 0.3s;"
+                     alt="{{ post.title }}"
+                     onerror="this.src='/static/images/news-placeholder.jpg'">
+              </div>
+              <div class="card-body p-3">
+                <span class="badge bg-{{ post.category_badge }} mb-2">{{ post.category|title }}</span>
+                <h6 class="fw-bold card-title">{{ post.title[:60] }}{% if post.title|length > 60 %}...{% endif %}</h6>
+                <p class="small text-muted">{{ post.short_desc[:80] if post.short_desc else '' }}...</p>
+              </div>
+              <div class="card-footer bg-transparent border-0 pb-3 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">
+                    <i class="fas fa-user me-1"></i>{{ post.author }}
+                  </small>
+                  <a href="{{ url_for('public.news_detail', slug=post.slug) }}"
+                     class="btn btn-danger btn-sm">
+                    Read More <i class="fas fa-arrow-right ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- ═══════ SUCCESS STORIES ═══════ -->
+      {% if stories %}
+      <section class="stories py-4 bg-light rounded-4 px-3">
+        <div class="section-header d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h2 class="h4 fw-bold mb-1"><i class="fas fa-star text-warning me-2"></i>Success Stories</h2>
+            <p class="text-muted small mb-0">Real lives saved through blood donation</p>
+          </div>
+          <a href="{{ url_for('public.news_list', category='story') }}" class="btn btn-outline-warning btn-sm">
+            All Stories <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+        <div class="row g-3">
+          {% for story in stories %}
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+              <div class="card-body p-3 text-center">
+                <div class="story-icon mb-3 text-warning">
+                  <i class="fas fa-heart fa-2x"></i>
+                </div>
+                <h6 class="fw-bold">{{ story.title[:50] }}...</h6>
+                <p class="small text-muted">{{ story.short_desc[:100] if story.short_desc else '' }}...</p>
+                <a href="{{ url_for('public.news_detail', slug=story.slug) }}"
+                   class="btn btn-sm btn-outline-warning">Read Story</a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+    </div><!-- /main column -->
+
+    <!-- SIDEBAR -->
+    <div class="col-lg-3">
+      <!-- Notices -->
+      {% if active_notices %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-warning text-dark fw-bold rounded-top-4 border-0">
+          <i class="fas fa-bell me-2"></i>Latest Notices
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            {% for notice in active_notices[:5] %}
+            <li class="list-group-item border-0 py-2 px-3">
+              <div class="fw-semibold small">{{ notice.title[:50] }}{% if notice.title|length > 50 %}...{% endif %}</div>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted">{{ notice.published_date.strftime('%b %d') }}</small>
+                {% if notice.days_left is not none and notice.days_left <= 3 %}
+                <span class="badge bg-danger">{{ notice.days_left }}d left</span>
+                {% elif notice.priority >= 2 %}
+                <span class="badge bg-warning text-dark">Urgent</span>
+                {% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Emergency Donate CTA -->
+      <div class="card border-0 shadow-sm rounded-4 bg-danger text-white mb-4">
+        <div class="card-body text-center p-4">
+          <i class="fas fa-heartbeat fa-3x mb-3 opacity-75 heartbeat-anim"></i>
+          <h5 class="fw-bold">Donate Blood Today!</h5>
+          <p class="small opacity-90 mb-3">
+            You could be the reason someone survives. Register as a donor now.
+          </p>
+          <a href="{{ url_for('public.become_donor') }}" class="btn btn-light text-danger fw-bold w-100">
+            <i class="fas fa-plus me-1"></i> Register as Donor
+          </a>
+        </div>
+      </div>
+
+      <!-- Sidebar Ads -->
+      {% if sidebar_ads %}
+      <div class="mb-2">
+        <small class="text-muted text-uppercase fw-bold">Sponsored</small>
+      </div>
+      {% for ad in sidebar_ads %}
+      {% if ad.is_valid %}
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
+        <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener">
+          <img src="{{ ad.image_url }}" class="card-img-top"
+               style="height:140px; object-fit:cover;"
+               alt="{{ ad.title }}"
+               onerror="this.src='/static/images/ad-placeholder.jpg'">
+        </a>
+        {% if ad.description %}
+        <div class="card-body py-2 px-3">
+          <p class="small text-muted mb-0">{{ ad.description[:80] }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    </div><!-- /sidebar -->
+
+  </div>
+</div>
+
+<script>
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 m-3 alert alert-success shadow';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = '✅ Phone number copied!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  });
+}
+</script>
+{% endblock %}

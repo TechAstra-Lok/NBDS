@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} — {{ site_name }}{% endblock %}
+{% block meta_desc %}{{ post.short_desc or post.content[:160] }}{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('public.news_list') }}" class="text-danger">News</a></li>
+    <li class="breadcrumb-item active">{{ post.title[:40] }}...</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <article class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <!-- Featured Image -->
+      {% if post.featured_image %}
+      <div style="max-height:400px;overflow:hidden;">
+        <img src="{{ post.image_url }}" class="w-100"
+             style="object-fit:cover;max-height:400px;"
+             alt="{{ post.title }}"
+             onerror="this.src='/static/images/news-placeholder.svg'">
+      </div>
+      {% endif %}
+
+      <div class="card-body p-4">
+        <!-- Meta -->
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <span class="badge bg-{{ post.category_badge }}">{{ post.category|title }}</span>
+          <span class="text-muted small">
+            <i class="fas fa-user me-1"></i>{{ post.author }}
+          </span>
+          <span class="text-muted small">
+            <i class="fas fa-calendar me-1"></i>
+            {{ post.created_at.strftime('%B %d, %Y') }}
+          </span>
+          <span class="text-muted small">
+            <i class="fas fa-eye me-1"></i>{{ post.views }} views
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h1 class="h2 fw-black lh-base mb-3">{{ post.title }}</h1>
+
+        {% if post.short_desc %}
+        <p class="lead text-muted border-start border-3 border-danger ps-3 mb-4">
+          {{ post.short_desc }}
+        </p>
+        {% endif %}
+
+        <!-- Content -->
+        <div class="news-content">{{ post.content|safe }}</div>
+
+        <!-- Tags -->
+        {% if post.tags %}
+        <div class="mt-4 pt-3 border-top">
+          <span class="small fw-semibold text-muted me-2">Tags:</span>
+          {% for tag in post.tags.split(',') %}
+          <a href="{{ url_for('public.news_list') }}" class="badge bg-light me-1 text-decoration-none">{{ tag.strip() }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+    </article>
+  </div>
+
+  <!-- Sidebar / Related -->
+  <div class="col-lg-4">
+    {% include 'partials/related_news.html' %}
+  </div>
+</div>
+
+{# JSON-LD NewsArticle schema for SEO/E-E-A-T #}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": post.title,
+  "image": [ post.image_url if post.featured_image else url_for('static', filename='images/news-placeholder.svg', _external=True) ],
+  "datePublished": post.created_at.isoformat(),
+  "dateModified": (post.updated_at.isoformat() if post.updated_at else post.created_at.isoformat()),
+  "author": { "@type": "Person", "name": post.author },
+  "publisher": { "@type": "Organization", "name": site_name, "logo": { "@type": "ImageObject", "url": url_for('static', filename='images/logo.png', _external=True) } },
+  "description": (post.short_desc or (post.content[:160] if post.content else ''))
+ }|tojson(indent=2) }}
+</script>

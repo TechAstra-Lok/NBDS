@@ -1,0 +1,84 @@
+{% extends "admin/layout.html" %}
+{% block title %}News Articles{% endblock %}
+{% block page_title %}News Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <p class="text-muted small mb-0">Total: <strong>{{ pagination.total }}</strong> news articles</p>
+  </div>
+  <a href="{{ url_for('admin.add_news') }}" class="btn btn-danger fw-semibold">
+    <i class="fas fa-plus me-2"></i>Add News Article
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4 py-3">Title</th>
+            <th>Category</th>
+            <th>Published</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in pagination.items %}
+          <tr>
+            <td class="ps-4">
+              <div class="fw-semibold small">{{ item.title }}</div>
+              <div class="text-muted small">{{ item.summary or item.content[:100] }}{% if item.content|length > 100 %}...{% endif %}</div>
+            </td>
+            <td>{{ item.category or 'General' }}</td>
+            <td class="small text-muted">{{ item.created_at.strftime('%b %d, %Y') }}</td>
+            <td class="text-end pe-4">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.edit_news', id=item.id) }}" class="btn btn-outline-primary">Edit</a>
+                <form method="POST" action="{{ url_for('admin.delete_news', id=item.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center py-5 text-muted">
+              <i class="fas fa-newspaper fa-2x mb-2 d-block"></i>No news articles found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for('admin.news', page=pagination.prev_num) }}">
+        <i class="fas fa-chevron-left fa-xs"></i>
+      </a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+    {% if p %}
+    <li class="page-item {{ 'active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('admin.news', page=p) }}">{{ p }}</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">…</span></li>
+    {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for('admin.news', page=pagination.next_num) }}">
+        <i class="fas fa-chevron-right fa-xs"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

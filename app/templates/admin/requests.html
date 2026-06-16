@@ -1,0 +1,207 @@
+{% extends "admin/layout.html" %}
+{% block title %}Blood Requests{% endblock %}
+{% block page_title %}Blood Request Management{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  {% for label, count, color, status in [
+    ('All Requests', counts.all, 'secondary', ''),
+    ('Active', counts.active, 'danger', 'active'),
+    ('Fulfilled', counts.fulfilled, 'success', 'fulfilled'),
+    ('Closed', counts.closed, 'secondary', 'closed'),
+  ] %}
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.blood_requests', status=status) }}"
+       class="card border-0 shadow-sm rounded-3 text-decoration-none hover-lift
+              {{ 'border-2 border-'+color if selected_status == status or (not status and not selected_status) }}">
+      <div class="card-body text-center py-3">
+        <div class="fw-black fs-3 text-{{ color }}">{{ count }}</div>
+        <div class="small text-muted">{{ label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body p-3">
+    <form method="GET" class="row g-2">
+      <div class="col-md-4">
+        <select class="form-select" name="status">
+          <option value="">All Status</option>
+          {% for s in ['active','fulfilled','closed'] %}
+          <option value="{{ s }}" {{ 'selected' if selected_status == s }}>{{ s|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <select class="form-select" name="bg">
+          <option value="">All Blood Groups</option>
+          {% for bg in blood_groups %}
+          <option value="{{ bg }}" {{ 'selected' if selected_bg == bg }}>{{ bg }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-danger flex-grow-1">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <a href="{{ url_for('admin.blood_requests') }}" class="btn btn-outline-secondary">
+          <i class="fas fa-rotate-left"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4 py-3">Request</th>
+            <th>Blood</th>
+            <th>Hospital</th>
+            <th>Contact</th>
+            <th>Received</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in pagination.items %}
+          <tr class="{{ 'table-danger' if req.is_emergency and req.status == 'active' }}">
+            <td class="ps-4">
+              <div class="d-flex align-items-start gap-2">
+                {% if req.is_emergency and req.status == 'active' %}
+                <span class="blink-anim text-danger flex-shrink-0 mt-1">🔴</span>
+                {% endif %}
+                <div>
+                  <div class="fw-semibold small">{{ req.patient_name }}</div>
+                  <div class="text-muted" style="font-size:0.7rem;">
+                    {{ req.request_id }} · {{ req.age_label }}
+                  </div>
+                  <div class="text-muted small">{{ req.case_details[:40] }}...</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-danger fw-bold" style="font-size:1rem;min-width:44px;">
+                {{ req.blood_group }}
+              </span>
+              <div class="text-muted" style="font-size:0.7rem;">{{ req.units_needed }} unit(s)</div>
+            </td>
+            <td class="small">
+              <div class="fw-semibold">{{ req.hospital[:30] }}...</div>
+            </td>
+            <td class="small">
+              <div class="fw-semibold">{{ req.contact_person }}</div>
+              <a href="tel:{{ req.contact_number }}" class="text-dark">{{ req.contact_number }}</a>
+            </td>
+            <td class="small text-muted">
+              {{ req.created_at.strftime('%b %d') }}<br>{{ req.created_at.strftime('%H:%M') }}
+            </td>
+            <td>
+              <span class="badge bg-{{ req.status_badge }}">{{ req.status|title }}</span>
+            </td>
+            <td class="text-end pe-4">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown">
+                  Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                  {% if req.status != 'fulfilled' %}
+                  <li>
+                    <form method="POST"
+                          action="{{ url_for('admin.update_request_status', id=req.id, new_status='fulfilled') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-success">
+                        <i class="fas fa-check me-2"></i>Mark Fulfilled
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+                  {% if req.status != 'active' %}
+                  <li>
+                    <form method="POST"
+                          action="{{ url_for('admin.update_request_status', id=req.id, new_status='active') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-warning">
+                        <i class="fas fa-redo me-2"></i>Reopen
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+                  {% if req.status != 'closed' %}
+                  <li>
+                    <form method="POST"
+                          action="{{ url_for('admin.update_request_status', id=req.id, new_status='closed') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-secondary">
+                        <i class="fas fa-times me-2"></i>Close Request
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form method="POST"
+                          action="{{ url_for('admin.delete_request', id=req.id) }}"
+                          data-confirm="Delete request {{ req.request_id }}? Cannot be undone.">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-danger">
+                        <i class="fas fa-trash me-2"></i>Delete
+                      </button>
+                    </form>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="fas fa-tint fa-2x mb-2 d-block"></i>No blood requests found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+      <a class="page-link" href="{{ url_for('admin.blood_requests',
+         page=pagination.prev_num, status=selected_status, bg=selected_bg) }}">
+        <i class="fas fa-chevron-left fa-xs"></i>
+      </a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+    {% if p %}
+    <li class="page-item {{ 'active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('admin.blood_requests',
+         page=p, status=selected_status, bg=selected_bg) }}">{{ p }}</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">…</span></li>
+    {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+      <a class="page-link" href="{{ url_for('admin.blood_requests',
+         page=pagination.next_num, status=selected_status, bg=selected_bg) }}">
+        <i class="fas fa-chevron-right fa-xs"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

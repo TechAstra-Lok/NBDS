@@ -1,0 +1,54 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Advertisement{% endblock %}
+{% block page_title %}{{ action }} Advertisement{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ form.title.label.text }}</label>
+          {{ form.title(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.ad_type.label.text }}</label>
+          {{ form.ad_type(class_='form-select') }}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ form.description.label.text }}</label>
+          {{ form.description(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.image.label.text }}</label>
+          {{ form.image(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.redirect_url.label.text }}</label>
+          {{ form.redirect_url(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.start_date.label.text }}</label>
+          {{ form.start_date(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.end_date.label.text }}</label>
+          {{ form.end_date(class_='form-control') }}
+        </div>
+        <div class="col-md-6">
+          <div class="form-check mt-4">
+            {{ form.is_active(class_='form-check-input') }}
+            <label class="form-check-label">{{ form.is_active.label.text }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.advertisements') }}" class="btn btn-outline-secondary">Back to Ads</a>
+        {{ form.submit(class_='btn btn-danger') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

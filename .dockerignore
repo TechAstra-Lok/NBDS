@@ -1,0 +1,11 @@
+.venv
+blood
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+app/static/uploads
+.dockerignore
+.vscode
