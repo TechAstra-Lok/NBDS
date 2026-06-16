@@ -480,6 +480,34 @@ def add_notice():
     return render_template('admin/notice_form.html', form=form, action='Add')
 
 
+@admin_bp.route('/notices/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_notice(id):
+    notice = Notice.query.get_or_404(id)
+    form = NoticeForm(obj=notice)
+    
+    if form.validate_on_submit():
+        if form.attachment.data and form.attachment.data.filename:
+            if notice.attachment:
+                delete_file(notice.attachment, 'notices')
+            file_name, file_ext = save_file(form.attachment.data, 'notices')
+            notice.attachment = file_name
+            notice.attachment_type = file_ext
+            
+        notice.title = form.title.data.strip()
+        notice.content = form.content.data.strip()
+        notice.expiry_date = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None
+        notice.priority = int(form.priority.data)
+        notice.is_active = form.is_active.data
+        notice.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        flash('✅ Notice updated successfully!', 'success')
+        return redirect(url_for('admin.notices'))
+        
+    return render_template('admin/notice_form.html', form=form, notice=notice, action='Edit')
+
+
 @admin_bp.route('/notices/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_notice(id):
