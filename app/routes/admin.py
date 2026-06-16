@@ -595,7 +595,12 @@ def mark_contact_read(id):
     msg = Contact.query.get_or_404(id)
     msg.is_read = True
     db.session.commit()
-    return jsonify({'ok': True})
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'ok': True})
+        
+    flash('Message marked as read.', 'success')
+    return redirect(url_for('admin.contacts'))
 
 
 # ════════════════════════════════════════════
