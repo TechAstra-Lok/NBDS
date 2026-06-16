@@ -87,3 +87,4 @@
   "description": (post.short_desc or (post.content[:160] if post.content else ''))
  }|tojson(indent=2) }}
 </script>
+{% endblock %}
