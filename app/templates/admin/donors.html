@@ -186,9 +186,13 @@
 
 <script>
 function toggleStatus(donorId) {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
   fetch(`/admin/donors/${donorId}/toggle-status`, {
     method: 'POST',
-    headers: {'X-Requested-With': 'XMLHttpRequest'}
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': csrfToken
+    }
   })
   .then(r => r.json())
   .then(data => {

@@ -221,7 +221,13 @@ const AdTracker = {
         if (entry.isIntersecting) {
           const adId = entry.target.getAttribute('data-ad-id');
           if (adId) {
-            fetch(`/api/v1/ad/impression/${adId}`, { method: 'POST' }).catch(() => {});
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            fetch(`/api/v1/ad/impression/${adId}`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': csrfToken
+              }
+            }).catch(() => {});
             observer.unobserve(entry.target);
           }
         }
