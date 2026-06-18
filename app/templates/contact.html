@@ -14,58 +14,67 @@
   </h1>
 </div>
 
+<!-- Emergency Box -->
+<div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+  <div class="card-body p-4 text-white">
+    <h6 class="fw-bold mb-3">
+      <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
+    </h6>
+    <p class="small opacity-90 mb-3">
+      <B>Don't send a message for emergencies. Post a blood request directly and
+        donors will be notified immediately.</B>
+    </p>
+    <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white fw-bold w-100" style="color:#DC2626;">
+      <i class="fas fa-plus me-2"></i>Post Emergency Request Now
+    </a>
+  </div>
+</div>
+
 <div class="row g-4">
   <!-- Contact Form -->
   <div class="col-lg-7">
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-body p-4">
         <h5 class="fw-bold mb-4">Send Us a Message</h5>
-        <form method="POST" action="{{ url_for('public.contact') }}"
-              novalidate id="contactForm">
+        <form method="POST" action="{{ url_for('public.contact') }}" novalidate id="contactForm">
           {{ form.hidden_tag() }}
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Your Name <span class="text-danger">*</span></label>
-              <input type="text"
-                     class="form-control {{ 'is-invalid' if form.name.errors }}"
-                     name="name" placeholder="Full name"
-                     value="{{ form.name.data or '' }}" required>
+              <input type="text" class="form-control {{ 'is-invalid' if form.name.errors }}" name="name"
+                placeholder="Full name" value="{{ form.name.data or '' }}" required>
               {% for e in form.name.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-              <input type="email"
-                     class="form-control {{ 'is-invalid' if form.email.errors }}"
-                     name="email" placeholder="your@email.com"
-                     value="{{ form.email.data or '' }}" required>
+              <input type="email" class="form-control {{ 'is-invalid' if form.email.errors }}" name="email"
+                placeholder="your@email.com" value="{{ form.email.data or '' }}" required>
               {% for e in form.email.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Phone Number</label>
-              <input type="tel" class="form-control" name="phone"
-                     placeholder="98XXXXXXXX (Optional)"
-                     value="{{ form.phone.data or '' }}">
+              <input type="tel" class="form-control" name="phone" placeholder="98XXXXXXXX (Optional)"
+                value="{{ form.phone.data or '' }}">
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
               <select class="form-select" name="subject" required>
                 <option value="">— Select Subject —</option>
                 {% for s in ['General Inquiry','Donor Registration Help',
-                             'Blood Request Assistance','Technical Issue',
-                             'Partnership / Sponsorship','Other'] %}
-                <option value="{{ s }}" {{ 'selected' if form.subject.data == s }}>{{ s }}</option>
+                'Blood Request Assistance','Technical Issue',
+                'Partnership / Sponsorship','Other'] %}
+                <option value="{{ s }}" {{ 'selected' if form.subject.data==s }}>{{ s }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
-              <textarea class="form-control {{ 'is-invalid' if form.message.errors }}"
-                        name="message" rows="6" required
-                        placeholder="Write your message here...">{{ form.message.data or '' }}</textarea>
+              <textarea class="form-control {{ 'is-invalid' if form.message.errors }}" name="message" rows="6" required
+                placeholder="Write your message here...">{{ form.message.data or '' }}</textarea>
               {% for e in form.message.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
@@ -81,20 +90,36 @@
     </div>
   </div>
 
+  <!-- Emergency Box -->
+  <div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+    <div class="card-body p-4 text-white">
+      <h6 class="fw-bold mb-3">
+        <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
+      </h6>
+      <p class="small opacity-90 mb-3">
+        Don't send a message for emergencies. Post a blood request directly and
+        donors will be notified immediately.
+      </p>
+      <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white fw-bold w-100" style="color:#DC2626;">
+        <i class="fas fa-plus me-2"></i>Post Emergency Request Now
+      </a>
+    </div>
+  </div>
+
   <!-- Contact Info -->
   <div class="col-lg-5">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
         <h5 class="fw-bold mb-4">Get in Touch</h5>
         {% for icon, color, title, detail in [
-          ('fas fa-location-dot','danger','Address','Kathmandu Metropolitan City, Bagmati Pradesh, Nepal'),
-          ('fas fa-phone','success','Phone','+977-1-4XXXXXXX (Office)\n+977-98XXXXXXXX (Emergency)'),
-          ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org\nsupport@nepaliblooddonors.org'),
-          ('fas fa-clock','warning','Office Hours','Sunday – Friday: 9AM – 5PM\nEmergency Line: 24/7'),
+        ('fas fa-location-dot','danger','Address','Kathmandu Metropolitan City, Bagmati Pradesh, Nepal'),
+        ('fas fa-phone','success','Phone','+977-1-4XXXXXXX (Office)\n+977-98XXXXXXXX (Emergency)'),
+        ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org\nsupport@nepaliblooddonors.org'),
+        ('fas fa-clock','warning','Office Hours','Sunday – Friday: 9AM – 5PM\nEmergency Line: 24/7'),
         ] %}
         <div class="d-flex gap-3 mb-4">
           <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
-               style="width:44px;height:44px;background:var(--bs-{{ color }}-bg-subtle,rgba(0,0,0,0.05));">
+            style="width:44px;height:44px;background:var(--bs-{{ color }}-bg-subtle,rgba(0,0,0,0.05));">
             <i class="{{ icon }} text-{{ color }}"></i>
           </div>
           <div>
@@ -106,31 +131,15 @@
       </div>
     </div>
 
-    <!-- Emergency Box -->
-    <div class="card border-0 shadow-sm rounded-4"
-         style="background:linear-gradient(135deg,#DC2626,#991B1B);">
-      <div class="card-body p-4 text-white">
-        <h6 class="fw-bold mb-3">
-          <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
-        </h6>
-        <p class="small opacity-90 mb-3">
-          Don't send a message for emergencies. Post a blood request directly and
-          donors will be notified immediately.
-        </p>
-        <a href="{{ url_for('public.blood_request_form') }}"
-           class="btn btn-white fw-bold w-100" style="color:#DC2626;">
-          <i class="fas fa-plus me-2"></i>Post Emergency Request Now
-        </a>
-      </div>
-    </div>
+
   </div>
 </div>
 
 <script>
-document.getElementById('contactForm').addEventListener('submit', function() {
-  const btn = document.getElementById('sendBtn');
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
-  btn.disabled = true;
-});
+  document.getElementById('contactForm').addEventListener('submit', function () {
+    const btn = document.getElementById('sendBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+    btn.disabled = true;
+  });
 </script>
 {% endblock %}

@@ -1,5 +1,4 @@
 from urllib.parse import urljoin, urlparse
-
 from flask import (
     Blueprint, render_template, request, redirect,
     url_for, flash, jsonify, current_app, session
@@ -8,14 +7,14 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import (
     User, Donor, BloodRequest, News, Notice,
-    Advertisement, Contact, SiteVisitor
+    Advertisement, Contact, SiteVisitor, SuccessStory  # SuccessStory model थपिएको
 )
 from app.forms import (
     AdminLoginForm, DonorRegistrationForm, DonorEditForm,
     NewsForm, NoticeForm, AdvertisementForm, AdminUserForm
 )
 from app.utils import save_image, save_file, delete_file, paginate_query, sanitize_html
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_  # यहाँ or_ इम्पोर्ट फिक्स गरिएको छ
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -124,6 +123,7 @@ def dashboard():
     total_news      = News.query.filter_by(is_published=True).count()
     total_notices   = Notice.query.filter_by(is_active=True).count()
     unread_contacts = Contact.query.filter_by(is_read=False).count()
+    total_stories   = SuccessStory.query.count()  # ड्यासबोर्डमा सफलताका कथाहरूको गणना थपियो
     
     # Visitor stats
     today       = datetime.utcnow().date()
@@ -169,6 +169,7 @@ def dashboard():
         total_news=total_news,
         total_notices=total_notices,
         unread_contacts=unread_contacts,
+        total_stories=total_stories,  # टेम्प्लेटमा डेटा पास गरियो
         today_visitors=today_visitors,
         week_visitors=week_visitors,
         total_visitors=total_visitors,
@@ -463,12 +464,19 @@ def add_notice():
             file_name, file_ext = save_file(form.attachment.data, 'notices')
         
         notice = Notice(
+            # pyrefly: ignore [unexpected-keyword]
             title           = form.title.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             content         = form.content.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             expiry_date     = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None,
+            # pyrefly: ignore [unexpected-keyword]
             priority        = int(form.priority.data),
+            # pyrefly: ignore [unexpected-keyword]
             attachment      = file_name,
+            # pyrefly: ignore [unexpected-keyword]
             attachment_type = file_ext,
+            # pyrefly: ignore [unexpected-keyword]
             is_active       = form.is_active.data,
         )
         db.session.add(notice)
@@ -565,13 +573,21 @@ def add_advertisement():
         image_file = save_image(form.image.data, 'ads', max_width=800, max_height=600)
         
         ad = Advertisement(
+            # pyrefly: ignore [unexpected-keyword]
             title       = form.title.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             description = form.description.data.strip() if form.description.data else None,
+            # pyrefly: ignore [unexpected-keyword]
             image       = image_file,
+            # pyrefly: ignore [unexpected-keyword]
             redirect_url= form.redirect_url.data.strip() if form.redirect_url.data else None,
+            # pyrefly: ignore [unexpected-keyword]
             ad_type     = form.ad_type.data,
+            # pyrefly: ignore [unexpected-keyword]
             start_date  = datetime.combine(form.start_date.data, datetime.min.time()),
+            # pyrefly: ignore [unexpected-keyword]
             end_date    = datetime.combine(form.end_date.data, datetime.max.time()),
+            # pyrefly: ignore [unexpected-keyword]
             is_active   = form.is_active.data,
         )
         db.session.add(ad)
@@ -629,6 +645,37 @@ def mark_contact_read(id):
         
     flash('Message marked as read.', 'success')
     return redirect(url_for('admin.contacts'))
+
+
+# ════════════════════════════════════════════
+#   SUCCESS STORIES MANAGEMENT (Admin Panel)
+# ════════════════════════════════════════════
+@admin_bp.route('/success-stories')
+@login_required
+def success_stories():
+    """एडमिन ड्यासबोर्ड भित्र सबै सफलताका कथाहरू सूचीकृत गर्ने मुख्य व्यवस्थापन राउट"""
+    page = request.args.get('page', 1, type=int)
+    pagination = paginate_query(
+        SuccessStory.query.order_by(desc(SuccessStory.created_at)), page, 15
+    )
+    return render_template('admin/success_stories.html', pagination=pagination)
+
+
+@admin_bp.route('/success-stories/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_success_story(id):
+    """एडमिन प्यानल र सर्भर स्टोरेज दुवैबाट कथा सुरक्षित रूपमा डिलिट गर्ने राउट"""
+    story = SuccessStory.query.get_or_404(id)
+    
+    # यदि कथासँग कुनै अपलोड गरिएको तस्बिर छ भने त्यसलाई पनि सर्भरबाट सधैँका लागि सफा गर्ने
+    if story.image_file:
+        delete_file(story.image_file, 'stories')
+        
+    db.session.delete(story)
+    db.session.commit()
+    
+    flash(f'⚠️ Success story by "{story.author_name}" has been permanently deleted.', 'warning')
+    return redirect(url_for('admin.success_stories'))
 
 
 # ════════════════════════════════════════════

@@ -300,7 +300,7 @@
         ('check','text-success','Weight: Minimum 50 kg'),
         ('check','text-success','Hemoglobin: 12.5g/dL minimum'),
         ('check','text-success','Blood pressure: Normal range'),
-        ('times','text-danger','Not donated in last 16 weeks'),
+        ('times','text-danger','Not donated in last 12.5 weeks(3 Months)'),
         ('times','text-danger','No fever or infections'),
         ('times','text-danger','Not pregnant or breastfeeding'),
         ] %}
@@ -310,11 +310,32 @@
           {{ text }}
         </div>
         {% endfor %}
+      </div><br>
+
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-star text-warning me-2"></i>Benefits of Donating
+          </h6>
+          {% set benefits = [
+          ('heart-pulse','danger','Save up to 3 lives per donation'),
+          ('chart-line','success','Free health checkup each time'),
+          ('shield-halved','info','Reduces risk of heart disease'),
+          ('certificate','warning','Certificate of donation'),
+          ('users','primary','Join a heroic community'),
+          ] %}
+          {% for icon, color, text in benefits %}
+          <div class="d-flex align-items-center gap-2 mb-2 small">
+            <i class="fas fa-{{ icon }} text-{{ color }} flex-shrink-0" style="width:16px;"></i>
+            {{ text }}
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
 
     <!-- Benefits -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <!--<div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
         <h6 class="fw-bold mb-3">
           <i class="fas fa-star text-warning me-2"></i>Benefits of Donating
@@ -333,7 +354,7 @@
         </div>
         {% endfor %}
       </div>
-    </div>
+    </div>-->
 
     <!-- Privacy Note -->
     <div class="alert alert-info border-0 rounded-3 small">

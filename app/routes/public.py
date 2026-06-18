@@ -1,62 +1,32 @@
+import os
+from datetime import datetime, timedelta, date
+from difflib import SequenceMatcher
+from urllib.parse import urlparse
+
 from flask import (
     Blueprint, render_template, request, redirect,
     url_for, flash, jsonify, abort, current_app, render_template_string, Response
 )
-from app import db
-from app.models import Donor, BloodRequest, News, Notice, Advertisement, Contact, SiteVisitor
-from app.forms import BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm
-from difflib import SequenceMatcher
-from app.utils import paginate_query, get_blood_group_stats, sanitize_html
+from werkzeug.utils import secure_filename
 from sqlalchemy import desc, or_, func
-from urllib.parse import urlparse
-from datetime import datetime, timedelta, date
+from flask_login import login_required, current_user  # एडमिन सुरक्षाका लागि थपिएको
 
+from app import db
+from app.models import (
+    Donor, BloodRequest, News, Notice, Advertisement, 
+    Contact, SiteVisitor, SuccessStory
+)
+from app.forms import (
+    BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm
+)
+from app.utils import paginate_query, get_blood_group_stats, sanitize_html
+
+# ब्लुप्रिन्ट परिभाषा
 public_bp = Blueprint('public', __name__)
-
-@public_bp.route('/sitemap.xml', methods=['GET'])
-def sitemap():
-    # Build a simple sitemap including index, news items, and notices
-    pages = []
-    pages.append((url_for('public.index', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.news_list', _external=True), datetime.utcnow().date().isoformat()))
-    # include first few paginated news pages
-    try:
-        news_count = News.query.filter_by(is_published=True).count()
-        per_page = current_app.config.get('NEWS_PER_PAGE', 10)
-        total_pages = max(1, (news_count // per_page) + (1 if news_count % per_page else 0))
-        # limit sitemap pagination to first 5 pages to avoid huge sitemaps
-        for p in range(1, min(total_pages, 5) + 1):
-            pages.append((url_for('public.news_list', page=p, _external=True), datetime.utcnow().date().isoformat()))
-    except Exception:
-        pass
-    pages.append((url_for('public.blood_request_board', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
-
-    # News articles
-    for n in News.query.filter_by(is_published=True).order_by(desc(News.created_at)).all():
-        pages.append((url_for('public.news_detail', slug=n.slug, _external=True), n.created_at.date().isoformat()))
-
-    # include a few important static pages
-    pages.append((url_for('public.about', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
-
-    # Notices
-    for no in Notice.query.filter_by(is_active=True).order_by(desc(Notice.published_date)).all():
-        pages.append((url_for('public.index', _external=True) + '#notice-' + str(no.id), no.published_date.date().isoformat()))
-
-    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, lastmod in pages:
-        xml_parts.append('<url>')
-        xml_parts.append(f'<loc>{loc}</loc>')
-        xml_parts.append(f'<lastmod>{lastmod}</lastmod>')
-        xml_parts.append('</url>')
-    xml_parts.append('</urlset>')
-    body = '\n'.join(xml_parts)
-    return Response(body, mimetype='application/xml')
 
 ALL_DISTRICTS = [
     'Bhojpur', 'Dhankuta', 'Ilam', 'Jhapa', 'Khotang', 'Morang', 'Okhaldhunga',
-    'Panchthar', 'Sankhuwasabha', 'Solukhumbu', 'Sunsari', 'Taplejung', 'Terhathum',
+    'Panchthar', 'Sankhuwasabha', 'Solukunbu', 'Sunsari', 'Taplejung', 'Terhathum',
     'Udayapur', 'Bara', 'Dhanusha', 'Mahottari', 'Parasi', 'Parsa', 'Rautahat',
     'Sarlahi', 'Saptari', 'Siraha', 'Sindhuli', 'Sindhupalchok', 'Baglung', 'Gorkha',
     'Kaski', 'Lamjung', 'Manang', 'Mustang', 'Myagdi', 'Nawalpur', 'Parbat', 'Syangja',
@@ -70,50 +40,164 @@ ALL_DISTRICTS = [
 ]
 
 
+# ─── AI IMAGE FILTER INTEGRATION (GOOGLE CLOUD VISION) ───
+def is_image_safe(image_path):
+    """
+    गुगल क्लाउड भिजन API प्रयोग गरी तस्बिर सुरक्षित छ कि छैन जाँच गर्ने प्रकार्य।
+    यदि गुगल सेट गरिएको छैन भने, सुरक्षाको लागि यो प्रकार्यले पास दिन्छ।
+    """
+    try:
+        from google.cloud import vision
+        client = vision.ImageAnnotatorClient()
+
+        with open(image_path, 'rb') as image_file:
+            content = image_file.read()
+
+        image = vision.Image(content=content)
+        response = client.safe_search_detection(image=image)
+        safe = response.safe_search_annotation
+
+        # Likelihood levels: UNKNOWN, VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY
+        # POSSIBLE(3), LIKELY(4) वा VERY_LIKELY(5) आएमा असुरक्षित मानिनेछ।
+        unsafe_landmarks = [3, 4, 5]
+        
+        if (safe.adult in unsafe_landmarks or 
+            safe.medical in unsafe_landmarks or 
+            safe.violence in unsafe_landmarks or 
+            safe.racy in unsafe_landmarks):
+            return False, "समुदाय निर्देशिका उल्लंघन (नग्नता, अश्लीलता, वा हिंसात्मक सामग्री फेला पर्यो)।"
+        
+        return True, "Safe"
+    except Exception as e:
+        # यदि Google Cloud Credentials कन्फिगर गरिएको छैन भने सुरक्षा बाइपास (वैकल्पिक)
+        return True, "Skipped"
+
+
+# ════════════════════════════════════════════
+#   SUCCESS STORIES PAGE
+# ════════════════════════════════════════════
+@public_bp.route('/success-stories', methods=['GET', 'POST'])
+def success_stories():
+    if request.method == 'POST':
+        # ─── CSRF टोकन म्यानुअल रूपमा जाँच गर्ने ───
+        from flask_wtf.csrf import validate_csrf
+        from wtforms.validators import ValidationError
+        
+        token = request.form.get('csrf_token')
+        try:
+            validate_csrf(token)
+        except ValidationError:
+            flash("⚠️ सुरक्षा त्रुटि: CSRF टोकन अमान्य वा प्राप्त भएन। कृपया पुनः प्रयास गर्नुहोस्।", "danger")
+            return redirect(url_for('public.success_stories'))
+        # ─────────────────────────────────────────────────────────
+
+        author_name = request.form.get('author_name')
+        title = request.form.get('title')
+        content = request.form.get('content')
+        file = request.files.get('story_image')
+
+        if not author_name or not title or not content:
+            flash("कृपया सबै आवश्यक क्षेत्रहरू भर्नुहोस्।", "warning")
+            return redirect(url_for('public.success_stories'))
+
+        filename = None
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            upload_folder = os.path.join(current_app.root_path, 'static/uploads/stories')
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            temp_path = os.path.join(upload_folder, filename)
+            file.save(temp_path)
+
+            # स्वचालित तस्बिर मध्यस्थता (Automated Image Moderation)
+            is_safe, message = is_image_safe(temp_path)
+            if not is_safe:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                flash(f"⚠️ चेतावनी: {message}", "danger")
+                return redirect(url_for('public.success_stories'))
+
+        # डेटाबेसमा सुरक्षित गर्ने
+        new_story = SuccessStory(
+            # pyrefly: ignore [unexpected-keyword]
+            author_name=author_name.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            title=title.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            content=content.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            image_file=filename
+        )
+        db.session.add(new_story)
+        db.session.commit()
+        
+        flash("तपाईंको सफलताको कथा सफलतापूर्वक पोस्ट भयो! धन्यवाद।", "success")
+        return redirect(url_for('public.success_stories'))
+
+    stories = SuccessStory.query.order_by(SuccessStory.created_at.desc()).all()
+    return render_template('success_stories.html', stories=stories)
+
+
+# ─── केवल एडमिनका लागि मात्र डिलिट गर्ने राउट (सुरक्षित फिक्स) ───
+@public_bp.route('/success-stories/<int:story_id>/delete', methods=['POST'])
+@login_required  # अनिवार्य लगइन
+def delete_success_story(story_id):
+    # प्रयोगकर्ता एडमिन हो कि होइन प्राविधिक पुष्टि गर्ने
+    if not getattr(current_user, 'is_admin', False) and getattr(current_user, 'role', '') != 'admin':
+        abort(403) # अनुमति नभएमा सिधै ब्लक गर्ने
+
+    story = SuccessStory.query.get_or_404(story_id)
+    
+    # सर्भरको फोल्डरबाट तस्बिर पनि सफा गर्ने
+    if story.image_file:
+        image_path = os.path.join(current_app.root_path, 'static/uploads/stories', story.image_file)
+        if os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+            except Exception:
+                pass
+            
+    db.session.delete(story)
+    db.session.commit()
+    
+    flash("सफलताको कथा सफलतापूर्वक डिलिट गरियो।", "danger")
+    return redirect(url_for('public.success_stories'))
 # ════════════════════════════════════════════
 #   HOMEPAGE
 # ════════════════════════════════════════════
 @public_bp.route('/')
 def index():
-    # Active blood requests
     active_requests = BloodRequest.query.filter_by(status='active').order_by(
         BloodRequest.is_emergency.desc(),
         desc(BloodRequest.created_at)
     ).limit(6).all()
     
-    # Stats
     total_donors    = Donor.query.count()
     avail_donors    = Donor.query.filter_by(availability_status='available').count()
     total_requests  = BloodRequest.query.count()
     fulfilled       = BloodRequest.query.filter_by(status='fulfilled').count()
     
-    # Blood group stats
     bg_stats = get_blood_group_stats()
     
-    # Latest news
     latest_news = News.query.filter_by(is_published=True).order_by(
         desc(News.created_at)
     ).limit(3).all()
     
-    # Latest notices (homepage)
     latest_notices = Notice.query.filter(
         Notice.is_active == True,
         or_(Notice.expiry_date == None, Notice.expiry_date >= datetime.utcnow())
     ).order_by(Notice.priority.desc(), desc(Notice.published_date)).limit(5).all()
     
-    # Success stories
     stories = News.query.filter_by(
         category='story', is_published=True
     ).order_by(desc(News.created_at)).limit(3).all()
     
-    # Homepage banner ads
     banner_ads = Advertisement.query.filter(
         Advertisement.is_active == True,
         Advertisement.ad_type == 'banner',
         or_(Advertisement.end_date == None, Advertisement.end_date >= datetime.utcnow())
     ).all()
     
-    # Track impressions
     for ad in banner_ads:
         ad.impressions += 1
     db.session.commit()
@@ -140,7 +224,6 @@ def blood_request_form():
     form = BloodRequestForm()
     
     if form.validate_on_submit():
-        # Typosquatting / duplicate prevention: disallow similar requests for same patient within 10 minutes
         ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
         normalized_new = ''.join(e for e in form.patient_name.data.lower() if e.isalnum())
         recent = BloodRequest.query.filter(BloodRequest.created_at >= ten_min_ago).all()
@@ -202,7 +285,6 @@ def blood_request_board():
     pagination  = paginate_query(query, page, current_app.config['REQUESTS_PER_PAGE'])
     blood_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
     
-    # Count by status
     active_count    = BloodRequest.query.filter_by(status='active').count()
     fulfilled_count = BloodRequest.query.filter_by(status='fulfilled').count()
     closed_count    = BloodRequest.query.filter_by(status='closed').count()
@@ -292,8 +374,6 @@ def find_donors():
     total_donors = Donor.query.count()
     avail_donors = Donor.query.filter_by(availability_status='available').count()
     blood_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-    
-    # Use a full district autocomplete list and keep user-entered district filtering
     districts = ALL_DISTRICTS
     
     return render_template('find_donors.html',
@@ -352,9 +432,6 @@ def donor_profile(donor_id):
     return render_template('donor_profile.html', donor=donor)
 
 
-# Public profile editing is disabled to prevent unauthorized data modification.
-# Admin users may update donors through the secure admin panel only.
-
 # ════════════════════════════════════════════
 #   NEWS
 # ════════════════════════════════════════════
@@ -410,10 +487,15 @@ def contact():
     
     if form.validate_on_submit():
         msg = Contact(
+            # pyrefly: ignore [unexpected-keyword]
             name    = form.name.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             email   = form.email.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             phone   = form.phone.data.strip() if form.phone.data else None,
+            # pyrefly: ignore [unexpected-keyword]
             subject = form.subject.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
             message = form.message.data.strip(),
         )
         db.session.add(msg)
@@ -423,6 +505,19 @@ def contact():
         return redirect(url_for('public.contact'))
     
     return render_template('contact.html', form=form)
+
+
+# ════════════════════════════════════════════
+#   DONOR GUIDELINES & FAQ
+# ════════════════════════════════════════════
+@public_bp.route('/donor-guidelines')
+def donor_guidelines():
+    return render_template('donor_guidelines.html')
+
+
+@public_bp.route('/faq')
+def faq():
+    return render_template('faq.html')
 
 
 # ════════════════════════════════════════════
@@ -437,3 +532,45 @@ def ad_click(ad_id):
     if ad.redirect_url:
         return redirect(ad.redirect_url)
     return redirect(url_for('public.index'))
+
+
+# ════════════════════════════════════════════
+#   SITEMAP GENERATION
+# ════════════════════════════════════════════
+@public_bp.route('/sitemap.xml', methods=['GET'])
+def sitemap():
+    pages = []
+    pages.append((url_for('public.index', _external=True), datetime.utcnow().date().isoformat()))
+    pages.append((url_for('public.news_list', _external=True), datetime.utcnow().date().isoformat()))
+    
+    try:
+        news_count = News.query.filter_by(is_published=True).count()
+        per_page = current_app.config.get('NEWS_PER_PAGE', 10)
+        total_pages = max(1, (news_count // per_page) + (1 if news_count % per_page else 0))
+        for p in range(1, min(total_pages, 5) + 1):
+            pages.append((url_for('public.news_list', page=p, _external=True), datetime.utcnow().date().isoformat()))
+    except Exception:
+        pass
+        
+    pages.append((url_for('public.blood_request_board', _external=True), datetime.utcnow().date().isoformat()))
+    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
+
+    for n in News.query.filter_by(is_published=True).order_by(desc(News.created_at)).all():
+        pages.append((url_for('public.news_detail', slug=n.slug, _external=True), n.created_at.date().isoformat()))
+
+    pages.append((url_for('public.about', _external=True), datetime.utcnow().date().isoformat()))
+    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
+    pages.append((url_for('public.success_stories', _external=True), datetime.utcnow().date().isoformat()))
+
+    for no in Notice.query.filter_by(is_active=True).order_by(desc(Notice.published_date)).all():
+        pages.append((url_for('public.index', _external=True) + '#notice-' + str(no.id), no.published_date.date().isoformat()))
+
+    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, lastmod in pages:
+        xml_parts.append('<url>')
+        xml_parts.append(f'<loc>{loc}</loc>')
+        xml_parts.append(f'<lastmod>{lastmod}</lastmod>')
+        xml_parts.append('</url>')
+    xml_parts.append('</urlset>')
+    body = '\n'.join(xml_parts)
+    return Response(body, mimetype='application/xml')

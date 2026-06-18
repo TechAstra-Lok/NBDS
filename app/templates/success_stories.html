@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}सफलताका कथाहरू (Success Stories) — Nepali Blood Donors{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5 text-white"
+        style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+        <div class="card-body p-4 p-md-5 text-center">
+            <div class="mb-3 heartbeat-anim d-inline-block">
+                <i class="fas fa-hand-holding-heart text-white fa-3x"></i>
+            </div>
+            <h2 class="fw-black mb-2">रक्तदानका प्रेरक कथाहरू</h2>
+            <p class="lead opacity-95 mb-0 mx-auto" style="max-width: 650px;">
+                तपाईंको एउटा प्रयासले कसरी कसैको अमूल्य जीवन बचायो? आफ्ना अनुभवहरू सेयर गर्नुहोस् र संसारलाई प्रेरित
+                गर्नुहोस्।
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-8">
+            <h4 class="fw-bold text-dark mb-4"><i class="fas fa-rss text-primary me-2"></i>नवीनतम कथाहरू</h4>
+
+            {# फ्ल्यास मेसेजहरू प्रदर्शन गर्ने ठाउँ #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% if stories %}
+            {% for story in stories %}
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 border-start border-4 border-primary">
+
+                {% if story.image_file %}
+                <img src="{{ url_for('static', filename='uploads/stories/' + story.image_file) }}" class="w-100"
+                    style="max-height: 380px; object-fit: cover;" alt="{{ story.title }}">
+                {% endif %}
+
+                <div class="card-body p-4">
+                    <h4 class="fw-bold text-dark mb-2">{{ story.title }}</h4>
+
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                        <div class="d-flex align-items-center gap-2 text-muted small">
+                            <span><i class="fas fa-user-pen me-1"></i><strong>{{ story.author_name }}</strong></span>
+                            <span>•</span>
+                            <span><i class="fas fa-calendar-day me-1"></i>{{ story.created_at.strftime('%b %d, %Y')
+                                }}</span>
+                        </div>
+
+                        {% if current_user.is_authenticated and (current_user.is_admin or current_user.role == 'admin')
+                        %}
+                        <form action="{{ url_for('public.delete_success_story', story_id=story.id) }}" method="POST"
+                            onsubmit="return confirm('के तपाईं यो कथा स्थायी रूपमा डिलिट गर्न चाहनुहुन्छ?');"
+                            class="m-0">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit"
+                                class="btn btn-link text-danger p-0 small text-decoration-none fw-semibold">
+                                <i class="fas fa-trash-can me-1"></i>डिलिट गर्नुहोस्
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-secondary lh-base mb-0" style="white-space: pre-line;">{{ story.content }}</p>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="card border-0 p-5 text-center rounded-4 shadow-sm bg-light">
+                <i class="fas fa-comment-slash fa-3x text-muted mb-3"></i>
+                <h5>अहिलेसम्म कुनै कथा पोस्ट गरिएको छैन।</h5>
+                <p class="small text-muted">दायाँपट्टिको फारम प्रयोग गरेर पहिलो प्रेरक कथा पोस्ट गर्नुहोस्!</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 85px;">
+
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="fas fa-pen-to-square text-primary me-2"></i>आफ्नो कथा थप्नुहोस्
+                    </h5>
+                    <form action="{{ url_for('public.success_stories') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">तपाईंको नाम *</label>
+                            <input type="text" name="author_name" class="form-control rounded-3"
+                                placeholder="उदा. राम बहादुर श्रेष्ठ" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">शीर्षक *</label>
+                            <input type="text" name="title" class="form-control rounded-3"
+                                placeholder="कथाको मुख्य शीर्षक" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">अनुभव / विवरण *</label>
+                            <textarea name="content" rows="5" class="form-control rounded-3"
+                                placeholder="तपाईंको अनुभव विस्तारमा लेख्नुहोस्..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">तस्बिर अपलोड गर्नुहोस्
+                                (ऐच्छिक)</label>
+                            <input type="file" name="story_image" class="form-control rounded-3" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold">
+                            <i class="fas fa-paper-plane me-2"></i>कथा प्रकाशित गर्नुहोस्
+                        </button>
+                    </form>
+                </div>
+
+                <div
+                    class="card border-0 rounded-4 p-3 bg-warning bg-opacity-10 border border-warning border-opacity-20">
+                    <h6 class="fw-bold text-warning-emphasis mb-2">
+                        <i class="fas fa-triangle-exclamation me-2"></i>समुदाय निर्देशिका (Guidelines)
+                    </h6>
+                    <ul class="list-unstyled small text-muted ps-0 mb-0">
+                        <li class="mb-1">❌ नग्नता (Nudity) वा अश्लील (Pornographic) तस्बिर पूर्ण निषेध छ।</li>
+                        <li class="mb-1">❌ रगत लतपत्तिएको, काटमार वा हिंसा देखिने तस्बिर राख्न पाइने छैन।</li>
+                        <li class="mb-0">🤖 <strong>नोट:</strong> हाम्रो एआई (AI) प्रणालीले त्यस्ता तस्बिरहरू स्वतः
+                            पहिचान गरी हटाउनेछ र प्रयोगकर्तालाई चेतावनी जारी गर्नेछ।</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div> {% endblock %}

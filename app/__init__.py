@@ -4,13 +4,16 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
 from config import config
+from flask_migrate import Migrate
 
+# एक्सटेन्सनहरू सुरुमै सिर्जना गर्ने (Global instance)
 csrf = CSRFProtect()
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
+migrate = Migrate()
 
 
 def create_app(config_name=None):
@@ -22,25 +25,26 @@ def create_app(config_name=None):
     if hasattr(config[config_name], 'init_app'):
         config[config_name].init_app(app)
     
-    # Init extensions
+    # एक्सटेन्सनहरू एप्लिकेसनसँग जोड्ने (Initialize extensions)
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
-    
-    # Create upload dirs
+
+    # अपलोड फोल्डरहरू स्वतः सिर्जना गर्ने (तस्बिरको सुरक्षाको लागि)
     _create_upload_dirs(app)
     
     with app.app_context():
-        # Import models
+        # मोडेलहरू इम्पोर्ट गर्ने (डाटाबेस माइग्रेसनको लागि अनिवार्य)
         from app import models
         
-        # Create tables
+        # टेबलहरू सिर्जना गर्ने
         db.create_all()
         
-        # Seed initial admin
+        # सिड एडमिन अकाउन्ट बनाउने
         _seed_admin(app)
         
-        # Register blueprints
+        # ब्लुप्रिन्टहरू (Blueprints) इम्पोर्ट र रजिस्टर गर्ने (Circular Import नहुने सुरक्षित तरिका)
         from app.routes.public import public_bp
         from app.routes.admin import admin_bp
         from app.routes.api import api_bp
@@ -49,17 +53,18 @@ def create_app(config_name=None):
         app.register_blueprint(admin_bp, url_prefix='/admin')
         app.register_blueprint(api_bp, url_prefix='/api/v1')
         
-        # Error handlers
+        # एरर ह्यान्डलरहरू सुचारु गर्ने
         _register_error_handlers(app)
         
-        # Context processors
+        # कन्टेक्स्ट प्रोसेसरहरू सुचारु गर्ने (ग्लोबल डाटाहरूको लागि)
         _register_context_processors(app)
     
     return app
 
 
 def _create_upload_dirs(app):
-    dirs = ['news', 'notices', 'ads', 'general']
+    # 'stories' फोल्डर यहाँ थपिएको छ ता कि सफलताका कथाहरूको फोटो सुरक्षित रहन सकोस्
+    dirs = ['news', 'notices', 'ads', 'general', 'stories']
     for d in dirs:
         path = os.path.join(app.config['UPLOAD_FOLDER'], d)
         os.makedirs(path, exist_ok=True)
@@ -111,7 +116,7 @@ def _register_context_processors(app):
         from datetime import datetime
         from flask import request
         
-        # Track visitors
+        # भिजिटर ट्र्याकिङ प्रणाली (Visitor Tracking)
         try:
             visitor_ip = request.remote_addr
             today = datetime.utcnow().date()
@@ -121,8 +126,11 @@ def _register_context_processors(app):
             ).first()
             if not existing:
                 new_visitor = SiteVisitor(
+                    # pyrefly: ignore [unexpected-keyword]
                     ip_address=visitor_ip,
+                    # pyrefly: ignore [unexpected-keyword]
                     visit_date=today,
+                    # pyrefly: ignore [unexpected-keyword]
                     user_agent=request.headers.get('User-Agent', '')[:255]
                 )
                 db.session.add(new_visitor)
@@ -131,13 +139,13 @@ def _register_context_processors(app):
             db.session.rollback()
             pass
         
-        # Active notices
+        # सक्रिय सूचनाहरू (Active Notices)
         active_notices = Notice.query.filter(
             Notice.is_active == True,
             (Notice.expiry_date == None) | (Notice.expiry_date >= datetime.utcnow())
         ).order_by(Notice.published_date.desc()).limit(5).all()
         
-        # Active sidebar ads
+        # साइडबार विज्ञापनहरू (Active Sidebar Ads)
         sidebar_ads = Advertisement.query.filter(
             Advertisement.is_active == True,
             Advertisement.ad_type == 'sidebar',

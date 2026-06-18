@@ -22,40 +22,37 @@
 <!-- Search Filters -->
 <div class="card border-0 shadow-sm rounded-4 mb-4">
   <div class="card-body p-3 p-md-4">
-    <form method="GET" action="{{ url_for('public.find_donors') }}"
-          id="searchForm">
+    <form method="GET" action="{{ url_for('public.find_donors') }}" id="searchForm">
       <div class="row g-3">
         <div class="col-md-3">
           <label class="form-label small fw-semibold">Blood Group</label>
           <select class="form-select" name="blood_group" id="filterBG">
             <option value="">All Blood Groups</option>
             {% for bg in blood_groups %}
-            <option value="{{ bg }}" {{ 'selected' if selected_bg == bg }}>{{ bg }}</option>
+            <option value="{{ bg }}" {{ 'selected' if selected_bg==bg }}>{{ bg }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-semibold">District</label>
-          <input type="text" class="form-control" name="district" id="filterDistrict"
-                 list="districtList" value="{{ selected_district }}"
-                 placeholder="Type to search districts or leave blank for all">
+          <input type="text" class="form-control" name="district" id="filterDistrict" list="districtList"
+            value="{{ selected_district }}" placeholder="Type to search districts or leave blank for all">
           <datalist id="districtList">
             {% for d in districts %}
             <option value="{{ d }}">
-            {% endfor %}
+              {% endfor %}
           </datalist>
         </div>
         <div class="col-md-2">
           <label class="form-label small fw-semibold">City / Town</label>
-          <input type="text" class="form-control" name="city"
-                 value="{{ selected_city }}" placeholder="e.g. Kathmandu">
+          <input type="text" class="form-control" name="city" value="{{ selected_city }}" placeholder="e.g. Kathmandu">
         </div>
         <div class="col-md-2">
           <label class="form-label small fw-semibold">Donor Type</label>
           <select class="form-select" name="donor_type">
             <option value="">All Types</option>
             {% for t in ['occasional','regular','emergency'] %}
-            <option value="{{ t }}" {{ 'selected' if selected_type == t }}>{{ t|title }}</option>
+            <option value="{{ t }}" {{ 'selected' if selected_type==t }}>{{ t|title }}</option>
             {% endfor %}
           </select>
         </div>
@@ -63,8 +60,7 @@
           <button type="submit" class="btn btn-danger flex-grow-1">
             <i class="fas fa-search me-1"></i>Search
           </button>
-          <a href="{{ url_for('public.find_donors') }}"
-             class="btn btn-outline-secondary">
+          <a href="{{ url_for('public.find_donors') }}" class="btn btn-outline-secondary">
             <i class="fas fa-rotate-left"></i>
           </a>
         </div>
@@ -77,12 +73,12 @@
 <div class="d-flex flex-wrap gap-2 mb-4">
   <span class="small text-muted align-self-center me-1">Quick:</span>
   <a href="{{ url_for('public.find_donors') }}"
-     class="btn btn-sm {{ 'btn-dark' if not selected_bg else 'btn-outline-secondary' }} rounded-pill">
+    class="btn btn-sm {{ 'btn-dark' if not selected_bg else 'btn-outline-secondary' }} rounded-pill">
     All
   </a>
   {% for bg in blood_groups %}
   <a href="{{ url_for('public.find_donors', blood_group=bg) }}"
-     class="btn btn-sm {{ 'btn-danger' if selected_bg == bg else 'btn-outline-danger' }} rounded-pill fw-bold">
+    class="btn btn-sm {{ 'btn-danger' if selected_bg == bg else 'btn-outline-danger' }} rounded-pill fw-bold">
     {{ bg }}
   </a>
   {% endfor %}
@@ -97,8 +93,7 @@
   </p>
   <div class="d-flex gap-2 align-items-center">
     <span class="small text-muted">Sort:</span>
-    <select class="form-select form-select-sm" style="width:auto;"
-            onchange="window.location=this.value">
+    <select class="form-select form-select-sm" style="width:auto;" onchange="window.location=this.value">
       <option value="{{ url_for('public.find_donors', blood_group=selected_bg, district=selected_district) }}">
         Newest First
       </option>
@@ -116,8 +111,7 @@
           <div class="d-flex align-items-center gap-3">
             <!-- Avatar -->
             <div class="donor-avatar d-flex align-items-center justify-content-center
-                        rounded-circle text-white fw-black flex-shrink-0"
-                 style="width:52px;height:52px;font-size:1.2rem;
+                        rounded-circle text-white fw-black flex-shrink-0" style="width:52px;height:52px;font-size:1.2rem;
                         background:linear-gradient(135deg,#DC2626,#991B1B);">
               {{ donor.full_name[0].upper() }}
             </div>
@@ -127,8 +121,7 @@
             </div>
           </div>
           <!-- Blood Group Badge -->
-          <div class="fw-black text-white rounded-2 text-center"
-               style="padding:6px 10px;font-size:1.2rem;
+          <div class="fw-black text-white rounded-2 text-center" style="padding:6px 10px;font-size:1.2rem;
                       background:linear-gradient(135deg,#DC2626,#991B1B);min-width:52px;">
             {{ donor.blood_group }}
           </div>
@@ -171,13 +164,13 @@
         <!-- Eligibility Badge -->
         {% if donor.can_donate_now %}
         <div class="alert alert-success py-1 px-2 small mb-3 d-flex align-items-center gap-2"
-             style="border-radius:8px;">
+          style="border-radius:8px;">
           <i class="fas fa-check-circle text-success"></i>
           Eligible to donate now
         </div>
         {% else %}
         <div class="alert alert-warning py-1 px-2 small mb-3 d-flex align-items-center gap-2"
-             style="border-radius:8px;">
+          style="border-radius:8px;">
           <i class="fas fa-clock text-warning"></i>
           Eligible after {{ donor.next_eligible_date.strftime('%b %d, %Y') }}
         </div>
@@ -186,17 +179,15 @@
         <!-- Actions -->
         {% if donor.availability_status == 'available' %}
         <div class="d-flex gap-2">
-          <a href="tel:{{ donor.phone1 }}"
-             class="btn btn-danger btn-sm flex-grow-1 fw-semibold">
+          <a href="tel:{{ donor.phone1 }}" class="btn btn-danger btn-sm flex-grow-1 fw-semibold">
             <i class="fas fa-phone me-1"></i>{{ donor.phone1 }}
           </a>
-          <button class="btn btn-outline-secondary btn-sm"
-                  onclick="copyText('{{ donor.phone1 }}')" title="Copy">
+          <button class="btn btn-outline-secondary btn-sm" onclick="copyText('{{ donor.phone1 }}')" title="Copy">
             <i class="fas fa-copy"></i>
           </button>
           {% if donor.social_link %}
-          <a href="{{ donor.social_link }}" target="_blank" rel="noopener"
-             class="btn btn-outline-primary btn-sm" title="Social Profile">
+          <a href="{{ donor.social_link }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"
+            title="Social Profile">
             <i class="fab fa-facebook"></i>
           </a>
           {% endif %}
@@ -224,15 +215,15 @@
       </a>
     </li>
     {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
-      {% if p %}
-      <li class="page-item {{ 'active' if p == pagination.page }}">
-        <a class="page-link" href="{{ url_for('public.find_donors',
+    {% if p %}
+    <li class="page-item {{ 'active' if p == pagination.page }}">
+      <a class="page-link" href="{{ url_for('public.find_donors',
            page=p, blood_group=selected_bg, district=selected_district,
            city=selected_city, donor_type=selected_type) }}">{{ p }}</a>
-      </li>
-      {% else %}
-      <li class="page-item disabled"><span class="page-link">…</span></li>
-      {% endif %}
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">…</span></li>
+    {% endif %}
     {% endfor %}
     <li class="page-item {{ 'disabled' if not pagination.has_next }}">
       <a class="page-link" href="{{ url_for('public.find_donors',

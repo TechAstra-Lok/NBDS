@@ -394,3 +394,20 @@ class Contact(db.Model):
     
     def __repr__(self):
         return f'<Contact {self.name}: {self.subject[:30]}>'
+
+
+# ─────────────────────────────────────────────
+# Success Stories MODEL
+# ─────────────────────────────────────────────
+class SuccessStory(db.Model):
+    __tablename__ = 'success_stories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    author_name = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    image_file = db.Column(db.String(100), nullable=True) # तस्बिरको नाम
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<SuccessStory {self.title}>"
