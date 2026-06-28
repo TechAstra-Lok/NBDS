@@ -48,6 +48,9 @@ class Config:
     CONTACT_EMAIL = "info@nepaliblooddonors.org"
     CONTACT_PHONE = "+977-1-4XXXXXX"
     CONTACT_ADDRESS = "Kathmandu, Nepal"
+    
+    # Scheduler
+    SCHEDULER_API_ENABLED = True
 
     @staticmethod
     def init_app(app):

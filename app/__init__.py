@@ -5,6 +5,7 @@ from flask_login import LoginManager
 from flask_wtf import CSRFProtect
 from config import config
 from flask_migrate import Migrate
+from flask_apscheduler import APScheduler
 
 # एक्सटेन्सनहरू सुरुमै सिर्जना गर्ने (Global instance)
 csrf = CSRFProtect()
@@ -14,6 +15,7 @@ login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
 migrate = Migrate()
+scheduler = APScheduler()
 
 
 def create_app(config_name=None):
@@ -30,6 +32,14 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    
+    # Initialize and start the APScheduler
+    try:
+        scheduler.init_app(app)
+        scheduler.start()
+    except Exception as e:
+        # Ignore if scheduler is already running (e.g. in auto-reloader or CLI)
+        pass
 
     # अपलोड फोल्डरहरू स्वतः सिर्जना गर्ने (तस्बिरको सुरक्षाको लागि)
     _create_upload_dirs(app)
@@ -58,13 +68,17 @@ def create_app(config_name=None):
         
         # कन्टेक्स्ट प्रोसेसरहरू सुचारु गर्ने (ग्लोबल डाटाहरूको लागि)
         _register_context_processors(app)
+        
+        # Schedule Background Jobs
+        from app.tasks import schedule_jobs
+        schedule_jobs(app, scheduler)
     
     return app
 
 
 def _create_upload_dirs(app):
     # 'stories' फोल्डर यहाँ थपिएको छ ता कि सफलताका कथाहरूको फोटो सुरक्षित रहन सकोस्
-    dirs = ['news', 'notices', 'ads', 'general', 'stories']
+    dirs = ['news', 'notices', 'ads', 'general', 'stories', 'staff', 'partners']
     for d in dirs:
         path = os.path.join(app.config['UPLOAD_FOLDER'], d)
         os.makedirs(path, exist_ok=True)
@@ -88,7 +102,7 @@ def _seed_admin(app):
             )
             db.session.add(admin)
             db.session.commit()
-            print(f"✅ Admin created: {admin_username}")
+            print(f"[OK] Admin created: {admin_username}")
 
 
 def _register_error_handlers(app):
@@ -107,6 +121,29 @@ def _register_error_handlers(app):
         from flask import flash, redirect, url_for
         flash('File too large. Maximum size is 16MB.', 'danger')
         return redirect(url_for('public.index'))
+
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        from flask import render_template
+        return render_template('errors/429.html'), 429
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        from flask import render_template
+        return render_template('errors/403.html'), 403
+
+    # ── Security Headers ──────────────────────────────────────────────────
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        # Only add HSTS in production
+        if not app.debug:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        return response
 
 
 def _register_context_processors(app):
@@ -165,5 +202,18 @@ def _register_context_processors(app):
 
 @login_manager.user_loader
 def load_user(user_id):
-    from app.models import User
-    return User.query.get(int(user_id))
+    from app.models import User, Donor, Volunteer
+    try:
+        parts = str(user_id).split('_')
+        if len(parts) == 2:
+            model_type, model_id = parts[0], int(parts[1])
+            if model_type == 'user':
+                return User.query.get(model_id)
+            elif model_type == 'donor':
+                return Donor.query.get(model_id)
+            elif model_type == 'volunteer':
+                return Volunteer.query.get(model_id)
+        # Fallback for old sessions that might just have integer IDs
+        return User.query.get(int(user_id))
+    except Exception:
+        return None

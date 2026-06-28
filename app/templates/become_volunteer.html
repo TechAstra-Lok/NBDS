@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Become a Volunteer — {{ site_name }}{% endblock %}
+{% block meta_desc %}Join our volunteer network to help manage blood requests and save lives.{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="rounded-4 overflow-hidden mb-4 p-4 p-md-5" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h1 class="text-white fw-black mb-2" style="font-size:clamp(1.5rem,3vw,2.5rem);">
+        Become a Volunteer
+      </h1>
+      <p class="text-white opacity-80 mb-3">
+        Doctors, Nurses, and Health Professionals are the backbone of our emergency response.
+        Join our volunteer network today.
+      </p>
+      <div class="d-flex gap-3 flex-wrap text-white small">
+        <div><i class="fas fa-check text-info me-1"></i>Help manage blood requests</div>
+        <div><i class="fas fa-check text-info me-1"></i>Coordinate with Donors</div>
+        <div><i class="fas fa-check text-info me-1"></i>Direct impact on saving lives</div>
+      </div>
+    </div>
+    <div class="col-md-4 d-none d-md-flex justify-content-end">
+      <i class="fas fa-user-doctor text-white opacity-25" style="font-size:6rem;"></i>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- REGISTRATION FORM -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header border-0 bg-transparent pt-4 px-4 pb-0">
+        <h4 class="fw-bold mb-0">
+          <i class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Registration
+        </h4>
+        <p class="text-muted small mt-1">Fields marked <span class="text-danger">*</span> are required.</p>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('public.become_volunteer') }}" novalidate>
+          {{ form.hidden_tag() }}
+
+          <!-- ─ PERSONAL INFO ─ -->
+          <div class="form-section mb-4">
+            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+              <i class="fas fa-user me-2"></i>Personal Information
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.full_name.label(class="form-label fw-semibold") }}
+                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder="Full legal name") }}
+                {% for e in form.full_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                {{ form.email.label(class="form-label fw-semibold") }}
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Your email address") }}
+                {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ PROFESSIONAL INFO ─ -->
+          <div class="form-section mb-4">
+            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+              <i class="fas fa-user-md me-2"></i>Professional Details
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.designation.label(class="form-label fw-semibold") }}
+                {{ form.designation(class="form-select" + (" is-invalid" if form.designation.errors else "")) }}
+                {% for e in form.designation.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                {{ form.working_field.label(class="form-label fw-semibold") }}
+                {{ form.working_field(class="form-control", placeholder="e.g. Orthopedics, ER") }}
+              </div>
+              <div class="col-12">
+                {{ form.curr_address.label(class="form-label fw-semibold") }}
+                {{ form.curr_address(class="form-control" + (" is-invalid" if form.curr_address.errors else ""), placeholder="Hospital or Clinic Address") }}
+                {% for e in form.curr_address.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                {{ form.curr_district.label(class="form-label fw-semibold") }}
+                {{ form.curr_district(class="form-select" + (" is-invalid" if form.curr_district.errors else ""), id="curr_district") }}
+                {% for e in form.curr_district.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                {{ form.availability_time.label(class="form-label fw-semibold") }}
+                {{ form.availability_time(class="form-control", placeholder="e.g. Mon-Fri 9AM-5PM") }}
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ ACCOUNT SECURITY ─ -->
+          <div class="form-section mb-4">
+            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+              <i class="fas fa-lock me-2"></i>Account Security
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.pin.label(class="form-label fw-semibold") }}
+                {{ form.pin(class="form-control" + (" is-invalid" if form.pin.errors else ""), placeholder="4-Digit PIN") }}
+                {% for e in form.pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                <div class="form-text">You will use this PIN to login.</div>
+              </div>
+              <div class="col-md-6">
+                {{ form.confirm_pin.label(class="form-label fw-semibold") }}
+                {{ form.confirm_pin(class="form-control" + (" is-invalid" if form.confirm_pin.errors else ""), placeholder="Confirm PIN") }}
+                {% for e in form.confirm_pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- ─ CONTACT INFO ─ -->
+          <div class="form-section mb-4">
+            <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+              <i class="fas fa-phone me-2"></i>Contact Information
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.phone1.label(class="form-label fw-semibold") }}
+                <div class="input-group">
+                  <span class="input-group-text">🇳🇵 +977</span>
+                  {{ form.phone1(class="form-control" + (" is-invalid" if form.phone1.errors else ""), placeholder="98XXXXXXXX") }}
+                  {% for e in form.phone1.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                {{ form.phone2.label(class="form-label fw-semibold") }}
+                <div class="input-group">
+                  <span class="input-group-text">🇳🇵 +977</span>
+                  {{ form.phone2(class="form-control" + (" is-invalid" if form.phone2.errors else ""), placeholder="98XXXXXXXX") }}
+                  {% for e in form.phone2.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+              </div>
+              <div class="col-12">
+                {{ form.perm_address.label(class="form-label fw-semibold") }}
+                {{ form.perm_address(class="form-control" + (" is-invalid" if form.perm_address.errors else ""), placeholder="Your residential address") }}
+                {% for e in form.perm_address.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+              <i class="fas fa-hand-holding-medical me-2"></i>Register as Volunteer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-header border-0 bg-primary text-white rounded-top-4 py-3 px-4">
+        <h6 class="fw-bold mb-0">
+          <i class="fas fa-info-circle me-2"></i>Why Volunteer?
+        </h6>
+      </div>
+      <div class="card-body p-4 text-muted small">
+        <p>As a volunteer, you will have access to the dashboard where you can see all urgent blood requests.</p>
+        <p>You can help patients by matching them with verified donors, verifying their medical documents, and facilitating the donation process.</p>
+        <p>This is a noble cause and your contribution can be the difference between life and death for many people.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/address.js') }}"></script>
+<!-- For the working district dropdown, we just need a dummy province trigger since address.js expects province->district -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Populate all districts into curr_district directly
+    fetch('/static/data/nepal_address.json')
+        .then(response => response.json())
+        .then(data => {
+            const districtSelect = document.getElementById('curr_district');
+            const selected = districtSelect.getAttribute('data-selected') || districtSelect.value;
+            districtSelect.innerHTML = '<option value="">-- Select District --</option>';
+            data.provinces.forEach(prov => {
+                prov.districts.forEach(dist => {
+                    const opt = document.createElement('option');
+                    opt.value = dist.name;
+                    opt.textContent = dist.name;
+                    if (dist.name === selected) opt.selected = true;
+                    districtSelect.appendChild(opt);
+                });
+            });
+        });
+  });
+</script>
+{% endblock %}

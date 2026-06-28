@@ -174,11 +174,27 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Hospital Address / Ward No.</label>
-              <input type="text" class="form-control"
-                     name="hospital_address" id="hospital_address"
-                     placeholder="e.g. Ward 5, OPD Block"
-                     value="{{ form.hospital_address.data or '' }}">
+              {{ form.province.label(class="form-label fw-semibold") }}
+              {{ form.province(class="form-select" + (" is-invalid" if form.province.errors else ""), id="province") }}
+              {% for e in form.province.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-md-6">
+              {{ form.district.label(class="form-label fw-semibold") }}
+              {{ form.district(class="form-select" + (" is-invalid" if form.district.errors else ""), id="district", **{'data-selected': form.district.data}) }}
+              {% for e in form.district.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-md-8">
+              {{ form.local_level.label(class="form-label fw-semibold") }}
+              {{ form.local_level(class="form-select" + (" is-invalid" if form.local_level.errors else ""), id="local_level", **{'data-selected': form.local_level.data}) }}
+              {% for e in form.local_level.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-md-4">
+              {{ form.ward_no.label(class="form-label fw-semibold") }}
+              {{ form.ward_no(class="form-control" + (" is-invalid" if form.ward_no.errors else ""), placeholder="e.g. 5") }}
+              {% for e in form.ward_no.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
           </div>
 
@@ -367,4 +383,5 @@ document.getElementById('bloodRequestForm').addEventListener('submit', function(
   btn.disabled = true;
 });
 </script>
+<script src="{{ url_for('static', filename='js/address.js') }}"></script>
 {% endblock %}

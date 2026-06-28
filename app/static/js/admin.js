@@ -150,7 +150,14 @@ const RichEditor = {
     const script = document.createElement('script');
     script.src = 'https://cdn.quilljs.com/1.3.7/quill.min.js';
     script.onload = () => {
-      const quill = new Quill('#rich-editor-container', {
+      // Dynamically create Quill container and hide textarea
+      const container = document.createElement('div');
+      container.id = 'rich-editor-container';
+      container.style.height = '300px';
+      editorEl.parentNode.insertBefore(container, editorEl);
+      editorEl.style.display = 'none';
+      
+      const quill = new Quill(container, {
         theme: 'snow',
         modules: {
           toolbar: [

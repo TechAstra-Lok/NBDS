@@ -14,12 +14,18 @@ from flask_login import login_required, current_user  # एडमिन सु�
 from app import db
 from app.models import (
     Donor, BloodRequest, News, Notice, Advertisement, 
-    Contact, SiteVisitor, SuccessStory
+    Contact, SiteVisitor, SuccessStory, Volunteer
 )
 from app.forms import (
-    BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm
+    BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm,
+    DonorLoginForm, VolunteerRegistrationForm, VolunteerLoginForm
 )
-from app.utils import paginate_query, get_blood_group_stats, sanitize_html
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, logout_user, login_required, current_user
+from app.utils import paginate_query, get_blood_group_stats, sanitize_html, rate_limit
+from app.tasks import alert_matching_donors
+# pyrefly: ignore [missing-import]
+import nepali_datetime
 
 # ब्लुप्रिन्ट परिभाषा
 public_bp = Blueprint('public', __name__)
@@ -47,6 +53,7 @@ def is_image_safe(image_path):
     यदि गुगल सेट गरिएको छैन भने, सुरक्षाको लागि यो प्रकार्यले पास दिन्छ।
     """
     try:
+        # pyrefly: ignore [missing-import]
         from google.cloud import vision
         client = vision.ImageAnnotatorClient()
 
@@ -73,10 +80,51 @@ def is_image_safe(image_path):
         return True, "Skipped"
 
 
+# ─── AI TEXT VERIFICATION (OPENAI) ───
+def is_text_safe(title, content):
+    """
+    OpenAI API प्रयोग गरी कथाको शीर्षक र विषयवस्तु सुरक्षित/सान्दर्भिक छ कि छैन जाँच गर्ने।
+    """
+    try:
+        import openai
+        import json
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return True, "Skipped (No API Key)"
+        
+        client = openai.OpenAI(api_key=api_key)
+        prompt = f"""
+        You are a moderation assistant for a Nepali Blood Donors community website.
+        Evaluate the following success story submission for spam, profanity, extreme violence, or completely irrelevant content.
+        If it is a legitimate blood donation success story, or a general positive message, approve it.
+        Respond strictly in JSON format: {{"is_safe": true/false, "reason": "brief explanation"}}
+        
+        Title: {title}
+        Content: {content}
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={ "type": "json_object" }
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        if result.get("is_safe"):
+            return True, "Safe"
+        else:
+            return False, result.get("reason", "Inappropriate content detected.")
+            
+    except Exception as e:
+        return True, f"Skipped (Error: {str(e)})"
+
+
 # ════════════════════════════════════════════
 #   SUCCESS STORIES PAGE
 # ════════════════════════════════════════════
 @public_bp.route('/success-stories', methods=['GET', 'POST'])
+@rate_limit(limit=5, window=600, methods=['POST'])  # 5 POST requests per 10 minutes
 def success_stories():
     if request.method == 'POST':
         # ─── CSRF टोकन म्यानुअल रूपमा जाँच गर्ने ───
@@ -117,6 +165,12 @@ def success_stories():
                 flash(f"⚠️ चेतावनी: {message}", "danger")
                 return redirect(url_for('public.success_stories'))
 
+        # AI Text Moderation
+        text_is_safe, text_message = is_text_safe(title, content)
+        if not text_is_safe:
+            flash(f"⚠️ तपाइँको कथा स्वीकृत भएन: {text_message}", "danger")
+            return redirect(url_for('public.success_stories'))
+
         # डेटाबेसमा सुरक्षित गर्ने
         new_story = SuccessStory(
             # pyrefly: ignore [unexpected-keyword]
@@ -126,7 +180,13 @@ def success_stories():
             # pyrefly: ignore [unexpected-keyword]
             content=content.strip(),
             # pyrefly: ignore [unexpected-keyword]
-            image_file=filename
+            image_file=filename,
+            # pyrefly: ignore [unexpected-keyword]
+            social_link='',
+            # pyrefly: ignore [unexpected-keyword]
+            status='pending',
+            # pyrefly: ignore [unexpected-keyword]
+            moderation_logs=f"Text Check: {text_message}"
         )
         db.session.add(new_story)
         db.session.commit()
@@ -134,7 +194,7 @@ def success_stories():
         flash("तपाईंको सफलताको कथा सफलतापूर्वक पोस्ट भयो! धन्यवाद।", "success")
         return redirect(url_for('public.success_stories'))
 
-    stories = SuccessStory.query.order_by(SuccessStory.created_at.desc()).all()
+    stories = SuccessStory.query.filter_by(status='approved').order_by(SuccessStory.created_at.desc()).all()
     return render_template('success_stories.html', stories=stories)
 
 
@@ -220,6 +280,7 @@ def index():
 #   BLOOD REQUESTS
 # ════════════════════════════════════════════
 @public_bp.route('/blood-request', methods=['GET', 'POST'])
+@rate_limit(limit=5, window=600)  # 5 requests per 10 minutes
 def blood_request_form():
     form = BloodRequestForm()
     
@@ -243,7 +304,10 @@ def blood_request_form():
             blood_group     = form.blood_group.data,
             units_needed    = form.units_needed.data,
             hospital        = form.hospital.data.strip(),
-            hospital_address= form.hospital_address.data.strip() if form.hospital_address.data else None,
+            province        = form.province.data or None,
+            district        = form.district.data.strip() if form.district.data else None,
+            local_level     = form.local_level.data.strip() if form.local_level.data else None,
+            ward_no         = form.ward_no.data.strip() if form.ward_no.data else None,
             contact_person  = form.contact_person.data.strip(),
             contact_number  = form.contact_number.data.strip(),
             alt_number      = form.alt_number.data.strip() if form.alt_number.data else None,
@@ -251,6 +315,12 @@ def blood_request_form():
         )
         db.session.add(req)
         db.session.commit()
+        
+        # Trigger Intelligent Donor Alert
+        try:
+            alert_matching_donors(current_app._get_current_object(), req.id)
+        except Exception as e:
+            current_app.logger.error(f"Error alerting donors: {e}")
         
         flash(f'✅ Blood request submitted! Request ID: {req.request_id}. Donors will be notified.', 'success')
         return redirect(url_for('public.blood_request_board'))
@@ -350,7 +420,7 @@ def find_donors():
     page        = request.args.get('page', 1, type=int)
     blood_group = request.args.get('blood_group', '')
     district    = request.args.get('district', '')
-    city        = request.args.get('city', '')
+    local_level = request.args.get('local_level', '')
     donor_type  = request.args.get('donor_type', '')
     
     query = Donor.query
@@ -359,8 +429,8 @@ def find_donors():
         query = query.filter_by(blood_group=blood_group)
     if district:
         query = query.filter(Donor.curr_district.ilike(f'%{district}%'))
-    if city:
-        query = query.filter(Donor.curr_city.ilike(f'%{city}%'))
+    if local_level:
+        query = query.filter(Donor.curr_local_level.ilike(f'%{local_level}%'))
     if donor_type:
         query = query.filter_by(donor_type=donor_type)
     
@@ -382,7 +452,7 @@ def find_donors():
         districts=districts,
         selected_bg=blood_group,
         selected_district=district,
-        selected_city=city,
+        selected_local_level=local_level,
         selected_type=donor_type,
         total_donors=total_donors,
         avail_donors=avail_donors,
@@ -393,26 +463,36 @@ def find_donors():
 #   DONOR REGISTRATION
 # ════════════════════════════════════════════
 @public_bp.route('/become-donor', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=3600)  # 10 registrations per hour
 def become_donor():
     form = DonorRegistrationForm()
     
     if form.validate_on_submit():
+        ad_date = form.last_donation_date.data
+        if ad_date and ad_date.year > 2050:
+            bs_date = nepali_datetime.date(ad_date.year, ad_date.month, ad_date.day)
+            ad_date = bs_date.to_datetime_date()
+
         donor = Donor(
             full_name           = form.full_name.data.strip(),
+            email               = form.email.data.strip(),
+            pin_hash            = generate_password_hash(form.pin.data),
             age                 = form.age.data,
             weight              = form.weight.data,
             perm_province       = form.perm_province.data or None,
             perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
-            perm_city           = form.perm_city.data.strip() if form.perm_city.data else None,
             perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
+            perm_ward           = form.perm_ward.data.strip() if form.perm_ward.data else None,
+            perm_tole           = form.perm_tole.data.strip() if form.perm_tole.data else None,
             curr_province       = form.curr_province.data,
             curr_district       = form.curr_district.data.strip(),
-            curr_city           = form.curr_city.data.strip(),
             curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
+            curr_ward           = form.curr_ward.data.strip() if form.curr_ward.data else None,
+            curr_tole           = form.curr_tole.data.strip() if form.curr_tole.data else None,
             phone1              = form.phone1.data.strip(),
             phone2              = form.phone2.data.strip() if form.phone2.data else None,
             blood_group         = form.blood_group.data,
-            last_donation_date  = form.last_donation_date.data,
+            last_donation_date  = ad_date,
             donation_times      = form.donation_times.data or 0,
             donor_type          = form.donor_type.data,
             social_link         = form.social_link.data.strip() if form.social_link.data else None,
@@ -420,10 +500,99 @@ def become_donor():
         db.session.add(donor)
         db.session.commit()
         
-        flash(f'🎉 Registration successful! Your Donor ID: {donor.donor_id}. Thank you for joining!', 'success')
+        login_user(donor)
+        flash(f'🎉 Registration successful! Your Donor ID: {donor.donor_id}.', 'success')
         return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
     
     return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS)
+
+
+@public_bp.route('/donor/login', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=60)  # 10 attempts per minute
+def donor_login():
+    if current_user.is_authenticated and hasattr(current_user, 'donor_id'):
+        return redirect(url_for('public.donor_profile', donor_id=current_user.donor_id))
+        
+    form = DonorLoginForm()
+    if form.validate_on_submit():
+        donor = Donor.query.filter_by(phone1=form.phone1.data.strip()).first()
+        if donor and check_password_hash(donor.pin_hash, form.pin.data):
+            login_user(donor, remember=form.remember.data)
+            flash('Logged in successfully.', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+        else:
+            flash('Login Unsuccessful. Please check mobile number and PIN.', 'danger')
+            
+    return render_template('auth/donor_login.html', form=form)
+
+
+@public_bp.route('/become-volunteer', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=3600)  # 10 registrations per hour
+def become_volunteer():
+    form = VolunteerRegistrationForm()
+    
+    if form.validate_on_submit():
+        volunteer = Volunteer(
+            # pyrefly: ignore [unexpected-keyword]
+            full_name           = form.full_name.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            email               = form.email.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            pin_hash            = generate_password_hash(form.pin.data),
+            # pyrefly: ignore [unexpected-keyword]
+            phone1              = form.phone1.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            phone2              = form.phone2.data.strip() if form.phone2.data else None,
+            # pyrefly: ignore [unexpected-keyword]
+            designation         = form.designation.data,
+            # pyrefly: ignore [unexpected-keyword]
+            working_field       = form.working_field.data.strip() if form.working_field.data else None,
+            # pyrefly: ignore [unexpected-keyword]
+            perm_address        = form.perm_address.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            curr_address        = form.curr_address.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            curr_district       = form.curr_district.data.strip(),
+            # pyrefly: ignore [unexpected-keyword]
+            availability_time   = form.availability_time.data.strip() if form.availability_time.data else None
+        )
+        db.session.add(volunteer)
+        db.session.commit()
+        
+        login_user(volunteer)
+        flash(f'🎉 Thank you for registering as a Volunteer! Your account is pending approval.', 'success')
+        return redirect(url_for('public.index'))
+    
+    return render_template('become_volunteer.html', form=form, districts=ALL_DISTRICTS)
+
+
+@public_bp.route('/volunteer/login', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=60)  # 10 attempts per minute
+def volunteer_login():
+    if current_user.is_authenticated and hasattr(current_user, 'volunteer_id'):
+        return redirect(url_for('public.index'))
+        
+    form = VolunteerLoginForm()
+    if form.validate_on_submit():
+        volunteer = Volunteer.query.filter_by(phone1=form.phone1.data.strip()).first()
+        if volunteer and check_password_hash(volunteer.pin_hash, form.pin.data):
+            login_user(volunteer, remember=form.remember.data)
+            flash('Logged in successfully.', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('public.index'))
+        else:
+            flash('Login Unsuccessful. Please check mobile number and PIN.', 'danger')
+            
+    return render_template('auth/volunteer_login.html', form=form)
+
+
+@public_bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('public.index'))
 
 
 @public_bp.route('/donor/<string:donor_id>')
@@ -574,3 +743,64 @@ def sitemap():
     xml_parts.append('</urlset>')
     body = '\n'.join(xml_parts)
     return Response(body, mimetype='application/xml')
+
+
+# ════════════════════════════════════════════
+#   GLOBAL SEARCH ENGINE
+# ════════════════════════════════════════════
+@public_bp.route('/search')
+def global_search():
+    query = request.args.get('q', '').strip()
+    results = {
+        'donors': [],
+        'requests': [],
+        'news': [],
+        'notices': []
+    }
+    
+    if query:
+        # Search Donors
+        donor_query = Donor.query.filter(
+            or_(
+                Donor.full_name.ilike(f'%{query}%'),
+                Donor.blood_group.ilike(f'%{query}%'),
+                Donor.curr_district.ilike(f'%{query}%')
+            )
+        )
+        results['donors'] = donor_query.limit(10).all()
+        
+        # Search Blood Requests
+        req_query = BloodRequest.query.filter(
+            or_(
+                BloodRequest.patient_name.ilike(f'%{query}%'),
+                BloodRequest.blood_group.ilike(f'%{query}%'),
+                BloodRequest.hospital.ilike(f'%{query}%'),
+                BloodRequest.district.ilike(f'%{query}%')
+            )
+        )
+        results['requests'] = req_query.limit(10).all()
+        
+        # Search News
+        news_query = News.query.filter(
+            News.is_published == True
+        ).filter(
+            or_(
+                News.title.ilike(f'%{query}%'),
+                News.author.ilike(f'%{query}%'),
+                News.tags.ilike(f'%{query}%')
+            )
+        )
+        results['news'] = news_query.limit(10).all()
+        
+        # Search Notices
+        notice_query = Notice.query.filter(
+            Notice.is_active == True
+        ).filter(
+            or_(
+                Notice.title.ilike(f'%{query}%'),
+                Notice.content.ilike(f'%{query}%')
+            )
+        )
+        results['notices'] = notice_query.limit(10).all()
+        
+    return render_template('search_results.html', query=query, results=results)

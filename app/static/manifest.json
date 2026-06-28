@@ -1,0 +1,44 @@
+{
+  "name": "Nepali Blood Donors Society",
+  "short_name": "NBD Society",
+  "description": "Donate Blood, Save Lives - Nepalese Blood Donor Network",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#DC2626",
+  "orientation": "portrait",
+  "lang": "en",
+  "categories": ["health", "social"],
+  "icons": [
+    {
+      "src": "/static/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Donors",
+      "url": "/find-donors",
+      "description": "Search for blood donors near you"
+    },
+    {
+      "name": "Request Blood",
+      "url": "/blood-request",
+      "description": "Submit an emergency blood request"
+    }
+  ]
+}

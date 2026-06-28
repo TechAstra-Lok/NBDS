@@ -29,8 +29,8 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/static/manifest.json" />
-  <link rel="apple-touch-icon" href="/static/images/logo-192.png" />
-  <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg" />
+  <link rel="apple-touch-icon" href="/static/images/logo.png" />
+  <link rel="icon" type="image/png" href="/static/images/logo.png" />
 
   <title>{% block title %}{{ site_name }}{% endblock %}</title>
 
@@ -41,7 +41,7 @@
     "@type": "Organization",
     "name": "{{ site_name }}",
     "url": "{{ request.url_root }}",
-    "logo": "{{ url_for('static', filename='images/logo-192.png', _external=True) }}",
+    "logo": "{{ url_for('static', filename='images/logo.png', _external=True) }}",
     "contactPoint": [{
       "@type": "ContactPoint",
         "email": "{{ contact_email }}",
@@ -61,6 +61,10 @@
     rel="stylesheet" />
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  
+  <!-- Nepali Date Picker CSS -->
+  <link href="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/css/nepali.datepicker.v5.0.6.min.css" rel="stylesheet" type="text/css"/>
+  
   {% block extra_css %}{% endblock %}
 </head>
 
@@ -171,18 +175,53 @@
           </li>
         </ul>
 
-        <!-- Right Controls -->
-        <div class="d-flex align-items-center gap-2 py-2 py-lg-0">
+          <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="Search">
+            <i class="fas fa-search"></i>
+          </a>
           <a href="{{ url_for('public.blood_request_form') }}"
             class="btn btn-white text-danger btn-sm fw-bold shadow-sm" style="background:#fff;">
             <i class="fas fa-circle-plus me-1"></i>
             <span class="d-none d-xl-inline">Request Blood</span>
             <span class="d-xl-none">Request</span>
           </a>
-          <a href="{{ url_for('admin.login') }}" class="btn btn-outline-light btn-sm">
-            <i class="fas fa-lock fa-sm me-1"></i>
-            <span class="d-none d-xl-inline">Admin</span>
-          </a>
+          
+          {% if current_user.is_authenticated %}
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user-circle me-1"></i>
+              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+                Donor Panel
+              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+                Volunteer Panel
+              {% else %}
+                Admin Panel
+              {% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+                <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
+              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+                <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
+              {% else %}
+                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+          </div>
+          {% else %}
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-sign-in-alt me-1"></i> Login
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
+            </ul>
+          </div>
+          {% endif %}
           <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
             <i class="fas fa-moon fa-sm" id="themeIcon"></i>
           </button>
@@ -532,6 +571,20 @@
     gtag('config', '{{ ga_tracking_id }}');
   </script>
   {% endif %}
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then(reg => console.log('Service Worker registered successfully.'))
+          .catch(err => console.log('Service Worker registration failed.', err));
+      });
+    }
+  </script>
+
+  <!-- Nepali Date Picker JS -->
+  <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
 
   {% block extra_js %}{% endblock %}
 </body>

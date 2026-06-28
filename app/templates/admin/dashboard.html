@@ -125,7 +125,7 @@
                   <div class="text-muted" style="font-size:0.72rem;">{{ d.donor_id }}</div>
                 </td>
                 <td><span class="badge bg-danger">{{ d.blood_group }}</span></td>
-                <td class="small">{{ d.curr_city }}</td>
+                <td class="small">{{ d.curr_district }}</td>
                 <td>
                   <span class="badge bg-{{ 'success' if d.availability_status == 'available' else 'secondary' }}">
                     {{ d.availability_status|title }}
@@ -163,7 +163,7 @@
               <tr>
                 <td class="ps-3">
                   <div class="fw-semibold small">{{ r.patient_name }}</div>
-                  <div class="text-muted" style="font-size:0.72rem;">{{ r.age_label }}</div>
+                  <div class="text-muted" style="font-size:0.72rem;">{{ r.case_details }}</div>
                 </td>
                 <td><span class="badge bg-danger">{{ r.blood_group }}</span></td>
                 <td class="small text-truncate" style="max-width:100px;">{{ r.hospital }}</td>

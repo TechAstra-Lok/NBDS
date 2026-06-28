@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Volunteer Login - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 mt-5">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-hand-holding-medical fa-2x text-primary"></i>
+                    </div>
+                    <h3 class="fw-bold">Volunteer Login</h3>
+                    <p class="text-muted small">Welcome back! Login to help coordinate blood requests.</p>
+                </div>
+                
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.phone1.label(class="form-label fw-bold small") }}
+                        {{ form.phone1(class="form-control form-control-lg", placeholder="e.g. 98XXXXXXXX") }}
+                        {% if form.phone1.errors %}
+                            <div class="invalid-feedback d-block">{{ form.phone1.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.pin.label(class="form-label fw-bold small") }}
+                        {{ form.pin(class="form-control form-control-lg", placeholder="4-Digit PIN") }}
+                        {% if form.pin.errors %}
+                            <div class="invalid-feedback d-block">{{ form.pin.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4 form-check">
+                        {{ form.remember(class="form-check-input") }}
+                        {{ form.remember.label(class="form-check-label small") }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg fw-bold") }}
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <p class="mb-0 small">Want to volunteer? <a href="{{ url_for('public.become_volunteer') }}" class="text-primary fw-bold text-decoration-none">Join Us</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

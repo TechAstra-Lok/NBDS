@@ -7,16 +7,18 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import (
     User, Donor, BloodRequest, News, Notice,
-    Advertisement, Contact, SiteVisitor, SuccessStory  # SuccessStory model थपिएको
+    Advertisement, Contact, SiteVisitor, SuccessStory, StaffMember, Partner
 )
 from app.forms import (
     AdminLoginForm, DonorRegistrationForm, DonorEditForm,
-    NewsForm, NoticeForm, AdvertisementForm, AdminUserForm
+    NewsForm, NoticeForm, AdvertisementForm, AdminUserForm,
+    StaffMemberForm, PartnerForm
 )
 from app.utils import save_image, save_file, delete_file, paginate_query, sanitize_html
 from sqlalchemy import desc, func, or_  # यहाँ or_ इम्पोर्ट फिक्स गरिएको छ
 from datetime import datetime, timedelta
 from functools import wraps
+from werkzeug.security import generate_password_hash
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -57,6 +59,21 @@ def superadmin_required(f):
             return redirect(url_for('admin.dashboard'))
         return f(*args, **kwargs)
     return decorated
+
+
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated(*args, **kwargs):
+            # Check if user has User model instance or custom role attribute
+            role = getattr(current_user, 'role', None)
+            if role == 'superadmin' or role in roles:
+                return f(*args, **kwargs)
+            flash('🚫 Access Denied: You do not have the required permissions.', 'danger')
+            return redirect(url_for('admin.dashboard'))
+        return decorated
+    return decorator
 
 
 # ════════════════════════════════════════════
@@ -186,7 +203,7 @@ def dashboard():
 #   DONOR MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/donors')
-@login_required
+@role_required('admin', 'moderator')
 def donors():
     page        = request.args.get('page', 1, type=int)
     search      = request.args.get('q', '')
@@ -229,22 +246,22 @@ def donors():
 
 
 @admin_bp.route('/donors/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'moderator')
 def add_donor():
     form = DonorRegistrationForm()
     
     if form.validate_on_submit():
         donor = Donor(
             full_name           = form.full_name.data.strip(),
+            email               = form.email.data.strip() if hasattr(form, 'email') and form.email.data else f"{form.phone1.data}@nbd.local",
+            pin_hash            = generate_password_hash(form.pin.data) if hasattr(form, 'pin') and form.pin.data else generate_password_hash('0000'),
             age                 = form.age.data,
             weight              = form.weight.data,
             perm_province       = form.perm_province.data or None,
             perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
-            perm_city           = form.perm_city.data.strip() if form.perm_city.data else None,
             perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
             curr_province       = form.curr_province.data,
             curr_district       = form.curr_district.data.strip(),
-            curr_city           = form.curr_city.data.strip(),
             curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
             phone1              = form.phone1.data.strip(),
             phone2              = form.phone2.data.strip() if form.phone2.data else None,
@@ -264,7 +281,7 @@ def add_donor():
 
 
 @admin_bp.route('/donors/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'moderator')
 def edit_donor(id):
     donor = Donor.query.get_or_404(id)
     form  = DonorEditForm(obj=donor)
@@ -281,7 +298,7 @@ def edit_donor(id):
 
 
 @admin_bp.route('/donors/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def delete_donor(id):
     donor = Donor.query.get_or_404(id)
     db.session.delete(donor)
@@ -291,7 +308,7 @@ def delete_donor(id):
 
 
 @admin_bp.route('/donors/<int:id>/toggle-status', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def toggle_donor_status(id):
     donor = Donor.query.get_or_404(id)
     donor.availability_status = 'unavailable' if donor.availability_status == 'available' else 'available'
@@ -303,7 +320,7 @@ def toggle_donor_status(id):
 #   BLOOD REQUEST MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/requests')
-@login_required
+@role_required('admin', 'moderator')
 def blood_requests():
     page        = request.args.get('page', 1, type=int)
     status      = request.args.get('status', '')
@@ -340,7 +357,7 @@ def blood_requests():
 
 
 @admin_bp.route('/requests/<int:id>/status/<string:new_status>', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def update_request_status(id, new_status):
     req = BloodRequest.query.get_or_404(id)
     if new_status in ('active', 'fulfilled', 'closed'):
@@ -351,7 +368,7 @@ def update_request_status(id, new_status):
 
 
 @admin_bp.route('/requests/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def delete_request(id):
     req = BloodRequest.query.get_or_404(id)
     db.session.delete(req)
@@ -364,7 +381,7 @@ def delete_request(id):
 #   NEWS MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/news')
-@login_required
+@role_required('admin', 'content_manager')
 def news():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -374,7 +391,7 @@ def news():
 
 
 @admin_bp.route('/news/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def add_news():
     form = NewsForm()
     
@@ -403,7 +420,7 @@ def add_news():
 
 
 @admin_bp.route('/news/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def edit_news(id):
     post = News.query.get_or_404(id)
     form = NewsForm(obj=post)
@@ -430,7 +447,7 @@ def edit_news(id):
 
 
 @admin_bp.route('/news/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def delete_news(id):
     post = News.query.get_or_404(id)
     delete_file(post.featured_image, 'news')
@@ -444,7 +461,7 @@ def delete_news(id):
 #   NOTICE MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/notices')
-@login_required
+@role_required('admin', 'content_manager')
 def notices():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -454,7 +471,7 @@ def notices():
 
 
 @admin_bp.route('/notices/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def add_notice():
     form = NoticeForm()
     
@@ -489,7 +506,7 @@ def add_notice():
 
 
 @admin_bp.route('/notices/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def edit_notice(id):
     notice = Notice.query.get_or_404(id)
     form = NoticeForm(obj=notice)
@@ -517,7 +534,7 @@ def edit_notice(id):
 
 
 @admin_bp.route('/notices/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def delete_notice(id):
     notice = Notice.query.get_or_404(id)
     delete_file(notice.attachment, 'notices')
@@ -528,7 +545,7 @@ def delete_notice(id):
 
 
 @admin_bp.route('/notices/<int:id>/toggle', methods=['POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def toggle_notice(id):
     notice = Notice.query.get_or_404(id)
     notice.is_active = not notice.is_active
@@ -540,7 +557,7 @@ def toggle_notice(id):
 #   ADVERTISEMENT MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/advertisements')
-@login_required
+@role_required('admin', 'content_manager')
 def advertisements():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -561,7 +578,7 @@ def advertisements():
 
 
 @admin_bp.route('/advertisements/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def add_advertisement():
     form = AdvertisementForm()
     
@@ -600,7 +617,7 @@ def add_advertisement():
 
 
 @admin_bp.route('/advertisements/<int:id>/toggle', methods=['POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def toggle_ad(id):
     ad = Advertisement.query.get_or_404(id)
     ad.is_active = not ad.is_active
@@ -610,7 +627,7 @@ def toggle_ad(id):
 
 
 @admin_bp.route('/advertisements/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'content_manager')
 def delete_advertisement(id):
     ad = Advertisement.query.get_or_404(id)
     delete_file(ad.image, 'ads')
@@ -624,7 +641,7 @@ def delete_advertisement(id):
 #   CONTACTS
 # ════════════════════════════════════════════
 @admin_bp.route('/contacts')
-@login_required
+@role_required('admin', 'moderator')
 def contacts():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -634,7 +651,7 @@ def contacts():
 
 
 @admin_bp.route('/contacts/<int:id>/read', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def mark_contact_read(id):
     msg = Contact.query.get_or_404(id)
     msg.is_read = True
@@ -651,7 +668,7 @@ def mark_contact_read(id):
 #   SUCCESS STORIES MANAGEMENT (Admin Panel)
 # ════════════════════════════════════════════
 @admin_bp.route('/success-stories')
-@login_required
+@role_required('admin', 'moderator')
 def success_stories():
     """एडमिन ड्यासबोर्ड भित्र सबै सफलताका कथाहरू सूचीकृत गर्ने मुख्य व्यवस्थापन राउट"""
     page = request.args.get('page', 1, type=int)
@@ -661,8 +678,21 @@ def success_stories():
     return render_template('admin/success_stories.html', pagination=pagination)
 
 
+@admin_bp.route('/success-stories/<int:id>/status/<string:new_status>', methods=['POST'])
+@role_required('admin', 'moderator')
+def update_story_status(id, new_status):
+    """सफलताका कथाहरूको स्थिति (Pending, Approved, Rejected) परिमार्जन गर्ने"""
+    story = SuccessStory.query.get_or_404(id)
+    if new_status in ['pending', 'approved', 'rejected', 'hidden']:
+        story.status = new_status
+        db.session.commit()
+        flash(f'Story status updated to {new_status}.', 'success')
+    else:
+        flash('Invalid status.', 'danger')
+    return redirect(url_for('admin.success_stories'))
+
 @admin_bp.route('/success-stories/<int:id>/delete', methods=['POST'])
-@login_required
+@role_required('admin', 'moderator')
 def delete_success_story(id):
     """एडमिन प्यानल र सर्भर स्टोरेज दुवैबाट कथा सुरक्षित रूपमा डिलिट गर्ने राउट"""
     story = SuccessStory.query.get_or_404(id)
@@ -713,3 +743,267 @@ def add_user():
             return redirect(url_for('admin.users'))
     
     return render_template('admin/user_form.html', form=form, action='Add')
+
+
+# ════════════════════════════════════════════
+#   STAFF MANAGEMENT
+# ════════════════════════════════════════════
+@admin_bp.route('/staff')
+@role_required('admin')
+def staff():
+    page = request.args.get('page', 1, type=int)
+    pagination = paginate_query(
+        StaffMember.query.order_by(desc(StaffMember.created_at)), page, 15
+    )
+    return render_template('admin/staff.html', pagination=pagination)
+
+
+@admin_bp.route('/staff/add', methods=['GET', 'POST'])
+@role_required('admin')
+def add_staff():
+    form = StaffMemberForm()
+    if form.validate_on_submit():
+        photo_file = None
+        if form.profile_photo.data and form.profile_photo.data.filename:
+            photo_file = save_image(form.profile_photo.data, 'staff')
+        
+        member = StaffMember(
+            full_name=form.full_name.data.strip(),
+            designation=form.designation.data.strip(),
+            email=form.email.data.strip() if form.email.data else None,
+            contact_number=form.contact_number.data.strip() if form.contact_number.data else None,
+            profile_photo=photo_file,
+            province=form.province.data or None,
+            district=form.district.data or None,
+            local_level=form.local_level.data or None,
+            ward_number=form.ward_number.data or None,
+            tole=form.tole.data or None,
+            is_active=form.is_active.data
+        )
+        db.session.add(member)
+        db.session.commit()
+        flash('✅ Staff member added successfully!', 'success')
+        return redirect(url_for('admin.staff'))
+    
+    return render_template('admin/staff_form.html', form=form, action='Add')
+
+
+@admin_bp.route('/staff/<int:id>/edit', methods=['GET', 'POST'])
+@role_required('admin')
+def edit_staff(id):
+    member = StaffMember.query.get_or_404(id)
+    form = StaffMemberForm(obj=member)
+    
+    if form.validate_on_submit():
+        if form.profile_photo.data and form.profile_photo.data.filename:
+            if member.profile_photo:
+                delete_file(member.profile_photo, 'staff')
+            member.profile_photo = save_image(form.profile_photo.data, 'staff')
+            
+        member.full_name = form.full_name.data.strip()
+        member.designation = form.designation.data.strip()
+        member.email = form.email.data.strip() if form.email.data else None
+        member.contact_number = form.contact_number.data.strip() if form.contact_number.data else None
+        member.province = form.province.data or None
+        member.district = form.district.data or None
+        member.local_level = form.local_level.data or None
+        member.ward_number = form.ward_number.data or None
+        member.tole = form.tole.data or None
+        member.is_active = form.is_active.data
+        
+        db.session.commit()
+        flash('✅ Staff member updated successfully!', 'success')
+        return redirect(url_for('admin.staff'))
+        
+    return render_template('admin/staff_form.html', form=form, member=member, action='Edit')
+
+
+@admin_bp.route('/staff/<int:id>/delete', methods=['POST'])
+@role_required('admin')
+def delete_staff(id):
+    member = StaffMember.query.get_or_404(id)
+    if member.profile_photo:
+        delete_file(member.profile_photo, 'staff')
+    db.session.delete(member)
+    db.session.commit()
+    flash('Staff member deleted.', 'warning')
+    return redirect(url_for('admin.staff'))
+
+
+# ════════════════════════════════════════════
+#   PARTNER MANAGEMENT
+# ════════════════════════════════════════════
+@admin_bp.route('/partners')
+@role_required('admin')
+def partners():
+    page = request.args.get('page', 1, type=int)
+    pagination = paginate_query(
+        Partner.query.order_by(desc(Partner.created_at)), page, 15
+    )
+    return render_template('admin/partners.html', pagination=pagination)
+
+
+@admin_bp.route('/partners/add', methods=['GET', 'POST'])
+@role_required('admin')
+def add_partner():
+    form = PartnerForm()
+    if form.validate_on_submit():
+        logo_file = None
+        if form.logo_file.data and form.logo_file.data.filename:
+            logo_file = save_image(form.logo_file.data, 'partners')
+            
+        partner = Partner(
+            partner_name=form.partner_name.data.strip(),
+            description=form.description.data.strip() if form.description.data else None,
+            website_url=form.website_url.data.strip() if form.website_url.data else None,
+            email=form.email.data.strip() if form.email.data else None,
+            contact_number=form.contact_number.data.strip() if form.contact_number.data else None,
+            address=form.address.data.strip() if form.address.data else None,
+            logo_file=logo_file,
+            is_active=form.is_active.data
+        )
+        db.session.add(partner)
+        db.session.commit()
+        flash('✅ Partner added successfully!', 'success')
+        return redirect(url_for('admin.partners'))
+        
+    return render_template('admin/partner_form.html', form=form, action='Add')
+
+
+@admin_bp.route('/partners/<int:id>/edit', methods=['GET', 'POST'])
+@role_required('admin')
+def edit_partner(id):
+    partner = Partner.query.get_or_404(id)
+    form = PartnerForm(obj=partner)
+    
+    if form.validate_on_submit():
+        if form.logo_file.data and form.logo_file.data.filename:
+            if partner.logo_file:
+                delete_file(partner.logo_file, 'partners')
+            partner.logo_file = save_image(form.logo_file.data, 'partners')
+            
+        partner.partner_name = form.partner_name.data.strip()
+        partner.description = form.description.data.strip() if form.description.data else None
+        partner.website_url = form.website_url.data.strip() if form.website_url.data else None
+        partner.email = form.email.data.strip() if form.email.data else None
+        partner.contact_number = form.contact_number.data.strip() if form.contact_number.data else None
+        partner.address = form.address.data.strip() if form.address.data else None
+        partner.is_active = form.is_active.data
+        
+        db.session.commit()
+        flash('✅ Partner updated successfully!', 'success')
+        return redirect(url_for('admin.partners'))
+        
+    return render_template('admin/partner_form.html', form=form, partner=partner, action='Edit')
+
+
+@admin_bp.route('/partners/<int:id>/delete', methods=['POST'])
+@role_required('admin')
+def delete_partner(id):
+    partner = Partner.query.get_or_404(id)
+    if partner.logo_file:
+        delete_file(partner.logo_file, 'partners')
+    db.session.delete(partner)
+    db.session.commit()
+    flash('Partner deleted.', 'warning')
+    return redirect(url_for('admin.partners'))
+
+
+# ════════════════════════════════════════════
+#   DATA QUALITY & ML OPS ENGINE
+# ════════════════════════════════════════════
+@admin_bp.route('/data-quality')
+@role_required('admin')
+def data_quality():
+    # Calculate Data Quality Metrics
+    total_donors = Donor.query.count()
+    if total_donors == 0:
+        return render_template('admin/data_quality.html', total_donors=0)
+        
+    # Profile completeness check
+    missing_email = Donor.query.filter((Donor.email == None) | (Donor.email == '')).count()
+    missing_phone2 = Donor.query.filter((Donor.phone2 == None) | (Donor.phone2 == '')).count()
+    missing_last_donation = Donor.query.filter(Donor.last_donation_date == None).count()
+    missing_social = Donor.query.filter((Donor.social_link == None) | (Donor.social_link == '')).count()
+    missing_perm_address = Donor.query.filter((Donor.perm_district == None) | (Donor.perm_district == '')).count()
+    
+    completeness_score = int(100 - ((missing_email + missing_last_donation/2 + missing_perm_address) / (total_donors * 3) * 100))
+    completeness_score = max(0, min(100, completeness_score))
+    
+    # Blood Group Supply vs Demand Imbalance
+    # Ratios of Available Donors / Active Requests
+    groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+    group_imbalances = []
+    
+    for g in groups:
+        supply = Donor.query.filter_by(blood_group=g, availability_status='available').count()
+        demand = BloodRequest.query.filter_by(blood_group=g, status='active').count()
+        
+        # Determine risk level
+        if demand > 0 and supply == 0:
+            status = 'Critical Shortage'
+            badge = 'danger'
+        elif demand > 0 and supply / demand < 2:
+            status = 'High Deficit'
+            badge = 'warning'
+        elif demand == 0:
+            status = 'Healthy Supply'
+            badge = 'success'
+        else:
+            status = 'Optimal'
+            badge = 'success'
+            
+        group_imbalances.append({
+            'group': g,
+            'supply': supply,
+            'demand': demand,
+            'status': status,
+            'badge': badge
+        })
+        
+    # Regional Imbalance (Top active districts)
+    districts = db.session.query(Donor.curr_district, func.count(Donor.id)).group_by(Donor.curr_district).order_by(desc(func.count(Donor.id))).limit(5).all()
+    
+    # Age group distribution
+    age_18_30 = Donor.query.filter(Donor.age >= 18, Donor.age <= 30).count()
+    age_31_45 = Donor.query.filter(Donor.age >= 31, Donor.age <= 45).count()
+    age_46_65 = Donor.query.filter(Donor.age >= 46, Donor.age <= 65).count()
+    
+    age_dist = {
+        'young': int((age_18_30 / total_donors) * 100) if total_donors > 0 else 0,
+        'adult': int((age_31_45 / total_donors) * 100) if total_donors > 0 else 0,
+        'senior': int((age_46_65 / total_donors) * 100) if total_donors > 0 else 0
+    }
+    
+    # Duplicate detection (Same phone numbers or very similar names)
+    # Since phone numbers are unique in DB now, we check for potential name duplicates
+    all_donors = Donor.query.all()
+    potential_duplicates = []
+    from difflib import SequenceMatcher
+    
+    for i in range(len(all_donors)):
+        for j in range(i + 1, min(i + 20, len(all_donors))): # Limit comparison complexity
+            d1 = all_donors[i]
+            d2 = all_donors[j]
+            if d1.id != d2.id:
+                ratio = SequenceMatcher(None, d1.full_name.lower(), d2.full_name.lower()).ratio()
+                if ratio > 0.85:
+                    potential_duplicates.append({
+                        'donor1': d1,
+                        'donor2': d2,
+                        'similarity': int(ratio * 100)
+                    })
+                    
+    return render_template('admin/data_quality.html',
+        total_donors=total_donors,
+        missing_email=missing_email,
+        missing_phone2=missing_phone2,
+        missing_last_donation=missing_last_donation,
+        missing_social=missing_social,
+        missing_perm_address=missing_perm_address,
+        completeness_score=completeness_score,
+        group_imbalances=group_imbalances,
+        districts=districts,
+        age_dist=age_dist,
+        potential_duplicates=potential_duplicates
+    )

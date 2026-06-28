@@ -38,16 +38,22 @@
       <div class="d-flex align-items-center gap-2">
         <div class="user-avatar bg-danger rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
              style="width:38px;height:38px;font-size:1rem;flex-shrink:0;">
-          {{ current_user.full_name[0].upper() if current_user.full_name else current_user.username[0].upper() }}
+          {% if current_user.is_authenticated %}
+            {{ current_user.full_name[0].upper() if current_user.full_name else current_user.username[0].upper() }}
+          {% else %}?{% endif %}
         </div>
         <div style="min-width:0;">
           <div class="text-white fw-semibold small text-truncate">
-            {{ current_user.full_name or current_user.username }}
+            {% if current_user.is_authenticated %}
+              {{ current_user.full_name or current_user.username }}
+            {% else %}Guest{% endif %}
           </div>
           <div class="text-white-50" style="font-size:0.7rem;">
+            {% if current_user.is_authenticated %}
             <span class="badge bg-{{ 'danger' if current_user.is_superadmin else 'secondary' }} py-0 px-1">
               {{ current_user.role|title }}
             </span>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -78,6 +84,18 @@
       </a>
       <a href="{{ url_for('admin.advertisements') }}" class="nav-item {{ 'active' if 'advertisement' in request.endpoint }}">
         <i class="fas fa-ad"></i> Advertisements
+      </a>
+      <a href="{{ url_for('admin.success_stories') }}" class="nav-item {{ 'active' if 'success_stories' in request.endpoint }}">
+        <i class="fas fa-heart text-danger"></i> Success Stories
+      </a>
+      <a href="{{ url_for('admin.staff') }}" class="nav-item {{ 'active' if 'staff' in request.endpoint }}">
+        <i class="fas fa-user-tie"></i> Staff Members
+      </a>
+      <a href="{{ url_for('admin.partners') }}" class="nav-item {{ 'active' if 'partner' in request.endpoint }}">
+        <i class="fas fa-handshake"></i> Partners
+      </a>
+      <a href="{{ url_for('admin.data_quality') }}" class="nav-item {{ 'active' if 'data_quality' in request.endpoint }}">
+        <i class="fas fa-database text-warning"></i> Data Quality & ML Ops
       </a>
       <a href="{{ url_for('admin.contacts') }}" class="nav-item {{ 'active' if 'contact' in request.endpoint }}">
         <i class="fas fa-envelope"></i> Messages

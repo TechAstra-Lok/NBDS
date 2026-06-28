@@ -152,3 +152,22 @@ def format_nepali_date(dt):
     if hasattr(dt, 'strftime'):
         return dt.strftime("%B %d, %Y")
     return str(dt)
+
+
+import time
+from functools import wraps
+from flask import request, abort
+from collections import defaultdict
+
+_rate_limits = defaultdict(list)
+
+def rate_limit(limit=10, window=60, methods=None):
+    """
+    Rate limiter disabled as per user request to never show 429 errors.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            return f(*args, **kwargs)
+        return decorated
+    return decorator

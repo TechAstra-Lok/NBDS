@@ -1,0 +1,110 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Staff Member{% endblock %}
+{% block page_title %}{{ action }} Staff Member{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-4">
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      
+      <div class="row g-3">
+        <!-- Name & Designation -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.full_name.label.text }}</label>
+          {{ form.full_name(class_='form-control', placeholder='e.g. Dr. Ramesh Thapa') }}
+          {% if form.full_name.errors %}
+            <div class="text-danger small">{{ form.full_name.errors[0] }}</div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.designation.label.text }}</label>
+          {{ form.designation(class_='form-control', placeholder='e.g. Medical Board Director') }}
+          {% if form.designation.errors %}
+            <div class="text-danger small">{{ form.designation.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Contact Info -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.email.label.text }}</label>
+          {{ form.email(class_='form-control', placeholder='e.g. ramesh@nepaliblooddonors.org') }}
+          {% if form.email.errors %}
+            <div class="text-danger small">{{ form.email.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.contact_number.label.text }}</label>
+          {{ form.contact_number(class_='form-control', placeholder='e.g. 98XXXXXXXX') }}
+          {% if form.contact_number.errors %}
+            <div class="text-danger small">{{ form.contact_number.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Image Upload -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.profile_photo.label.text }}</label>
+          {{ form.profile_photo(class_='form-control') }}
+          {% if form.profile_photo.errors %}
+            <div class="text-danger small">{{ form.profile_photo.errors[0] }}</div>
+          {% endif %}
+          <div class="form-text">Choose a professional square avatar photo. Only JPG, PNG, WEBP allowed.</div>
+        </div>
+        
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check mt-3">
+            {{ form.is_active(class_='form-check-input') }}
+            <label class="form-check-label fw-bold" for="is_active">
+              Active Member (visible on website)
+            </label>
+          </div>
+        </div>
+
+        <!-- Address Info Header -->
+        <div class="col-12 mt-4">
+          <h6 class="fw-bold text-danger border-bottom pb-2">
+            <i class="fas fa-map-marker-alt me-2"></i>Location / Address Details
+          </h6>
+        </div>
+
+        <!-- Address Fields with cascading select -->
+        <div class="col-md-4">
+          <label class="form-label fw-bold">{{ form.province.label.text }}</label>
+          {{ form.province(class_='form-select', id='province') }}
+        </div>
+        
+        <div class="col-md-4">
+          <label class="form-label fw-bold">{{ form.district.label.text }}</label>
+          {{ form.district(class_='form-select', id='district', **{'data-selected': form.district.data or ''}) }}
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-bold">{{ form.local_level.label.text }}</label>
+          {{ form.local_level(class_='form-select', id='local_level', **{'data-selected': form.local_level.data or ''}) }}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.ward_number.label.text }}</label>
+          {{ form.ward_number(class_='form-control', placeholder='e.g. 4') }}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.tole.label.text }}</label>
+          {{ form.tole(class_='form-control', placeholder='e.g. Baluwatar') }}
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.staff') }}" class="btn btn-outline-secondary">Back to Staff List</a>
+        {{ form.submit(class_='btn btn-danger px-4') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/address.js') }}"></script>
+{% endblock %}

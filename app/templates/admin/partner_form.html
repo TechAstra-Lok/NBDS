@@ -1,0 +1,92 @@
+{% extends "admin/layout.html" %}
+{% block title %}{{ action }} Partner{% endblock %}
+{% block page_title %}{{ action }} Partner{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-body p-4">
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      
+      <div class="row g-3">
+        <!-- Partner Name -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.partner_name.label.text }}</label>
+          {{ form.partner_name(class_='form-control', placeholder='e.g. Nepal Red Cross Society') }}
+          {% if form.partner_name.errors %}
+            <div class="text-danger small">{{ form.partner_name.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Website URL -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.website_url.label.text }}</label>
+          {{ form.website_url(class_='form-control', placeholder='e.g. https://nrcs.org') }}
+          {% if form.website_url.errors %}
+            <div class="text-danger small">{{ form.website_url.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Contact Info -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.email.label.text }}</label>
+          {{ form.email(class_='form-control', placeholder='e.g. contact@nrcs.org') }}
+          {% if form.email.errors %}
+            <div class="text-danger small">{{ form.email.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.contact_number.label.text }}</label>
+          {{ form.contact_number(class_='form-control', placeholder='e.g. 01-4XXXXXX') }}
+          {% if form.contact_number.errors %}
+            <div class="text-danger small">{{ form.contact_number.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Address -->
+        <div class="col-12">
+          <label class="form-label fw-bold">{{ form.address.label.text }}</label>
+          {{ form.address(class_='form-control', placeholder='e.g. Red Cross Marg, Kalimati, Kathmandu') }}
+          {% if form.address.errors %}
+            <div class="text-danger small">{{ form.address.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label fw-bold">{{ form.description.label.text }}</label>
+          {{ form.description(class_='form-control', placeholder='Describe the partner and their role...') }}
+          {% if form.description.errors %}
+            <div class="text-danger small">{{ form.description.errors[0] }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Logo Upload -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.logo_file.label.text }}</label>
+          {{ form.logo_file(class_='form-control') }}
+          {% if form.logo_file.errors %}
+            <div class="text-danger small">{{ form.logo_file.errors[0] }}</div>
+          {% endif %}
+          <div class="form-text">Choose a high-quality logo file. Only JPG, PNG, WEBP allowed.</div>
+        </div>
+        
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check mt-3">
+            {{ form.is_active(class_='form-check-input') }}
+            <label class="form-check-label fw-bold" for="is_active">
+              Active Partner (visible on website)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+        <a href="{{ url_for('admin.partners') }}" class="btn btn-outline-secondary">Back to Partners List</a>
+        {{ form.submit(class_='btn btn-danger px-4') }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
