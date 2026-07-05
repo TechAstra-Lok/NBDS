@@ -66,6 +66,7 @@
           <div class="d-flex gap-2 flex-wrap">
             {% if request_record.status != 'fulfilled' %}
             <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
+              {{ form.csrf_token }}
               <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
               <input type="hidden" name="contact_number" value="{{ request_record.contact_number }}" />
               <input type="hidden" name="new_status" value="fulfilled" />
@@ -74,6 +75,7 @@
             {% endif %}
             {% if request_record.status != 'closed' %}
             <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
+              {{ form.csrf_token }}
               <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
               <input type="hidden" name="contact_number" value="{{ request_record.contact_number }}" />
               <input type="hidden" name="new_status" value="closed" />

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app import db
-from app.models import Donor, BloodRequest, Advertisement
+from app.models import Donor, BloodRequest, Advertisement, BloodBank, BloodInventory, BloodReservation, BloodTransfer, LowStockAlert
 from sqlalchemy import desc, or_, func
 
 api_bp = Blueprint('api', __name__)
@@ -54,9 +54,79 @@ def active_requests():
     })
 
 
+@api_bp.route('/blood-banks')
+def blood_banks_api():
+    q = request.args.get('q', '').strip()
+    query = BloodBank.query.filter_by(is_active=True)
+
+    if q:
+        pattern = f'%{q}%'
+        query = query.filter(
+            or_(
+                BloodBank.name.ilike(pattern),
+                BloodBank.district.ilike(pattern),
+                BloodBank.province.ilike(pattern),
+                BloodBank.service_type.ilike(pattern),
+            )
+        )
+
+    banks = query.order_by(BloodBank.name).all()
+    return jsonify({
+        'success': True,
+        'count': len(banks),
+        'blood_banks': [bank.to_dict() for bank in banks]
+    })
+
+
+@api_bp.route('/blood-banks/<int:bank_id>/inventory')
+def blood_bank_inventory_api(bank_id):
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank_id).order_by(BloodInventory.blood_group).all()
+    inventory_payload = []
+    for item in inventory_items:
+        data = item.to_dict()
+        data['movements'] = [movement.to_dict() for movement in item.movements]
+        inventory_payload.append(data)
+
+    return jsonify({
+        'success': True,
+        'count': len(inventory_items),
+        'inventory': inventory_payload
+    })
+
+
+@api_bp.route('/blood-banks/<int:bank_id>/reservations')
+def blood_bank_reservations_api(bank_id):
+    reservations = BloodReservation.query.filter_by(blood_bank_id=bank_id).order_by(BloodReservation.requested_at.desc()).all()
+    return jsonify({
+        'success': True,
+        'count': len(reservations),
+        'reservations': [item.to_dict() for item in reservations]
+    })
+
+
+@api_bp.route('/blood-banks/<int:bank_id>/transfers')
+def blood_bank_transfers_api(bank_id):
+    transfers = BloodTransfer.query.filter((BloodTransfer.source_bank_id == bank_id) | (BloodTransfer.destination_bank_id == bank_id)).order_by(BloodTransfer.created_at.desc()).all()
+    return jsonify({
+        'success': True,
+        'count': len(transfers),
+        'transfers': [item.to_dict() for item in transfers]
+    })
+
+
+@api_bp.route('/blood-banks/<int:bank_id>/alerts')
+def blood_bank_alerts_api(bank_id):
+    alerts = LowStockAlert.query.filter_by(blood_bank_id=bank_id).order_by(LowStockAlert.created_at.desc()).all()
+    return jsonify({
+        'success': True,
+        'count': len(alerts),
+        'alerts': [item.to_dict() for item in alerts]
+    })
+
+
 @api_bp.route('/stats')
 def stats():
-    from app.models import News, Notice
+    from app.models import News
     
     return jsonify({
         'total_donors':     Donor.query.count(),

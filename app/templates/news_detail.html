@@ -18,7 +18,7 @@
       <!-- Featured Image -->
       {% if post.featured_image %}
       <div style="max-height:400px;overflow:hidden;">
-        <img src="{{ post.image_url }}" class="w-100"
+        <img loading="lazy" src="{{ post.image_url }}" class="w-100"
              style="object-fit:cover;max-height:400px;"
              alt="{{ post.title }}"
              onerror="this.src='/static/images/news-placeholder.svg'">

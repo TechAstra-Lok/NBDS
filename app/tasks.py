@@ -7,54 +7,84 @@ logger = logging.getLogger(__name__)
 def update_donor_availability(app):
     """
     Background job to auto-update donor status based on last_donation_date (90 days logic).
-    If a donor is marked as 'recently_donated' and their 90-day period has passed,
-    they are automatically moved back to 'available'.
+    Recalculates status for all active donors using the new 3-tier availability engine.
     """
     with app.app_context():
         from app import db
         today = datetime.utcnow().date()
         
-        # Donors who are currently 'recently_donated'
-        recent_donors = Donor.query.filter_by(availability_status='recently_donated').all()
+        donors = Donor.query.filter_by(is_active=True).all()
         updated_count = 0
         
-        for donor in recent_donors:
-            if donor.last_donation_date:
-                eligible_date = donor.last_donation_date + timedelta(days=90)
-                if today >= eligible_date:
-                    donor.availability_status = 'available'
-                    updated_count += 1
+        for donor in donors:
+            old_status = donor.availability_status
+            donor.recalculate_and_save()
+            if donor.availability_status != old_status:
+                updated_count += 1
         
         if updated_count > 0:
             db.session.commit()
-            logger.info(f"Auto-updated {updated_count} donors to 'available' status.")
+            logger.info(f"Auto-updated {updated_count} donors' availability status.")
         else:
             logger.info("No donors needed availability update today.")
+
 
 
 def alert_matching_donors(app, request_id):
     """
     Intelligent Donor Alert System logic.
-    Finds available donors matching the requested blood group in the same district/local level.
+    Finds available donors matching the requested blood group in the same district.
     """
     with app.app_context():
-        # This would typically integrate with an SMS/Email gateway.
-        # For now, it logs the matches.
+        from app import db
+        from app.models import BloodRequest, Donor
+        from app.services.notifications import NotificationDispatcher
+        
         req = BloodRequest.query.get(request_id)
         if not req or req.status != 'active':
             return
             
-        # Match logic: Same blood group, available, same district.
-        # Can further filter by local_level and ward for tighter proximity.
+        # Match logic: Same blood group, available, same district, active account.
         matches = Donor.query.filter(
             Donor.blood_group == req.blood_group,
             Donor.availability_status == 'available',
+            Donor.is_active == True,
             Donor.curr_district == req.district
         ).all()
         
         logger.info(f"Alert System: Found {len(matches)} matching donors for Blood Request {req.request_id} in {req.district}.")
         
-        # TODO: Trigger SMS or Email API to alert these matches.
+        if not matches:
+            return
+            
+        dispatcher = NotificationDispatcher()
+        title = f"URGENT: {req.blood_group} Blood Required at {req.hospital}"
+        
+        # Build comprehensive message body
+        urgency_str = "EMERGENCY" if req.is_emergency else "NORMAL"
+        message = (
+            f"Dear Donor,\n\n"
+            f"An urgent request for {req.blood_group} blood has been posted near you.\n\n"
+            f"Patient: {req.patient_name}\n"
+            f"Hospital: {req.hospital}\n"
+            f"Location: {req.local_level or ''}, {req.district}\n"
+            f"Urgency: {urgency_str}\n"
+            f"Contact Person: {req.contact_person}\n"
+            f"Contact Number: {req.contact_number}\n\n"
+        )
+        if req.request_message:
+            message += f"Message: {req.request_message}\n\n"
+            
+        message += f"If you are available to donate, please contact the number above.\nThank you for saving a life!"
+        
+        dispatched_count = 0
+        for donor in matches:
+            if dispatcher.dispatch(donor, title, message, category='alert', request_id=req.id):
+                dispatched_count += 1
+                
+        if dispatched_count > 0:
+            db.session.commit()
+            logger.info(f"Successfully dispatched alerts to {dispatched_count} donors.")
 
 
 def schedule_jobs(app, scheduler):

@@ -2,10 +2,7 @@ import os
 import uuid
 import bleach
 from PIL import Image
-from datetime import datetime
 from flask import current_app
-from werkzeug.utils import secure_filename
-
 
 ALLOWED_TAGS = [
     'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -124,6 +121,9 @@ def paginate_query(query, page, per_page):
     return query.paginate(page=page, per_page=per_page, error_out=False)
 
 
+from app import cache
+
+@cache.cached(timeout=300, key_prefix='blood_group_stats')
 def get_blood_group_stats():
     """Get donor count per blood group"""
     from app.models import Donor, db
@@ -154,9 +154,30 @@ def format_nepali_date(dt):
     return str(dt)
 
 
-import time
+def generate_qr_code(kind, identifier):
+    """Create a compact QR payload for inventory or reservation records."""
+    kind_key = str(kind).strip().lower()
+    if kind_key not in {'inventory', 'reservation'}:
+        raise ValueError('Unsupported QR kind')
+    return f"{kind_key.upper()[:3]}-{identifier}"
+
+
+def verify_qr_code(code):
+    """Decode a QR payload into its object type and identifier."""
+    if not code:
+        return None
+    prefix, _, identifier = str(code).partition('-')
+    if not identifier:
+        return None
+    kind = prefix.lower()
+    if kind == 'inv':
+        return {'type': 'inventory', 'id': int(identifier)}
+    if kind == 'res':
+        return {'type': 'reservation', 'id': int(identifier)}
+    return None
+
+
 from functools import wraps
-from flask import request, abort
 from collections import defaultdict
 
 _rate_limits = defaultdict(list)

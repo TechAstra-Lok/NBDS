@@ -48,12 +48,368 @@ class User(UserMixin, db.Model):
 
 
 # ─────────────────────────────────────────────
+# BLOOD BANK MODEL
+# ─────────────────────────────────────────────
+class BloodBank(db.Model):
+    __tablename__ = 'blood_banks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(200), nullable=False, index=True)
+    display_name = db.Column(db.String(200))
+    hospital_name = db.Column(db.String(200))
+    parent_organization = db.Column(db.String(200))
+    branch_type = db.Column(db.String(60), default='Hospital Blood Bank')
+    service_type = db.Column(db.String(60), default='Hospital Blood Bank')
+    province = db.Column(db.String(60), index=True)
+    district = db.Column(db.String(80), index=True)
+    city = db.Column(db.String(120))
+    local_level = db.Column(db.String(120))
+    ward = db.Column(db.String(20))
+    tole = db.Column(db.String(120))
+    phone = db.Column(db.String(20))
+    contact_number = db.Column(db.String(20))
+    alternate_contact_number = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    website = db.Column(db.String(250))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    google_maps = db.Column(db.String(500))
+    maps_url = db.Column(db.String(500))
+    emergency_available = db.Column(db.Boolean, default=False)
+    is_emergency_panel = db.Column(db.Boolean, default=False, index=True)
+    is_grouped_entry = db.Column(db.Boolean, default=False, index=True)
+    notes = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    status = db.Column(db.String(20), default='active', index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    inventory_items = db.relationship('BloodInventory', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
+    reservations = db.relationship('BloodReservation', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
+    transfers_out = db.relationship('BloodTransfer', foreign_keys='BloodTransfer.source_bank_id', backref='source_bank', lazy=True, cascade='all, delete-orphan')
+    transfers_in = db.relationship('BloodTransfer', foreign_keys='BloodTransfer.destination_bank_id', backref='destination_bank', lazy=True, cascade='all, delete-orphan')
+    alerts = db.relationship('LowStockAlert', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.uuid:
+            self.uuid = str(uuid.uuid4())
+
+    @property
+    def resolved_display_name(self):
+        return self.display_name or self.name or self.hospital_name or 'Blood Bank'
+
+    @property
+    def is_operational(self):
+        return bool(self.is_active and self.status == 'active')
+
+    @property
+    def google_maps_url(self):
+        if self.maps_url:
+            return self.maps_url
+        if self.google_maps:
+            return self.google_maps
+        if self.latitude is not None and self.longitude is not None:
+            return f'https://www.google.com/maps?q={self.latitude},{self.longitude}'
+        return None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'uuid': self.uuid,
+            'name': self.resolved_display_name,
+            'province': self.province,
+            'district': self.district,
+            'city': self.city,
+            'contact_number': self.contact_number or self.phone,
+            'alternate_contact_number': self.alternate_contact_number,
+            'email': self.email,
+            'website': self.website,
+            'service_type': self.service_type,
+            'branch_type': self.branch_type,
+            'emergency_available': self.emergency_available or self.is_emergency_panel,
+            'is_emergency_panel': self.is_emergency_panel,
+            'is_grouped_entry': self.is_grouped_entry,
+            'status': self.status,
+            'is_active': self.is_active,
+            'maps_url': self.google_maps_url,
+        }
+
+    def __repr__(self):
+        return f'<BloodBank {self.resolved_display_name}>'
+
+
+class BloodInventory(db.Model):
+    __tablename__ = 'blood_inventory'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    blood_group = db.Column(db.String(5), nullable=False, index=True)
+    component = db.Column(db.String(50), nullable=False, default='Whole Blood')
+    units_available = db.Column(db.Integer, default=0)
+    units_reserved = db.Column(db.Integer, default=0)
+    minimum_stock = db.Column(db.Integer, default=4)
+    maximum_stock = db.Column(db.Integer, default=20)
+    expiry_date = db.Column(db.String(20))
+    qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    movements = db.relationship('BloodInventoryMovement', backref='inventory', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def available_units(self):
+        return max(self.units_available - self.units_reserved, 0)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'blood_group': self.blood_group,
+            'component': self.component,
+            'units_available': self.units_available,
+            'units_reserved': self.units_reserved,
+            'available_units': self.available_units,
+            'minimum_stock': self.minimum_stock,
+            'maximum_stock': self.maximum_stock,
+            'expiry_date': self.expiry_date,
+            'qr_code': self.qr_code,
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodInventoryMovement(db.Model):
+    __tablename__ = 'blood_inventory_movements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('blood_inventory.id'), nullable=False, index=True)
+    movement_type = db.Column(db.String(30), nullable=False, index=True)
+    units = db.Column(db.Integer, default=0)
+    note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'movement_type': self.movement_type,
+            'units': self.units,
+            'note': self.note,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodReservation(db.Model):
+    __tablename__ = 'blood_reservations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    hospital_name = db.Column(db.String(200), nullable=False)
+    patient_name = db.Column(db.String(150), nullable=False)
+    blood_group = db.Column(db.String(5), nullable=False, index=True)
+    component = db.Column(db.String(50), nullable=False, default='Whole Blood')
+    units = db.Column(db.Integer, default=1)
+    priority = db.Column(db.String(20), default='normal')
+    status = db.Column(db.String(20), default='pending', index=True)
+    qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hospital_name': self.hospital_name,
+            'patient_name': self.patient_name,
+            'blood_group': self.blood_group,
+            'component': self.component,
+            'units': self.units,
+            'priority': self.priority,
+            'status': self.status,
+            'qr_code': self.qr_code,
+            'requested_at': self.requested_at.isoformat() if self.requested_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodTransfer(db.Model):
+    __tablename__ = 'blood_transfers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    source_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    destination_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    blood_group = db.Column(db.String(5), nullable=False, index=True)
+    component = db.Column(db.String(50), nullable=False, default='Whole Blood')
+    units = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(20), default='pending', index=True)
+    remarks = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'source_bank_id': self.source_bank_id,
+            'destination_bank_id': self.destination_bank_id,
+            'blood_group': self.blood_group,
+            'component': self.component,
+            'units': self.units,
+            'status': self.status,
+            'remarks': self.remarks,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class LowStockAlert(db.Model):
+    __tablename__ = 'low_stock_alerts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    blood_group = db.Column(db.String(5), nullable=False, index=True)
+    component = db.Column(db.String(50), nullable=False, default='Whole Blood')
+    severity = db.Column(db.String(20), default='warning', index=True)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'blood_group': self.blood_group,
+            'component': self.component,
+            'severity': self.severity,
+            'message': self.message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=True, index=True)
+    blood_request_id = db.Column(db.Integer, db.ForeignKey('blood_requests.id'), nullable=True, index=True)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(30), default='general', index=True)
+    channel = db.Column(db.String(20), default='in_app', index=True)
+    is_read = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    delivery_logs = db.relationship('NotificationDeliveryLog', backref='notification', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'message': self.message,
+            'category': self.category,
+            'channel': self.channel,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class NotificationDeliveryLog(db.Model):
+    __tablename__ = 'notification_delivery_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey('notifications.id'), nullable=False, index=True)
+    channel = db.Column(db.String(20), nullable=False, index=True) # email, sms, in_app
+    status = db.Column(db.String(20), default='pending', index=True) # pending, sent, failed
+    error_message = db.Column(db.Text, nullable=True)
+    attempt_count = db.Column(db.Integer, default=0)
+    last_attempt_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'notification_id': self.notification_id,
+            'channel': self.channel,
+            'status': self.status,
+            'error_message': self.error_message,
+            'attempt_count': self.attempt_count,
+            'last_attempt_at': self.last_attempt_at.isoformat() if self.last_attempt_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class DonorNotificationPreference(db.Model):
+    __tablename__ = 'donor_notification_preferences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=False, unique=True)
+    email_alerts = db.Column(db.Boolean, default=True)
+    sms_alerts = db.Column(db.Boolean, default=True)
+    in_app_alerts = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'donor_id': self.donor_id,
+            'email_alerts': self.email_alerts,
+            'sms_alerts': self.sms_alerts,
+            'in_app_alerts': self.in_app_alerts,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    action = db.Column(db.String(80), nullable=False, index=True)
+    entity_id = db.Column(db.Integer, nullable=True, index=True)
+    details = db.Column(db.Text)
+    actor = db.Column(db.String(100), default='system')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'action': self.action,
+            'entity_id': self.entity_id,
+            'details': self.details,
+            'actor': self.actor,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+# ─────────────────────────────────────────────
 # DONOR MODEL
 # ─────────────────────────────────────────────
 BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 class Donor(UserMixin, db.Model):
     __tablename__ = 'donors'
+    __table_args__ = (
+        db.Index('idx_donor_search', 'curr_district', 'blood_group', 'availability_status'),
+    )
     
     id                      = db.Column(db.Integer, primary_key=True)
     donor_id                = db.Column(db.String(20), unique=True, nullable=False, index=True)
@@ -86,10 +442,21 @@ class Donor(UserMixin, db.Model):
     donation_times          = db.Column(db.Integer, default=0)
     
     # Donor Meta
-    donor_type              = db.Column(db.String(20), nullable=False)  # occasional|regular|emergency
+    donor_type              = db.Column(db.String(30), nullable=False)  # regular|emergency|platelet|rare|volunteer|other
     social_link             = db.Column(db.String(300))
     availability_status     = db.Column(db.String(30), default='available', index=True) # available | recently_donated | unavailable
     available_after         = db.Column(db.Date)
+    
+    # Optional Profile Metadata
+    gender                  = db.Column(db.String(20))  # male|female|other|prefer_not_to_say
+    emergency_contact       = db.Column(db.String(15))  # emergency contact phone
+    donor_notes             = db.Column(db.Text)  # admin or self notes
+    is_public               = db.Column(db.Boolean, default=True)  # profile visibility toggle
+    
+    # Donation Summary Fields (kept for fast filtering, updated by engine)
+    total_donations         = db.Column(db.Integer, default=0)
+    available_after_date    = db.Column(db.Date)  # computed: 90th day from last donation
+    last_status_recalculated_at = db.Column(db.DateTime)
     
     # Auth & System
     is_email_verified       = db.Column(db.Boolean, default=False)
@@ -97,6 +464,16 @@ class Donor(UserMixin, db.Model):
     is_active               = db.Column(db.Boolean, default=True)
     created_at              = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at              = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    donation_history        = db.relationship('DonorDonationHistory', backref='donor', lazy=True, cascade='all, delete-orphan')
+    notifications           = db.relationship('Notification', backref='donor', lazy=True, cascade='all, delete-orphan')
+    preference              = db.relationship('DonorNotificationPreference', backref='donor', uselist=False, lazy=True, cascade='all, delete-orphan')
+
+    
+    # ── Configurable Availability Thresholds ──
+    RECENT_DAYS     = 30   # 0-29 days => Recently Donated
+    UNAVAILABLE_DAYS = 90  # 30-89 days => Unavailable; 90+ => Available
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -121,10 +498,122 @@ class Donor(UserMixin, db.Model):
     def next_eligible_date(self):
         if not self.last_donation_date:
             return None
-        return self.last_donation_date + timedelta(days=90)  # 90 days as per user rules
+        return self.last_donation_date + timedelta(days=self.UNAVAILABLE_DAYS)
+    
+    def calculate_availability(self):
+        """
+        Compute donor availability based on last_donation_date.
+        Returns (status_string, available_after_date_or_None).
+        
+        Logic:
+          0–29 days  => 'recently_donated'
+          30–89 days => 'unavailable' + available_after = last_donation + 90 days
+          90+ days   => 'available'
+          No date    => 'available'
+        """
+        if not self.last_donation_date:
+            return ('available', None)
+        
+        today = datetime.utcnow().date()
+        days_since = (today - self.last_donation_date).days
+        eligible_date = self.last_donation_date + timedelta(days=self.UNAVAILABLE_DAYS)
+        
+        if days_since < 0:
+            # Future date (data entry error) – treat as recently donated
+            return ('recently_donated', eligible_date)
+        elif days_since < self.RECENT_DAYS:
+            return ('recently_donated', eligible_date)
+        elif days_since < self.UNAVAILABLE_DAYS:
+            return ('unavailable', eligible_date)
+        else:
+            return ('available', None)
+    
+    def recalculate_and_save(self):
+        """Recalculate availability and update summary fields in-place."""
+        status, after_date = self.calculate_availability()
+        self.availability_status = status
+        self.available_after_date = after_date
+        # Also sync the legacy field
+        self.available_after = after_date
+        self.last_status_recalculated_at = datetime.utcnow()
+    
+    @property
+    def availability_display(self):
+        """Human-readable availability status text."""
+        if self.availability_status == 'available':
+            return 'Available'
+        elif self.availability_status == 'recently_donated':
+            return 'Recently Donated'
+        elif self.availability_status == 'unavailable':
+            if self.available_after_date:
+                return f'Available After: {self.available_after_date.strftime("%Y-%m-%d")}'
+            return 'Unavailable'
+        return 'Unknown'
+    
+    @property
+    def availability_badge_class(self):
+        """Bootstrap badge class for status display."""
+        return {
+            'available': 'bg-success',
+            'recently_donated': 'bg-warning text-dark',
+            'unavailable': 'bg-danger',
+        }.get(self.availability_status, 'bg-secondary')
     
     def __repr__(self):
-        return f'<Donor {self.donor_id}: {self.full_name} [{self.blood_group}]>'
+        return f'<Donor {self.donor_id}: {self.full_name} [{self.blood_group}] status={self.availability_status}>'
+
+
+# ─────────────────────────────────────────────
+# DONOR DONATION HISTORY MODEL
+# ─────────────────────────────────────────────
+class DonorDonationHistory(db.Model):
+    __tablename__ = 'donor_donation_history'
+    __table_args__ = (
+        db.Index('idx_donation_history_donor', 'donor_id', 'donation_date'),
+    )
+    
+    id              = db.Column(db.Integer, primary_key=True)
+    donor_id        = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=False, index=True)
+    donation_date   = db.Column(db.Date, nullable=False)
+    donation_type   = db.Column(db.String(30), default='whole_blood')  # whole_blood|platelet|plasma|sdp|other
+    location        = db.Column(db.String(200))  # hospital/blood bank name
+    units           = db.Column(db.Float, default=1.0)
+    notes           = db.Column(db.Text)
+    created_by      = db.Column(db.String(50), default='donor')  # 'donor' or 'admin_<id>'
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    DONATION_TYPE_LABELS = {
+        'whole_blood': 'Whole Blood',
+        'platelet': 'Platelet (SDP)',
+        'plasma': 'Plasma',
+        'sdp': 'Single Donor Platelet',
+        'other': 'Other',
+    }
+    
+    @property
+    def donation_type_label(self):
+        return self.DONATION_TYPE_LABELS.get(self.donation_type, self.donation_type or 'Whole Blood')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'donor_id': self.donor_id,
+            'donation_date': self.donation_date.isoformat() if self.donation_date else None,
+            'donation_type': self.donation_type,
+            'donation_type_label': self.donation_type_label,
+            'location': self.location,
+            'units': self.units,
+            'notes': self.notes,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+    
+    def __repr__(self):
+        return f'<DonorDonationHistory donor={self.donor_id} date={self.donation_date} type={self.donation_type}>'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 # ─────────────────────────────────────────────
@@ -166,6 +655,9 @@ class Volunteer(UserMixin, db.Model):
     def __repr__(self):
         return f'<Volunteer {self.full_name} [{self.designation}]>'
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # ─────────────────────────────────────────────
 # STAFF MODEL
@@ -196,6 +688,9 @@ class StaffMember(db.Model):
             return f"/static/uploads/staff/{self.profile_photo}"
         return "/static/images/default-avatar.jpg"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # ─────────────────────────────────────────────
 # PARTNER MODEL
@@ -221,6 +716,9 @@ class Partner(db.Model):
             return f"/static/uploads/partners/{self.logo_file}"
         return "/static/images/default-partner.png"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # ─────────────────────────────────────────────
 # BLOOD REQUEST MODEL
@@ -231,13 +729,14 @@ class BloodRequest(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     request_id      = db.Column(db.String(20), unique=True, nullable=False, index=True)
     patient_name    = db.Column(db.String(150), nullable=False)
-    request_message = db.Column(db.Text, nullable=False)
+    request_message = db.Column(db.Text, nullable=True)
     case_details    = db.Column(db.String(255), nullable=False)
     blood_group     = db.Column(db.String(5), nullable=False, index=True)
     units_needed    = db.Column(db.Integer, default=1)
     
     # Location
     hospital        = db.Column(db.String(200), nullable=False)
+    hospital_paper_file = db.Column(db.String(255), nullable=True)
     province        = db.Column(db.String(60))
     district        = db.Column(db.String(80), index=True)
     local_level     = db.Column(db.String(100))
@@ -300,6 +799,9 @@ class SuccessStory(db.Model):
     
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 # ─────────────────────────────────────────────
@@ -367,6 +869,9 @@ class Notice(db.Model):
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # ─────────────────────────────────────────────
 # ADVERTISEMENT MODEL
@@ -390,20 +895,8 @@ class Advertisement(db.Model):
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
-# ─────────────────────────────────────────────
-# AUDIT LOG MODEL
-# ─────────────────────────────────────────────
-class AuditLog(db.Model):
-    __tablename__ = 'audit_logs'
-    
-    id          = db.Column(db.Integer, primary_key=True)
-    user_id     = db.Column(db.String(50), index=True) # E.g. "admin_1" or "donor_4"
-    action      = db.Column(db.String(50), nullable=False) # Login, Delete, Edit, Create, Publish
-    module      = db.Column(db.String(50)) # Model name or Route
-    details     = db.Column(db.Text)
-    ip_address  = db.Column(db.String(45))
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 # ─────────────────────────────────────────────
@@ -422,6 +915,9 @@ class SiteVisitor(db.Model):
         db.UniqueConstraint('ip_address', 'visit_date', name='unique_daily_visitor'),
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 # ─────────────────────────────────────────────
 # CONTACT MODEL
@@ -437,3 +933,5 @@ class Contact(db.Model):
     message     = db.Column(db.Text, nullable=False)
     is_read     = db.Column(db.Boolean, default=False, index=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)

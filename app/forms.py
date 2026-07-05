@@ -1,12 +1,12 @@
 import re
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from urllib.parse import urlparse
 from wtforms import (
     StringField, TextAreaField, SelectField, IntegerField,
     FloatField, PasswordField, SubmitField, DateField,
-    BooleanField, URLField, HiddenField
+    BooleanField
 )
+from wtforms.widgets import HiddenInput
 from wtforms.validators import (
     DataRequired, Email, Length, NumberRange,
     Regexp, Optional, ValidationError, EqualTo
@@ -36,9 +36,13 @@ PROVINCE_CHOICES = [
 
 DONOR_TYPE_CHOICES = [
     ('', '-- Select Type --'),
-    ('occasional', 'Occasional Donor'),
     ('regular', 'Regular Donor'),
-    ('emergency', 'Emergency Only'),
+    ('emergency', 'Emergency Donor'),
+    ('platelet', 'Platelet Donor'),
+    ('rare', 'Rare Blood Donor'),
+    ('volunteer', 'Volunteer Donor'),
+    ('occasional', 'Occasional Donor'),
+    ('other', 'Other'),
 ]
 
 VOLUNTEER_DESIGNATION_CHOICES = [
@@ -138,18 +142,97 @@ class DonorRegistrationForm(FlaskForm):
 
 
 class DonorEditForm(FlaskForm):
+    donor_id            = IntegerField(widget=HiddenInput())
+    full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
+    email               = StringField('Email Address *', validators=[DataRequired(), Email(), Length(max=120)])
+    phone1              = StringField('Primary Mobile *', validators=[DataRequired(), validate_nepal_mobile])
+    phone2              = StringField('Secondary Mobile', validators=[Optional(), validate_nepal_mobile])
+    age                 = IntegerField('Age *', validators=[DataRequired(), NumberRange(min=18, max=65)])
+    weight              = FloatField('Weight (kg)', validators=[Optional(), NumberRange(min=45, max=150)])
+    blood_group         = SelectField('Blood Group *', choices=BLOOD_GROUP_CHOICES, validators=[DataRequired()])
+    donor_type          = SelectField('Donor Type *', choices=DONOR_TYPE_CHOICES, validators=[DataRequired()])
     availability_status = SelectField('Availability Status *', choices=[
         ('available', 'Available to Donate'),
-        ('recently_donated', 'Recently Donated (0-90 Days)'),
+        ('recently_donated', 'Recently Donated (0-30 Days)'),
         ('unavailable', 'Currently Unavailable'),
     ])
     last_donation_date  = DateField('Last Donation Date', format='%Y-%m-%d', validators=[Optional()])
+    donation_times      = IntegerField('Total Donations', default=0, validators=[Optional(), NumberRange(min=0)])
+    social_link         = StringField('Social Media Link', validators=[Optional(), Length(max=300)])
+    gender              = SelectField('Gender', choices=[
+        ('', '-- Select --'),
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+        ('prefer_not_to_say', 'Prefer Not to Say'),
+    ], validators=[Optional()])
+    emergency_contact   = StringField('Emergency Contact', validators=[Optional(), Length(max=15)])
+    donor_notes         = TextAreaField('Notes', validators=[Optional()], render_kw={"rows": 3})
+    is_public           = BooleanField('Public Profile', default=True)
+    
+    # Address
     curr_province       = SelectField('Province *', choices=PROVINCE_CHOICES, validators=[DataRequired()])
     curr_district       = SelectField('District *', choices=[('', '-- Select District --')], validate_choice=False, validators=[DataRequired()])
     curr_local_level    = SelectField('Local Level *', choices=[('', '-- Select Municipality --')], validate_choice=False, validators=[DataRequired()])
     curr_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
     curr_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    perm_province       = SelectField('Province', choices=PROVINCE_CHOICES, validators=[Optional()])
+    perm_district       = SelectField('District', choices=[('', '-- Select District --')], validate_choice=False)
+    perm_local_level    = SelectField('Local Level', choices=[('', '-- Select Municipality --')], validate_choice=False)
+    perm_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
+    perm_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    
     submit = SubmitField('Update Donor Profile')
+
+
+class DonorProfileEditForm(FlaskForm):
+    """Form for donors to edit their own profile from the dashboard."""
+    full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
+    phone2              = StringField('Secondary Mobile', validators=[Optional(), validate_nepal_mobile])
+    age                 = IntegerField('Age *', validators=[DataRequired(), NumberRange(min=18, max=65)])
+    weight              = FloatField('Weight (kg)', validators=[Optional(), NumberRange(min=45, max=150)])
+    donor_type          = SelectField('Donor Type *', choices=DONOR_TYPE_CHOICES, validators=[DataRequired()])
+    social_link         = StringField('Social Media Link', validators=[Optional(), Length(max=300)])
+    gender              = SelectField('Gender', choices=[
+        ('', '-- Select --'),
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+        ('prefer_not_to_say', 'Prefer Not to Say'),
+    ], validators=[Optional()])
+    emergency_contact   = StringField('Emergency Contact', validators=[Optional(), Length(max=15)])
+    donor_notes         = TextAreaField('Notes', validators=[Optional()], render_kw={"rows": 3})
+    is_public           = BooleanField('Show Profile Publicly', default=True)
+    
+    # Current Address (editable)
+    curr_province       = SelectField('Province *', choices=PROVINCE_CHOICES, validators=[DataRequired()])
+    curr_district       = SelectField('District *', choices=[('', '-- Select District --')], validate_choice=False, validators=[DataRequired()])
+    curr_local_level    = SelectField('Local Level *', choices=[('', '-- Select Municipality --')], validate_choice=False, validators=[DataRequired()])
+    curr_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
+    curr_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    
+    # Notification Preferences
+    email_alerts        = BooleanField('Email Alerts', default=True)
+    sms_alerts          = BooleanField('SMS Alerts', default=True)
+    in_app_alerts       = BooleanField('In-App Alerts', default=True)
+    
+    submit = SubmitField('Save Profile Changes')
+
+
+class DonationHistoryForm(FlaskForm):
+    """Form for adding/editing a donation record."""
+    donation_date   = DateField('Donation Date *', format='%Y-%m-%d', validators=[DataRequired()])
+    donation_type   = SelectField('Donation Type *', choices=[
+        ('whole_blood', 'Whole Blood'),
+        ('platelet', 'Platelet (SDP)'),
+        ('plasma', 'Plasma'),
+        ('sdp', 'Single Donor Platelet'),
+        ('other', 'Other'),
+    ], validators=[DataRequired()])
+    location        = StringField('Hospital / Blood Bank Name', validators=[Optional(), Length(max=200)])
+    units           = FloatField('Units Donated', default=1.0, validators=[Optional(), NumberRange(min=0.5, max=5)])
+    notes           = TextAreaField('Notes (Optional)', validators=[Optional(), Length(max=500)], render_kw={"rows": 3})
+    submit          = SubmitField('Save Donation Record')
 
 
 # ─── Volunteer Forms ─────────────────────────
@@ -190,7 +273,7 @@ class VolunteerRegistrationForm(FlaskForm):
 class BloodRequestForm(FlaskForm):
     patient_name    = StringField('Patient Name *', validators=[DataRequired(), Length(min=2, max=150)])
     case_details    = StringField('Case / Medical Condition *', validators=[DataRequired(), Length(min=3, max=255)])
-    request_message = TextAreaField('Blood Request Message *', validators=[DataRequired(), Length(min=20, max=2000)], render_kw={"rows": 5})
+    request_message = TextAreaField('Blood Request Message (Optional)', validators=[Optional(), Length(max=2000)], render_kw={"rows": 5})
     blood_group     = SelectField('Blood Group Required *', choices=BLOOD_GROUP_CHOICES, validators=[DataRequired()])
     units_needed    = IntegerField('Units Needed', default=1, validators=[DataRequired(), NumberRange(min=1, max=20)])
     
@@ -204,6 +287,7 @@ class BloodRequestForm(FlaskForm):
     contact_number  = StringField('Contact Number *', validators=[DataRequired(), validate_nepal_mobile])
     alt_number      = StringField('Alternate Number', validators=[Optional(), validate_nepal_mobile])
     is_emergency    = BooleanField('Mark as EMERGENCY')
+    hospital_paper  = FileField('Hospital Request Paper (Optional)', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png'], 'Images only!')])
     submit          = SubmitField('Submit Blood Request')
 
 
@@ -272,6 +356,32 @@ class ContactForm(FlaskForm):
     subject = StringField('Subject *', validators=[DataRequired(), Length(min=5, max=255)])
     message = TextAreaField('Message *', validators=[DataRequired(), Length(min=20, max=3000)], render_kw={"rows": 7})
     submit  = SubmitField('Send Message')
+
+
+# ─── Blood Bank Form ─────────────────────────────
+class BloodBankForm(FlaskForm):
+    name = StringField('Blood Bank Name', validators=[DataRequired(), Length(max=200)])
+    display_name = StringField('Display Name (Optional)', validators=[Optional(), Length(max=200)])
+    hospital_name = StringField('Hospital Name (Optional)', validators=[Optional(), Length(max=200)])
+    branch_type = StringField('Branch Type', default='Main/Sub Branch', validators=[Length(max=60)])
+    service_type = SelectField('Service Type', choices=[
+        ('Blood Transfusion Service', 'Blood Transfusion Service'),
+        ('Emergency Panel', 'Emergency Panel'),
+        ('Regional Center', 'Regional Center'),
+        ('Hospital Blood Bank', 'Hospital Blood Bank')
+    ])
+    province = SelectField('Province', choices=PROVINCE_CHOICES, validators=[DataRequired()])
+    district = StringField('District', validators=[DataRequired(), Length(max=80)])
+    city = StringField('City/Municipality', validators=[Optional(), Length(max=120)])
+    contact_number = StringField('Contact Number', validators=[DataRequired(), Length(max=20)])
+    alternate_contact_number = StringField('Alternate Contact (Optional)', validators=[Optional(), Length(max=20)])
+    latitude = FloatField('Latitude', validators=[Optional()])
+    longitude = FloatField('Longitude', validators=[Optional()])
+    is_emergency_panel = BooleanField('Is Emergency Panel?')
+    is_grouped_entry = BooleanField('Is Grouped Entry?')
+    is_active = BooleanField('Is Active?', default=True)
+    notes = TextAreaField('Notes/Address Details', validators=[Optional()])
+    submit = SubmitField('Save Blood Bank')
 
 
 class AdminUserForm(FlaskForm):

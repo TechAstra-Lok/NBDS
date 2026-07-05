@@ -1,0 +1,96 @@
+{% extends "admin/layout.html" %}
+{% block title %}Notification Delivery Logs - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="h4 mb-0 text-gray-800"><i class="fas fa-paper-plane me-2 text-danger"></i>Notification Delivery Logs</h2>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">ID</th>
+            <th>Notification ID</th>
+            <th>Channel</th>
+            <th>Status</th>
+            <th>Attempts</th>
+            <th>Error Message</th>
+            <th>Sent At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs.items %}
+          <tr>
+            <td class="ps-4 fw-bold text-muted">#{{ log.id }}</td>
+            <td>
+              <a href="#" class="text-decoration-none">#{{ log.notification_id }}</a>
+            </td>
+            <td>
+              {% if log.channel == 'email' %}
+                <span class="badge bg-primary"><i class="fas fa-envelope me-1"></i>Email</span>
+              {% elif log.channel == 'sms' %}
+                <span class="badge bg-info text-dark"><i class="fas fa-sms me-1"></i>SMS</span>
+              {% else %}
+                <span class="badge bg-secondary"><i class="fas fa-bell me-1"></i>In-App</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if log.status == 'sent' %}
+                <span class="badge bg-success rounded-pill px-3">Sent</span>
+              {% elif log.status == 'failed' %}
+                <span class="badge bg-danger rounded-pill px-3">Failed</span>
+              {% else %}
+                <span class="badge bg-warning text-dark rounded-pill px-3">Pending</span>
+              {% endif %}
+            </td>
+            <td>{{ log.attempt_count }}</td>
+            <td class="text-muted small">
+              {% if log.error_message %}
+                <span class="text-danger" title="{{ log.error_message }}">{{ log.error_message|truncate(40) }}</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="fas fa-inbox fa-3x mb-3 text-light"></i>
+              <p class="mb-0">No delivery logs found.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  {% if logs.pages > 1 %}
+  <div class="card-footer bg-white border-0 py-3">
+    <nav>
+      <ul class="pagination justify-content-center mb-0">
+        <li class="page-item {% if not logs.has_prev %}disabled{% endif %}">
+          <a class="page-link border-0" href="{{ url_for('admin.delivery_logs', page=logs.prev_num) if logs.has_prev else '#' }}"><i class="fas fa-chevron-left"></i></a>
+        </li>
+        {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+          {% if page_num %}
+            <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+              <a class="page-link {{ 'bg-danger border-danger' if page_num == logs.page else 'border-0 text-dark' }}" href="{{ url_for('admin.delivery_logs', page=page_num) }}">{{ page_num }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link border-0">...</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not logs.has_next %}disabled{% endif %}">
+          <a class="page-link border-0" href="{{ url_for('admin.delivery_logs', page=logs.next_num) if logs.has_next else '#' }}"><i class="fas fa-chevron-right"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

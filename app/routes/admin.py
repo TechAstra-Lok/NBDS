@@ -1,14 +1,15 @@
 from urllib.parse import urljoin, urlparse
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, jsonify, current_app, session
+    url_for, flash, jsonify, session
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import (
     User, Donor, BloodRequest, News, Notice,
-    Advertisement, Contact, SiteVisitor, SuccessStory, StaffMember, Partner
+    Advertisement, Contact, SiteVisitor, SuccessStory, StaffMember, Partner, BloodBank, BloodInventory, BloodInventoryMovement, BloodReservation, BloodTransfer, LowStockAlert, Notification, AuditLog
 )
+from app.utils import generate_qr_code
 from app.forms import (
     AdminLoginForm, DonorRegistrationForm, DonorEditForm,
     NewsForm, NoticeForm, AdvertisementForm, AdminUserForm,
@@ -74,6 +75,84 @@ def role_required(*roles):
             return redirect(url_for('admin.dashboard'))
         return decorated
     return decorator
+
+
+def build_blood_bank_dashboard_summary(bank_id):
+    bank = BloodBank.query.get_or_404(bank_id)
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank.id).all()
+    low_stock_items = [item for item in inventory_items if item.available_units < item.minimum_stock]
+    pending_transfers = BloodTransfer.query.filter_by(destination_bank_id=bank.id, status='pending').count()
+    alerts = LowStockAlert.query.filter_by(blood_bank_id=bank.id).count()
+    critical_items = sum(1 for item in inventory_items if item.available_units <= max(1, item.minimum_stock // 2))
+    return {
+        'bank_id': bank.id,
+        'bank_name': bank.display_name,
+        'inventory_count': len(inventory_items),
+        'low_stock_count': len(low_stock_items),
+        'pending_transfers': pending_transfers,
+        'alert_count': alerts,
+        'critical_items': critical_items,
+    }
+
+
+def create_inventory_notifications(inventory):
+    notifications = []
+    if inventory.available_units < inventory.minimum_stock:
+        notification = Notification(
+            title='Low stock alert',
+            message=f"{inventory.blood_group} {inventory.component} is below minimum stock.",
+            category='low_stock',
+            channel='in_app',
+        )
+        db.session.add(notification)
+        notifications.append(notification)
+
+    if inventory.expiry_date:
+        from datetime import datetime
+        try:
+            expiry = datetime.strptime(inventory.expiry_date, '%Y-%m-%d').date()
+        except ValueError:
+            expiry = None
+        if expiry and (expiry - datetime.utcnow().date()).days <= 14:
+            notification = Notification(
+                title='Expiry soon',
+                message=f"{inventory.blood_group} {inventory.component} expires soon.",
+                category='expiry',
+                channel='in_app',
+            )
+            db.session.add(notification)
+            notifications.append(notification)
+    return notifications
+
+
+def log_audit_event(action, entity_id, details, actor='system'):
+    audit_entry = AuditLog(action=action, entity_id=entity_id, details=details, actor=actor)
+    db.session.add(audit_entry)
+    return audit_entry
+
+
+def build_blood_inventory_report(bank_id):
+    bank = BloodBank.query.get_or_404(bank_id)
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank.id).all()
+    low_stock_count = sum(1 for item in inventory_items if item.available_units < item.minimum_stock)
+    expiring_soon_count = 0
+    for item in inventory_items:
+        if item.expiry_date:
+            from datetime import datetime
+            try:
+                expiry = datetime.strptime(item.expiry_date, '%Y-%m-%d').date()
+            except ValueError:
+                expiry = None
+            if expiry and (expiry - datetime.utcnow().date()).days <= 14:
+                expiring_soon_count += 1
+    return {
+        'bank_id': bank.id,
+        'bank_name': bank.display_name,
+        'inventory_count': len(inventory_items),
+        'low_stock_count': low_stock_count,
+        'expiring_soon_count': expiring_soon_count,
+        'pending_transfers': BloodTransfer.query.filter_by(destination_bank_id=bank.id, status='pending').count(),
+    }
 
 
 # ════════════════════════════════════════════
@@ -200,6 +279,85 @@ def dashboard():
 
 
 # ════════════════════════════════════════════
+#   BLOOD BANK MANAGEMENT
+# ════════════════════════════════════════════
+
+
+
+@admin_bp.route('/blood-banks/<int:bank_id>/inventory', methods=['GET', 'POST'])
+@role_required('admin', 'moderator')
+def blood_bank_inventory(bank_id):
+    bank = BloodBank.query.get_or_404(bank_id)
+    if request.method == 'POST':
+        inventory = BloodInventory(
+            blood_bank_id=bank.id,
+            blood_group=request.form.get('blood_group', '').strip(),
+            component=request.form.get('component', 'Whole Blood').strip() or 'Whole Blood',
+            units_available=int(request.form.get('units_available', 0) or 0),
+            units_reserved=int(request.form.get('units_reserved', 0) or 0),
+            minimum_stock=int(request.form.get('minimum_stock', 4) or 4),
+            maximum_stock=int(request.form.get('maximum_stock', 20) or 20),
+            expiry_date=request.form.get('expiry_date', '').strip() or None,
+        )
+        db.session.add(inventory)
+        db.session.flush()
+        inventory.qr_code = generate_qr_code('inventory', inventory.id)
+        db.session.commit()
+        if inventory.units_available < inventory.minimum_stock:
+            db.session.add(LowStockAlert(
+                blood_bank_id=bank.id,
+                blood_group=inventory.blood_group,
+                component=inventory.component,
+                severity='warning',
+                message=f"{inventory.blood_group} {inventory.component} stock is below minimum level.",
+            ))
+        create_inventory_notifications(inventory)
+        log_audit_event('inventory_created', inventory.id, f"Inventory created for {inventory.blood_group}/{inventory.component}", actor='admin')
+        db.session.commit()
+        if request.form.get('movement_type') and request.form.get('movement_units'):
+            movement = BloodInventoryMovement(
+                inventory_id=inventory.id,
+                movement_type=request.form.get('movement_type', 'received').strip(),
+                units=int(request.form.get('movement_units', 0) or 0),
+                note=request.form.get('movement_note', '').strip() or None,
+            )
+            db.session.add(movement)
+            db.session.commit()
+        flash('Inventory entry added.', 'success')
+        return redirect(url_for('admin.blood_bank_inventory', bank_id=bank.id))
+
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank.id).order_by(BloodInventory.blood_group).all()
+    inventory_map = {item.id: item.movements for item in inventory_items}
+    reservations = BloodReservation.query.filter_by(blood_bank_id=bank.id).order_by(BloodReservation.requested_at.desc()).all()
+    transfers = BloodTransfer.query.filter((BloodTransfer.source_bank_id == bank.id) | (BloodTransfer.destination_bank_id == bank.id)).order_by(BloodTransfer.created_at.desc()).all()
+    alerts = LowStockAlert.query.filter_by(blood_bank_id=bank.id).order_by(LowStockAlert.created_at.desc()).all()
+    blood_banks = BloodBank.query.filter(BloodBank.id != bank.id).order_by(BloodBank.name).all()
+
+    summary = build_blood_bank_dashboard_summary(bank.id)
+    report = build_blood_inventory_report(bank.id)
+    return render_template('admin/blood_bank_inventory.html', bank=bank, inventory_items=inventory_items, reservations=reservations, transfers=transfers, alerts=alerts, blood_banks=blood_banks, inventory_map=inventory_map, dashboard_summary=summary, report_summary=report)
+
+
+@admin_bp.route('/blood-banks/<int:bank_id>/transfers', methods=['POST'])
+@role_required('admin', 'moderator')
+def blood_bank_transfers(bank_id):
+    bank = BloodBank.query.get_or_404(bank_id)
+    transfer = BloodTransfer(
+        source_bank_id=bank.id,
+        destination_bank_id=int(request.form.get('destination_bank_id') or 0),
+        blood_group=request.form.get('blood_group', '').strip(),
+        component=request.form.get('component', 'Whole Blood').strip() or 'Whole Blood',
+        units=int(request.form.get('units', 0) or 0),
+        status='pending',
+        remarks=request.form.get('remarks', '').strip() or None,
+    )
+    db.session.add(transfer)
+    db.session.commit()
+    flash('Transfer request recorded.', 'success')
+    return redirect(url_for('admin.blood_bank_inventory', bank_id=bank.id))
+
+
+# ════════════════════════════════════════════
 #   DONOR MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/donors')
@@ -315,6 +473,108 @@ def toggle_donor_status(id):
     db.session.commit()
     return jsonify({'status': donor.availability_status})
 
+@admin_bp.route('/donors/<int:donor_id>/history/<int:history_id>/delete', methods=['POST'])
+@role_required('admin', 'moderator')
+def delete_donor_history(donor_id, history_id):
+    from app.models import DonorDonationHistory
+    donor = Donor.query.get_or_404(donor_id)
+    history = DonorDonationHistory.query.filter_by(id=history_id, donor_id=donor.id).first_or_404()
+    db.session.delete(history)
+    
+    # Recalculate donor summary
+    donor.donation_times = max(0, (donor.donation_times or 0) - 1)
+    donor.total_donations = max(0, (donor.total_donations or 0) - 1)
+    
+    # Update last donation date
+    last_donation = DonorDonationHistory.query.filter_by(donor_id=donor.id).filter(DonorDonationHistory.id != history_id).order_by(DonorDonationHistory.donation_date.desc()).first()
+    donor.last_donation_date = last_donation.donation_date if last_donation else None
+    
+    donor.recalculate_and_save()
+    db.session.commit()
+    flash('Donation history record deleted.', 'success')
+    return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+
+
+# ════════════════════════════════════════════
+#   BLOOD BANKS MANAGEMENT
+# ════════════════════════════════════════════
+@admin_bp.route('/blood-banks')
+@role_required('admin', 'moderator')
+def blood_banks():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '')
+    
+    query = BloodBank.query
+    if search:
+        query = query.filter(BloodBank.name.ilike(f'%{search}%') | BloodBank.district.ilike(f'%{search}%'))
+        
+    pagination = query.order_by(BloodBank.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    return render_template('admin/blood_banks.html', pagination=pagination, search=search)
+
+@admin_bp.route('/blood-banks/create', methods=['GET', 'POST'])
+@role_required('admin')
+def create_blood_bank():
+    from app.forms import BloodBankForm
+    form = BloodBankForm()
+    
+    if form.validate_on_submit():
+        bank = BloodBank(
+            name=form.name.data,
+            display_name=form.display_name.data,
+            hospital_name=form.hospital_name.data,
+            branch_type=form.branch_type.data,
+            service_type=form.service_type.data,
+            province=form.province.data,
+            district=form.district.data,
+            city=form.city.data,
+            contact_number=form.contact_number.data,
+            alternate_contact_number=form.alternate_contact_number.data,
+            latitude=form.latitude.data,
+            longitude=form.longitude.data,
+            is_emergency_panel=form.is_emergency_panel.data,
+            is_grouped_entry=form.is_grouped_entry.data,
+            is_active=form.is_active.data,
+            notes=form.notes.data,
+            status='active' if form.is_active.data else 'inactive'
+        )
+        
+        if bank.latitude and bank.longitude:
+            bank.maps_url = f"https://www.google.com/maps/search/?api=1&query={bank.latitude},{bank.longitude}"
+            
+        db.session.add(bank)
+        db.session.commit()
+        flash('Blood Bank created successfully!', 'success')
+        return redirect(url_for('admin.blood_banks'))
+        
+    return render_template('admin/blood_bank_form.html', form=form, action='Create')
+
+@admin_bp.route('/blood-banks/<int:id>/edit', methods=['GET', 'POST'])
+@role_required('admin', 'moderator')
+def edit_blood_bank(id):
+    from app.forms import BloodBankForm
+    bank = BloodBank.query.get_or_404(id)
+    form = BloodBankForm(obj=bank)
+    
+    if form.validate_on_submit():
+        form.populate_obj(bank)
+        bank.status = 'active' if form.is_active.data else 'inactive'
+        if bank.latitude and bank.longitude:
+            bank.maps_url = f"https://www.google.com/maps/search/?api=1&query={bank.latitude},{bank.longitude}"
+            
+        db.session.commit()
+        flash('Blood Bank updated successfully!', 'success')
+        return redirect(url_for('admin.blood_banks'))
+        
+    return render_template('admin/blood_bank_form.html', form=form, action='Edit', bank=bank)
+
+@admin_bp.route('/blood-banks/<int:id>/delete', methods=['POST'])
+@role_required('admin')
+def delete_blood_bank(id):
+    bank = BloodBank.query.get_or_404(id)
+    db.session.delete(bank)
+    db.session.commit()
+    flash('Blood Bank deleted successfully.', 'warning')
+    return redirect(url_for('admin.blood_banks'))
 
 # ════════════════════════════════════════════
 #   BLOOD REQUEST MANAGEMENT
@@ -375,6 +635,19 @@ def delete_request(id):
     db.session.commit()
     flash(f'Request {req.request_id} deleted.', 'warning')
     return redirect(url_for('admin.blood_requests'))
+
+
+# ------------------------------------------------------------------------------
+# NOTIFICATION DELIVERY LOGS
+# ------------------------------------------------------------------------------
+@admin_bp.route('/delivery_logs')
+@login_required
+@role_required('admin', 'superadmin')
+def delivery_logs():
+    page = request.args.get('page', 1, type=int)
+    from app.models import NotificationDeliveryLog
+    logs = NotificationDeliveryLog.query.order_by(NotificationDeliveryLog.created_at.desc()).paginate(page=page, per_page=50)
+    return render_template('admin/delivery_logs.html', logs=logs)
 
 
 # ════════════════════════════════════════════

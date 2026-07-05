@@ -1,31 +1,37 @@
 import os
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
-from urllib.parse import urlparse
+
+import math
 
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, jsonify, abort, current_app, render_template_string, Response
+    url_for, flash, abort, current_app, Response, jsonify
 )
 from werkzeug.utils import secure_filename
-from sqlalchemy import desc, or_, func
+from sqlalchemy import desc, or_
 from flask_login import login_required, current_user  # एडमिन सुरक्षाका लागि थपिएको
 
 from app import db
 from app.models import (
     Donor, BloodRequest, News, Notice, Advertisement, 
-    Contact, SiteVisitor, SuccessStory, Volunteer
+    Contact, SuccessStory, Volunteer, BloodBank, BloodInventory, BloodReservation
 )
 from app.forms import (
     BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm,
-    DonorLoginForm, VolunteerRegistrationForm, VolunteerLoginForm
+    DonorLoginForm, VolunteerRegistrationForm, VolunteerLoginForm,
+    DonorProfileEditForm, DonationHistoryForm
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, logout_user, login_required, current_user
-from app.utils import paginate_query, get_blood_group_stats, sanitize_html, rate_limit
+from flask_login import login_user, logout_user
+from app.utils import paginate_query, get_blood_group_stats, rate_limit, generate_qr_code
 from app.tasks import alert_matching_donors
-# pyrefly: ignore [missing-import]
-import nepali_datetime
+
+try:
+    # pyrefly: ignore [missing-import]
+    import nepali_datetime
+except ImportError:  # pragma: no cover - optional dependency in test/dev environments
+    nepali_datetime = None
 
 # ब्लुप्रिन्ट परिभाषा
 public_bp = Blueprint('public', __name__)
@@ -223,6 +229,211 @@ def delete_success_story(story_id):
     flash("सफलताको कथा सफलतापूर्वक डिलिट गरियो।", "danger")
     return redirect(url_for('public.success_stories'))
 # ════════════════════════════════════════════
+#   BLOOD BANK DIRECTORY
+# ════════════════════════════════════════════
+@public_bp.route('/blood-banks')
+def blood_banks():
+    if not BloodBank.query.first():
+        from app.seed_blood_banks import seed_blood_banks
+        seed_blood_banks()
+
+    query = request.args.get('q', '').strip()
+    province = request.args.get('province', '').strip()
+    district = request.args.get('district', '').strip()
+    emergency_only = request.args.get('emergency_only') == '1'
+
+    banks_query = BloodBank.query.filter_by(is_active=True)
+
+    if province:
+        banks_query = banks_query.filter(BloodBank.province.ilike(f'%{province}%'))
+    if district:
+        banks_query = banks_query.filter(BloodBank.district.ilike(f'%{district}%'))
+    if emergency_only:
+        banks_query = banks_query.filter((BloodBank.is_emergency_panel == True) | (BloodBank.emergency_available == True))
+
+    if query:
+        # Dictionary for English to Nepali mapping for search functionality
+        ENG_TO_NEP_MAP = {
+            'jhapa': 'झापा', 'morang': 'मोरङ', 'sunsari': 'सुनसरी', 'ilam': 'इलाम',
+            'panchthar': 'पाँचथर', 'taplejung': 'ताप्लेजुङ', 'dhankuta': 'धनकुटा',
+            'terhathum': 'तेह्रथुम', 'sankhuwasabha': 'संखुवासभा', 'bhojpur': 'भोजपुर',
+            'solukhumbu': 'सोलुखुम्बु', 'okhaldhunga': 'ओखलढुङ्गा', 'khotang': 'खोटाङ',
+            'udayapur': 'उदयपुर', 'dhanusha': 'धनुषा', 'saptari': 'सप्तरी', 'siraha': 'सिराहा',
+            'mahottari': 'महोत्तरी', 'sarlahi': 'सर्लाही', 'rautahat': 'रौतहट', 'bara': 'बारा',
+            'parsa': 'पर्सा', 'kathmandu': 'काठमाडौँ', 'lalitpur': 'ललितपुर', 'bhaktapur': 'भक्तपुर',
+            'chitwan': 'चितवन', 'kavrepalanchok': 'काभ्रेपलाञ्चोक', 'makwanpur': 'मकवानपुर',
+            'dhading': 'धादिङ', 'nuwakot': 'नुवाकोट', 'rasuwa': 'रसुवा', 'sindhupalchowk': 'सिन्धुपाल्चोक',
+            'dolakha': 'दोलखा', 'ramechhap': 'रामेछाप', 'sindhuli': 'सिन्धुली', 'kaski': 'कास्की',
+            'gorkha': 'गोरखा', 'lamjung': 'लमजुङ', 'tanahun': 'तनहुँ', 'syangja': 'स्याङ्जा',
+            'nawalpur': 'नवलपुर', 'myagdi': 'म्याग्दी', 'parbat': 'पर्वत', 'mustang': 'मुस्ताङ',
+            'manang': 'मनाङ', 'rupandehi': 'रूपन्देही', 'kapilvastu': 'कपिलवस्तु', 'parasi': 'परासी',
+            'dang': 'दाङ', 'banke': 'बाँके', 'bardiya': 'बर्दिया', 'palpa': 'पाल्पा',
+            'gulmi': 'गुल्मी', 'arghakhanchi': 'अर्घाखाँची', 'pyuthan': 'प्युठान', 'rolpa': 'रोल्पा',
+            'eastern rukum': 'पूर्वी रुकुम', 'surkhet': 'सुर्खेत', 'western rukum': 'पश्चिम रुकुम',
+            'salyan': 'सल्यान', 'jajarkot': 'जाजरकोट', 'dailekh': 'दैलेख', 'jumla': 'जुम्ला',
+            'kalikot': 'कालिकोट', 'mugu': 'मुगु', 'humla': 'हुम्ला', 'dolpa': 'डोल्पा',
+            'kailali': 'कैलाली', 'kanchanpur': 'कञ्चनपुर', 'dadeldhura': 'डडेल्धुरा',
+            'doti': 'डोटी', 'achham': 'अछाम', 'baitadi': 'बैतडी', 'darchula': 'दार्चुला',
+            'bajhang': 'बझाङ', 'bajura': 'बाजुरा',
+            
+            'koshi pradesh': 'कोशी प्रदेश', 'koshi': 'कोशी प्रदेश',
+            'madhesh pradesh': 'मधेस प्रदेश', 'madhesh': 'मधेस प्रदेश',
+            'bagmati pradesh': 'बागमती प्रदेश', 'bagmati': 'बागमती प्रदेश',
+            'gandaki pradesh': 'गण्डकी प्रदेश', 'gandaki': 'गण्डकी प्रदेश',
+            'lumbini pradesh': 'लुम्बिनी प्रदेश', 'lumbini': 'लुम्बिनी प्रदेश',
+            'karnali pradesh': 'कर्णाली प्रदेश', 'karnali': 'कर्णाली प्रदेश',
+            'sudurpashchim pradesh': 'सुदूरपश्चिम प्रदेश', 'sudurpashchim': 'सुदूरपश्चिम प्रदेश',
+            
+            'blood': 'रक्त', 'transfusion': 'सञ्चार', 'service': 'सेवा', 'center': 'केन्द्र',
+            'hospital': 'अस्पताल', 'branch': 'शाखा', 'sub branch': 'उपशाखा', 'main': 'मुख्य',
+            'provincial': 'प्रादेशिक', 'central': 'केन्द्रीय', 'district': 'जिल्ला',
+            'community': 'सामुदायिक', 'unit': 'इकाई', 'red cross': 'रेडक्रस'
+        }
+        
+        # Build search patterns
+        query_lower = query.lower()
+        patterns = [f'%{query}%']
+        
+        # If the whole query matches a translation, add it
+        if query_lower in ENG_TO_NEP_MAP:
+            patterns.append(f'%{ENG_TO_NEP_MAP[query_lower]}%')
+        else:
+            # Word by word translation attempt
+            translated_words = []
+            for word in query_lower.split():
+                if word in ENG_TO_NEP_MAP:
+                    translated_words.append(ENG_TO_NEP_MAP[word])
+                else:
+                    translated_words.append(word)
+            translated_query = ' '.join(translated_words)
+            if translated_query != query_lower:
+                patterns.append(f'%{translated_query}%')
+        
+        # Build the OR conditions dynamically
+        or_conditions = []
+        for pattern in patterns:
+            or_conditions.extend([
+                BloodBank.name.ilike(pattern),
+                BloodBank.display_name.ilike(pattern),
+                BloodBank.district.ilike(pattern),
+                BloodBank.province.ilike(pattern),
+                BloodBank.service_type.ilike(pattern),
+                BloodBank.notes.ilike(pattern),
+            ])
+            
+        banks_query = banks_query.filter(or_(*or_conditions))
+
+    blood_banks = banks_query.order_by(BloodBank.province, BloodBank.district, BloodBank.name).all()
+    
+    # Get all active banks to build the province->districts map
+    all_banks = BloodBank.query.filter_by(is_active=True).all()
+    provinces_set = set()
+    province_districts_map = {}
+    
+    for b in all_banks:
+        if b.province:
+            provinces_set.add(b.province)
+            if b.province not in province_districts_map:
+                province_districts_map[b.province] = set()
+            if b.district:
+                province_districts_map[b.province].add(b.district)
+                
+    # Convert sets to sorted lists
+    provinces_list = sorted(list(provinces_set))
+    for p in province_districts_map:
+        province_districts_map[p] = sorted(list(province_districts_map[p]))
+        
+    districts = db.session.query(BloodBank.district).filter(BloodBank.district.isnot(None), BloodBank.is_active == True).distinct().order_by(BloodBank.district).all()
+    
+    return render_template(
+        'blood_banks.html',
+        blood_banks=blood_banks,
+        search_query=query,
+        province_filter=province,
+        district_filter=district,
+        emergency_only=emergency_only,
+        provinces=provinces_list,
+        districts=[value[0] for value in districts if value[0]],
+        province_districts_map=province_districts_map
+    )
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = math.sin(d_lat/2) * math.sin(d_lat/2) + \
+        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
+        math.sin(d_lon/2) * math.sin(d_lon/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+@public_bp.route('/api/nearest-blood-bank')
+def nearest_blood_bank():
+    try:
+        lat = float(request.args.get('lat'))
+        lng = float(request.args.get('lng'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid coordinates'}), 400
+
+    banks = BloodBank.query.filter(BloodBank.latitude.isnot(None), BloodBank.longitude.isnot(None), BloodBank.is_active == True).all()
+    
+    if not banks:
+        return jsonify({'error': 'No blood banks with coordinates found'}), 404
+
+    nearest = None
+    min_dist = float('inf')
+    
+    for bank in banks:
+        dist = haversine(lat, lng, bank.latitude, bank.longitude)
+        if dist < min_dist:
+            min_dist = dist
+            nearest = bank
+            
+    if nearest:
+        return jsonify({
+            'id': nearest.id,
+            'name': nearest.display_name or nearest.name,
+            'distance_km': round(min_dist, 1),
+            'address': f"{nearest.district or ''}, {nearest.province or ''}".strip(', '),
+            'phone': nearest.contact_number or nearest.phone or '',
+            'url': url_for('public.blood_bank_detail', bank_id=nearest.id),
+            'maps_url': nearest.google_maps_url
+        })
+    return jsonify({'error': 'No blood bank found'}), 404
+
+
+@public_bp.route('/blood-banks/<int:bank_id>')
+def blood_bank_detail(bank_id):
+    blood_bank = BloodBank.query.get_or_404(bank_id)
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank_id).order_by(BloodInventory.blood_group).all()
+    return render_template('blood_bank_detail.html', blood_bank=blood_bank, inventory_items=inventory_items)
+
+
+@public_bp.route('/blood-banks/<int:bank_id>/reserve', methods=['GET', 'POST'])
+def reserve_blood(bank_id):
+    blood_bank = BloodBank.query.get_or_404(bank_id)
+    if request.method == 'POST':
+        reservation = BloodReservation(
+            blood_bank_id=blood_bank.id,
+            hospital_name=request.form.get('hospital_name', '').strip() or 'Unknown Hospital',
+            patient_name=request.form.get('patient_name', '').strip() or 'Unknown Patient',
+            blood_group=request.form.get('blood_group', '').strip(),
+            component=request.form.get('component', 'Whole Blood').strip() or 'Whole Blood',
+            units=int(request.form.get('units', 1) or 1),
+            priority=request.form.get('priority', 'normal').strip() or 'normal',
+            status='pending',
+        )
+        db.session.add(reservation)
+        db.session.flush()
+        reservation.qr_code = generate_qr_code('reservation', reservation.id)
+        db.session.commit()
+        flash('Reservation request submitted successfully.', 'success')
+        return redirect(url_for('public.blood_bank_detail', bank_id=blood_bank.id))
+
+    return render_template('reserve_blood.html', blood_bank=blood_bank)
+
+
+# ════════════════════════════════════════════
 #   HOMEPAGE
 # ════════════════════════════════════════════
 @public_bp.route('/')
@@ -299,21 +510,35 @@ def blood_request_form():
 
         req = BloodRequest(
             patient_name    = form.patient_name.data.strip(),
-            request_message = form.request_message.data.strip(),
+            request_message = form.request_message.data.strip() if form.request_message.data else "",
             case_details    = form.case_details.data.strip(),
             blood_group     = form.blood_group.data,
             units_needed    = form.units_needed.data,
             hospital        = form.hospital.data.strip(),
-            province        = form.province.data or None,
-            district        = form.district.data.strip() if form.district.data else None,
-            local_level     = form.local_level.data.strip() if form.local_level.data else None,
-            ward_no         = form.ward_no.data.strip() if form.ward_no.data else None,
+            province        = form.province.data or "",
+            district        = form.district.data.strip() if form.district.data else "",
+            local_level     = form.local_level.data.strip() if form.local_level.data else "",
+            ward_no         = form.ward_no.data.strip() if form.ward_no.data else "",
             contact_person  = form.contact_person.data.strip(),
             contact_number  = form.contact_number.data.strip(),
-            alt_number      = form.alt_number.data.strip() if form.alt_number.data else None,
+            alt_number      = form.alt_number.data.strip() if form.alt_number.data else "",
             is_emergency    = form.is_emergency.data,
         )
         db.session.add(req)
+        db.session.flush()  # get req.id before commit
+
+        # Handle hospital paper upload
+        if form.hospital_paper.data:
+            paper_file = form.hospital_paper.data
+            from werkzeug.utils import secure_filename
+            import uuid
+            ext = paper_file.filename.rsplit('.', 1)[-1].lower()
+            filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
+            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
+            os.makedirs(upload_dir, exist_ok=True)
+            paper_file.save(os.path.join(upload_dir, filename))
+            req.hospital_paper_file = filename
+
         db.session.commit()
         
         # Trigger Intelligent Donor Alert
@@ -479,24 +704,28 @@ def become_donor():
             pin_hash            = generate_password_hash(form.pin.data),
             age                 = form.age.data,
             weight              = form.weight.data,
-            perm_province       = form.perm_province.data or None,
-            perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
-            perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
-            perm_ward           = form.perm_ward.data.strip() if form.perm_ward.data else None,
-            perm_tole           = form.perm_tole.data.strip() if form.perm_tole.data else None,
+            perm_province       = form.perm_province.data or "",
+            perm_district       = form.perm_district.data.strip() if form.perm_district.data else "",
+            perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else "",
+            perm_ward           = form.perm_ward.data.strip() if form.perm_ward.data else "",
+            perm_tole           = form.perm_tole.data.strip() if form.perm_tole.data else "",
             curr_province       = form.curr_province.data,
             curr_district       = form.curr_district.data.strip(),
-            curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
-            curr_ward           = form.curr_ward.data.strip() if form.curr_ward.data else None,
-            curr_tole           = form.curr_tole.data.strip() if form.curr_tole.data else None,
+            curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else "",
+            curr_ward           = form.curr_ward.data.strip() if form.curr_ward.data else "",
+            curr_tole           = form.curr_tole.data.strip() if form.curr_tole.data else "",
             phone1              = form.phone1.data.strip(),
-            phone2              = form.phone2.data.strip() if form.phone2.data else None,
+            phone2              = form.phone2.data.strip() if form.phone2.data else "",
             blood_group         = form.blood_group.data,
             last_donation_date  = ad_date,
             donation_times      = form.donation_times.data or 0,
             donor_type          = form.donor_type.data,
-            social_link         = form.social_link.data.strip() if form.social_link.data else None,
+            social_link         = form.social_link.data.strip() if form.social_link.data else "",
         )
+        
+        # Calculate initial availability
+        donor.recalculate_and_save()
+        
         db.session.add(donor)
         db.session.commit()
         
@@ -595,10 +824,111 @@ def logout():
     return redirect(url_for('public.index'))
 
 
-@public_bp.route('/donor/<string:donor_id>')
+@public_bp.route('/donor/<string:donor_id>', methods=['GET', 'POST'])
 def donor_profile(donor_id):
     donor = Donor.query.filter_by(donor_id=donor_id).first_or_404()
-    return render_template('donor_profile.html', donor=donor)
+    
+    # Recalculate status just in case (fast)
+    donor.recalculate_and_save()
+    db.session.commit()
+    
+    profile_form = DonorProfileEditForm(obj=donor)
+    
+    # Pre-fill preferences if they exist
+    if donor.preference:
+        profile_form.email_alerts.data = donor.preference.email_alerts
+        profile_form.sms_alerts.data = donor.preference.sms_alerts
+        profile_form.in_app_alerts.data = donor.preference.in_app_alerts
+    else:
+        # Default True if no preference object
+        profile_form.email_alerts.data = True
+        profile_form.sms_alerts.data = True
+        profile_form.in_app_alerts.data = True
+        
+    donation_form = DonationHistoryForm()
+    
+    is_owner = current_user.is_authenticated and getattr(current_user, 'donor_id', None) == donor.donor_id
+    
+    if is_owner and request.method == 'POST':
+        if 'profile_submit' in request.form and profile_form.validate_on_submit():
+            profile_form.populate_obj(donor)
+            
+            # Save Notification Preferences
+            from app.models import DonorNotificationPreference
+            if not donor.preference:
+                donor.preference = DonorNotificationPreference(donor_id=donor.id)
+            donor.preference.email_alerts = profile_form.email_alerts.data
+            donor.preference.sms_alerts = profile_form.sms_alerts.data
+            donor.preference.in_app_alerts = profile_form.in_app_alerts.data
+            
+            donor.updated_at = datetime.utcnow()
+            db.session.commit()
+            flash('Your profile has been updated.', 'success')
+            return redirect(url_for('public.donor_profile', donor_id=donor_id))
+            
+        if 'donation_submit' in request.form and donation_form.validate_on_submit():
+            from app.models import DonorDonationHistory
+            
+            # Check if this date already exists for this donor (basic deduplication)
+            existing = DonorDonationHistory.query.filter_by(
+                donor_id=donor.id, 
+                donation_date=donation_form.donation_date.data
+            ).first()
+            
+            if existing:
+                flash(f"A donation record already exists for {donation_form.donation_date.data}.", 'warning')
+            else:
+                new_donation = DonorDonationHistory(
+                    donor_id=donor.id,
+                    donation_date=donation_form.donation_date.data,
+                    donation_type=donation_form.donation_type.data,
+                    location=donation_form.location.data.strip() if donation_form.location.data else "",
+                    units=donation_form.units.data,
+                    notes=donation_form.notes.data.strip() if donation_form.notes.data else "",
+                    created_by='donor'
+                )
+                db.session.add(new_donation)
+                
+                # Update donor summary fields
+                if not donor.last_donation_date or new_donation.donation_date > donor.last_donation_date:
+                    donor.last_donation_date = new_donation.donation_date
+                
+                donor.donation_times = (donor.donation_times or 0) + 1
+                donor.total_donations = (donor.total_donations or 0) + 1
+                
+                donor.recalculate_and_save()
+                db.session.commit()
+                flash('Donation record added successfully!', 'success')
+            return redirect(url_for('public.donor_profile', donor_id=donor_id))
+            
+    # Fetch donation history descending
+    history = []
+    if is_owner or current_user.is_authenticated and getattr(current_user, 'role', None) in ['admin', 'superadmin', 'moderator']:
+        from app.models import DonorDonationHistory
+        history = DonorDonationHistory.query.filter_by(donor_id=donor.id).order_by(desc(DonorDonationHistory.donation_date)).all()
+        
+    return render_template('donor_profile.html', 
+                           donor=donor, 
+                           profile_form=profile_form, 
+                           donation_form=donation_form,
+                           history=history,
+                           is_owner=is_owner)
+
+
+@public_bp.route('/api/donor/<string:donor_id>/availability')
+def donor_availability_api(donor_id):
+    """Public API endpoint to check a donor's availability status."""
+    donor = Donor.query.filter_by(donor_id=donor_id).first()
+    if not donor:
+        return jsonify({'error': 'Donor not found'}), 404
+        
+    status, after_date = donor.calculate_availability()
+    return jsonify({
+        'status': status,
+        'status_display': donor.availability_display,
+        'available_after': after_date.isoformat() if after_date else None
+    })
+
 
 
 # ════════════════════════════════════════════

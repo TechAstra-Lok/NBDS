@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+INSTANCE_DIR = os.path.join(BASE_DIR, 'instance')
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+
+
+def _default_database_uri():
+    instance_db = os.path.join(INSTANCE_DIR, 'nepali_blood.db')
+    return f"sqlite:///{instance_db}"
 
 
 class Config:
@@ -13,8 +20,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        f"sqlite:///{os.path.join(BASE_DIR, 'app', 'nepali_blood.db')}"
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or _default_database_uri()
     
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
@@ -26,7 +32,7 @@ class Config:
     
     # CSRF
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = 3600
+    WTF_CSRF_TIME_LIMIT = None
     
     # Uploads
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'app', 'static', 'uploads')

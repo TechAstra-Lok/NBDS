@@ -28,7 +28,7 @@
                     <tr>
                         <td class="ps-4">
                             <div class="d-flex align-items-center">
-                                <img src="{{ partner.image_url }}" alt="Partner Logo" class="rounded me-3" style="width: 60px; height: 45px; object-fit: contain; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 2px;">
+                                <img loading="lazy" src="{{ partner.image_url }}" alt="Partner Logo" class="rounded me-3" style="width: 60px; height: 45px; object-fit: contain; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 2px;">
                                 <div>
                                     <h6 class="mb-0 fw-bold">{{ partner.partner_name }}</h6>
                                     <span class="text-muted small text-truncate d-inline-block" style="max-width: 300px;">{{ partner.description or 'No description' }}</span>

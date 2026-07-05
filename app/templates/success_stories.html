@@ -40,7 +40,7 @@
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 border-start border-4 border-primary">
 
                 {% if story.image_file %}
-                <img src="{{ url_for('static', filename='uploads/stories/' + story.image_file) }}" class="w-100"
+                <img loading="lazy" src="{{ url_for('static', filename='uploads/stories/' + story.image_file) }}" class="w-100"
                     style="max-height: 380px; object-fit: cover;" alt="{{ story.title }}">
                 {% endif %}
 

@@ -1,0 +1,179 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}Inventory | {{ bank.display_name }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h4 class="fw-bold mb-1">Inventory for {{ bank.display_name }}</h4>
+        <p class="text-muted mb-0">Track blood stock and reservations by component.</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span class="badge bg-danger">Items: {{ dashboard_summary.inventory_count }}</span>
+        <span class="badge bg-warning text-dark">Low Stock: {{ dashboard_summary.low_stock_count }}</span>
+        <span class="badge bg-info text-dark">Pending Transfers: {{ dashboard_summary.pending_transfers }}</span>
+        <span class="badge bg-secondary">Expiring Soon: {{ report_summary.expiring_soon_count }}</span>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#addInventoryModal">Add Inventory</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Blood Group</th><th>Component</th><th>Available</th><th>Reserved</th><th>Min</th><th>Max</th><th>Updated</th></tr></thead>
+        <tbody>
+          {% for item in inventory_items %}
+          <tr>
+            <td>{{ item.blood_group }}</td>
+            <td>{{ item.component }}</td>
+            <td>{{ item.available_units }}</td>
+            <td>{{ item.units_reserved }}</td>
+            <td>{{ item.minimum_stock }}</td>
+            <td>{{ item.maximum_stock }}</td>
+            <td>{{ item.last_updated.strftime('%Y-%m-%d') if item.last_updated else 'N/A' }}</td>
+            <td><code>{{ item.qr_code or '—' }}</code></td>
+          </tr>
+          <tr>
+            <td colspan="7" class="bg-light">
+              <small class="text-muted">Expiry: {{ item.expiry_date or 'Not set' }} • Movements: {{ inventory_map[item.id]|length if inventory_map[item.id] else 0 }}</small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold mb-0">Transfers</h5>
+      <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#transferModal">Create Transfer</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>From</th><th>To</th><th>Blood Group</th><th>Units</th><th>Status</th><th>Remarks</th></tr></thead>
+        <tbody>
+          {% for transfer in transfers %}
+          <tr>
+            <td>{{ transfer.source_bank.display_name if transfer.source_bank else 'Unknown' }}</td>
+            <td>{{ transfer.destination_bank.display_name if transfer.destination_bank else 'Unknown' }}</td>
+            <td>{{ transfer.blood_group }}</td>
+            <td>{{ transfer.units }}</td>
+            <td>{{ transfer.status }}</td>
+            <td>{{ transfer.remarks or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h5 class="fw-bold mb-3">Low Stock Alerts</h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Blood Group</th><th>Component</th><th>Severity</th><th>Message</th></tr></thead>
+        <tbody>
+          {% for alert in alerts %}
+          <tr>
+            <td>{{ alert.blood_group }}</td>
+            <td>{{ alert.component }}</td>
+            <td>{{ alert.severity }}</td>
+            <td>{{ alert.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h5 class="fw-bold mb-3">Reservations</h5>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Hospital</th><th>Patient</th><th>Blood Group</th><th>Units</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for reservation in reservations %}
+          <tr>
+            <td>{{ reservation.hospital_name }}</td>
+            <td>{{ reservation.patient_name }}</td>
+            <td>{{ reservation.blood_group }}</td>
+            <td>{{ reservation.units }}</td>
+            <td>{{ reservation.priority }}</td>
+            <td>{{ reservation.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addInventoryModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="modal-header">
+          <h5 class="modal-title">Add Inventory Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-md-6"><label class="form-label">Blood Group</label><input class="form-control" name="blood_group" required></div>
+          <div class="col-md-6"><label class="form-label">Component</label><input class="form-control" name="component" value="Whole Blood"></div>
+          <div class="col-md-6"><label class="form-label">Units Available</label><input class="form-control" type="number" name="units_available" value="0"></div>
+          <div class="col-md-6"><label class="form-label">Units Reserved</label><input class="form-control" type="number" name="units_reserved" value="0"></div>
+          <div class="col-md-6"><label class="form-label">Minimum Stock</label><input class="form-control" type="number" name="minimum_stock" value="4"></div>
+          <div class="col-md-6"><label class="form-label">Maximum Stock</label><input class="form-control" type="number" name="maximum_stock" value="20"></div>
+          <div class="col-md-6"><label class="form-label">Expiry Date</label><input class="form-control" type="date" name="expiry_date"></div>
+          <div class="col-md-6"><label class="form-label">Initial Movement</label><select class="form-select" name="movement_type"><option value="">None</option><option value="received">Received</option><option value="issued">Issued</option><option value="adjusted">Adjusted</option></select></div>
+          <div class="col-md-6"><label class="form-label">Movement Units</label><input class="form-control" type="number" name="movement_units" value="0"></div>
+          <div class="col-md-6"><label class="form-label">Movement Note</label><input class="form-control" name="movement_note"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal fade" id="transferModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('admin.blood_bank_transfers', bank_id=bank.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="modal-header">
+          <h5 class="modal-title">Create Transfer Request</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-md-6"><label class="form-label">Destination Bank</label>
+            <select class="form-select" name="destination_bank_id" required>
+              {% for other_bank in blood_banks|default([]) %}
+              <option value="{{ other_bank.id }}">{{ other_bank.display_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">Blood Group</label><input class="form-control" name="blood_group" required></div>
+          <div class="col-md-6"><label class="form-label">Component</label><input class="form-control" name="component" value="Whole Blood"></div>
+          <div class="col-md-6"><label class="form-label">Units</label><input class="form-control" type="number" name="units" value="1"></div>
+          <div class="col-12"><label class="form-label">Remarks</label><textarea class="form-control" name="remarks"></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

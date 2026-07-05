@@ -1,4 +1,6 @@
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -6,10 +8,13 @@ from flask_wtf import CSRFProtect
 from config import config
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
+from sqlalchemy import inspect, text
+from flask_caching import Cache
 
 # एक्सटेन्सनहरू सुरुमै सिर्जना गर्ने (Global instance)
 csrf = CSRFProtect()
 db = SQLAlchemy()
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
 login_manager = LoginManager()
 login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
@@ -26,12 +31,26 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
     if hasattr(config[config_name], 'init_app'):
         config[config_name].init_app(app)
+        
+    # Logging Configuration
+    if not app.debug and not app.testing:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/nepali_blood_donors.log', maxBytes=10240000, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Nepali Blood Donors startup')
     
     # एक्सटेन्सनहरू एप्लिकेसनसँग जोड्ने (Initialize extensions)
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    cache.init_app(app)
     
     # Initialize and start the APScheduler
     try:
@@ -46,10 +65,11 @@ def create_app(config_name=None):
     
     with app.app_context():
         # मोडेलहरू इम्पोर्ट गर्ने (डाटाबेस माइग्रेसनको लागि अनिवार्य)
-        from app import models
+        from app import models  # noqa: F401
         
         # टेबलहरू सिर्जना गर्ने
         db.create_all()
+        _ensure_legacy_schema_columns(app)
         
         # सिड एडमिन अकाउन्ट बनाउने
         _seed_admin(app)
@@ -78,15 +98,70 @@ def create_app(config_name=None):
 
 def _create_upload_dirs(app):
     # 'stories' फोल्डर यहाँ थपिएको छ ता कि सफलताका कथाहरूको फोटो सुरक्षित रहन सकोस्
-    dirs = ['news', 'notices', 'ads', 'general', 'stories', 'staff', 'partners']
+    dirs = ['news', 'notices', 'ads', 'general', 'stories', 'staff', 'partners', 'request_papers']
     for d in dirs:
         path = os.path.join(app.config['UPLOAD_FOLDER'], d)
         os.makedirs(path, exist_ok=True)
 
 
+def _ensure_legacy_schema_columns(app):
+    try:
+        from app.models import (
+            User,
+            Donor,
+            AuditLog,
+            BloodBank,
+            BloodInventory,
+            BloodInventoryMovement,
+            BloodRequest,
+            BloodReservation,
+            BloodTransfer,
+            LowStockAlert,
+            Notification,
+            DonorDonationHistory,
+            NotificationDeliveryLog,
+            DonorNotificationPreference,
+        )
+
+        inspector = inspect(db.engine)
+        existing_tables = set(inspector.get_table_names())
+        model_tables = [
+            ('users', User),
+            ('donors', Donor),
+            ('blood_requests', BloodRequest),
+            ('blood_banks', BloodBank),
+            ('blood_inventory', BloodInventory),
+            ('blood_reservations', BloodReservation),
+            ('blood_inventory_movements', BloodInventoryMovement),
+            ('blood_transfers', BloodTransfer),
+            ('low_stock_alerts', LowStockAlert),
+            ('notifications', Notification),
+            ('audit_logs', AuditLog),
+            ('donor_donation_history', DonorDonationHistory),
+            ('notification_delivery_logs', NotificationDeliveryLog),
+            ('donor_notification_preferences', DonorNotificationPreference),
+        ]
+
+        for table_name, model_cls in model_tables:
+            if table_name not in existing_tables:
+                continue
+
+            table_columns = {col['name'] for col in inspector.get_columns(table_name)}
+            for column in model_cls.__table__.columns:
+                if column.name not in table_columns:
+                    column_type = column.type.compile(dialect=db.engine.dialect)
+                    db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {column_type}"))
+
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        print(f"[WARN] Failed to ensure legacy schema columns: {exc}")
+
+
 def _seed_admin(app):
-    from app.models import User
+    from app.models import User, BloodBank
     from werkzeug.security import generate_password_hash
+    from app.seed_blood_banks import seed_blood_banks
     
     admin_username = os.environ.get('ADMIN_USERNAME')
     admin_password = os.environ.get('ADMIN_PASSWORD')
@@ -103,6 +178,25 @@ def _seed_admin(app):
             db.session.add(admin)
             db.session.commit()
             print(f"[OK] Admin created: {admin_username}")
+
+    if not BloodBank.query.first():
+        inserted_count = seed_blood_banks()
+        if inserted_count == 0:
+            default_bank = BloodBank(
+                name='Nepal Red Cross Blood Bank',
+                hospital_name='Central Blood Transfusion Service',
+                province='Bagmati Pradesh',
+                district='Kathmandu',
+                city='Kathmandu',
+                service_type='National Center',
+                phone='+977-1-4423000',
+                email='info@nrcs.org',
+                emergency_available=True,
+                is_active=True,
+                status='active',
+            )
+            db.session.add(default_bank)
+            db.session.commit()
 
 
 def _register_error_handlers(app):
@@ -139,7 +233,7 @@ def _register_error_handlers(app):
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        response.headers['Permissions-Policy'] = 'geolocation=(self), microphone=(), camera=()'
         # Only add HSTS in production
         if not app.debug:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

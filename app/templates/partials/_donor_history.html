@@ -1,0 +1,143 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0 text-primary">
+        <i class="fas fa-history me-2"></i>My Donation History
+    </h5>
+    <button type="button" class="btn btn-sm btn-primary px-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#addDonationModal">
+        <i class="fas fa-plus me-1"></i> Add Record
+    </button>
+</div>
+
+{% if history %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle border">
+        <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Donation Type</th>
+                <th>Location / Hospital</th>
+                <th>Units</th>
+                <th>Notes</th>
+                {% if current_user.is_authenticated and current_user.role in ['admin', 'superadmin', 'moderator'] %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in history %}
+            <tr>
+                <td>
+                    <div class="fw-bold text-dark">{{ record.donation_date }}</div>
+                    <small class="text-muted">{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '' }}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary rounded-pill fw-normal">
+                        {{ record.donation_type_label }}
+                    </span>
+                </td>
+                <td>{{ record.location or '-' }}</td>
+                <td>{{ record.units }}</td>
+                <td>
+                    {% if record.notes %}
+                    <span class="d-inline-block text-truncate" style="max-width: 150px;" title="{{ record.notes }}">
+                        {{ record.notes }}
+                    </span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                {% if current_user.is_authenticated and current_user.role in ['admin', 'superadmin', 'moderator'] %}
+                <td>
+                    <form method="POST" action="{{ url_for('admin.delete_donor_history', donor_id=donor.id, history_id=record.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this record?')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5 bg-light rounded-4 border">
+    <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center border shadow-sm mb-3" style="width: 80px; height: 80px;">
+        <i class="fas fa-notes-medical text-muted fs-3"></i>
+    </div>
+    <h6 class="fw-bold text-dark mb-1">No Donation Records Found</h6>
+    <p class="text-muted small mb-3">You haven't added any donation history yet.</p>
+    <button type="button" class="btn btn-outline-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addDonationModal">
+        Add Your First Record
+    </button>
+</div>
+{% endif %}
+
+<!-- Add Donation Modal -->
+<div class="modal fade" id="addDonationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="fas fa-hand-holding-medical text-danger me-2"></i>Record New Donation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-4">Adding a donation record will automatically update your availability status across the network.</p>
+                
+                <form method="POST" action="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}">
+                    {{ donation_form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ donation_form.donation_date.label(class="form-label small fw-bold text-muted") }}
+                        {{ donation_form.donation_date(class="form-control rounded-3", type="date", max="") }}
+                        {% for error in donation_form.donation_date.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ donation_form.donation_type.label(class="form-label small fw-bold text-muted") }}
+                        {{ donation_form.donation_type(class="form-select rounded-3") }}
+                        {% for error in donation_form.donation_type.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-8">
+                            {{ donation_form.location.label(class="form-label small fw-bold text-muted") }}
+                            {{ donation_form.location(class="form-control rounded-3", placeholder="e.g. Red Cross Blood Bank") }}
+                        </div>
+                        <div class="col-sm-4">
+                            {{ donation_form.units.label(class="form-label small fw-bold text-muted") }}
+                            {{ donation_form.units(class="form-control rounded-3", step="0.5") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ donation_form.notes.label(class="form-label small fw-bold text-muted") }}
+                        {{ donation_form.notes(class="form-control rounded-3 bg-light", placeholder="Any context or remarks") }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="donation_submit" value="1" class="btn btn-primary py-2 rounded-3 fw-bold shadow-sm">
+                            <i class="fas fa-save me-2"></i>Save Donation Record
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set max date to today for donation date input
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.querySelector('input[type="date"]');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('max', today);
+        }
+    });
+</script>

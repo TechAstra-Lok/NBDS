@@ -1,0 +1,108 @@
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Age Requirement Range</label>
+        <span class="fw-semibold text-dark">{{ donor.age }} Years Old</span>
+    </div>
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Weight Metric</label>
+        <span class="fw-semibold text-dark">{{ donor.weight or 'N/A' }} kg</span>
+    </div>
+
+    <div class="col-12">
+        <hr class="text-muted opacity-25 my-2">
+    </div>
+
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Primary Registered Contact</label>
+        <span class="fw-semibold text-dark text-break">
+            <i class="fas fa-phone text-muted me-1 small"></i>+977-{{ donor.phone1 }}
+        </span>
+    </div>
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Secondary Contact</label>
+        <span class="fw-semibold text-dark text-break">
+            {% if donor.phone2 %}
+            <i class="fas fa-phone text-muted me-1 small"></i>+977-{{ donor.phone2 }}
+            {% else %}
+            <em class="text-muted small">Not provided</em>
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="col-12">
+        <hr class="text-muted opacity-25 my-2">
+    </div>
+
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Last Donation Date</label>
+        <span class="fw-semibold text-danger">
+            <i class="fas fa-calendar-day me-1 small"></i>{{ donor.last_donation_date or 'Never Donated / Fresh' }}
+        </span>
+    </div>
+    <div class="col-sm-6">
+        <label class="text-muted small d-block">Social Media Profile</label>
+        {% if donor.social_link %}
+        <a href="{{ donor.social_link }}" target="_blank"
+            class="text-primary text-decoration-none small fw-semibold text-break">
+            <i class="fas fa-link me-1"></i>View Handle Profile
+        </a>
+        {% else %}
+        <span class="text-muted small">None linked</span>
+        {% endif %}
+    </div>
+
+    <div class="col-12">
+        <hr class="text-muted opacity-25 my-2">
+    </div>
+
+    <div class="col-sm-6">
+        <label class="text-danger small d-block fw-bold mb-1">
+            <i class="fas fa-location-dot me-1"></i>Current Residence Address
+        </label>
+        <ul class="list-unstyled ps-0 mb-0 small text-dark">
+            <li><strong>Province:</strong> {{ donor.curr_province }}</li>
+            <li><strong>District:</strong> {{ donor.curr_district }}</li>
+            {% if donor.curr_local_level %}
+            <li><strong>Local Unit:</strong> {{ donor.curr_local_level }}</li>
+            {% endif %}
+            {% if donor.curr_ward %}
+            <li><strong>Ward:</strong> {{ donor.curr_ward }}</li>
+            {% endif %}
+            {% if donor.curr_tole %}
+            <li><strong>Tole/Street:</strong> {{ donor.curr_tole }}</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="col-sm-6">
+        <label class="text-muted small d-block fw-bold mb-1">
+            <i class="fas fa-house me-1"></i>Permanent Origin Address
+        </label>
+        {% if donor.perm_province or donor.perm_district %}
+        <ul class="list-unstyled ps-0 mb-0 small text-muted">
+            <li><strong>Province:</strong> {{ donor.perm_province or '—' }}</li>
+            <li><strong>District:</strong> {{ donor.perm_district or '—' }}</li>
+            {% if donor.perm_local_level %}
+            <li><strong>Local Unit:</strong> {{ donor.perm_local_level }}</li>
+            {% endif %}
+            {% if donor.perm_ward %}
+            <li><strong>Ward:</strong> {{ donor.perm_ward }}</li>
+            {% endif %}
+        </ul>
+        {% else %}
+        <span class="text-muted small italic">Same as current layout setup</span>
+        {% endif %}
+    </div>
+    
+    {% if donor.emergency_contact %}
+    <div class="col-12 mt-3">
+        <div class="alert alert-light border border-danger border-opacity-25 rounded-3 d-flex align-items-center mb-0">
+            <i class="fas fa-notes-medical text-danger fs-4 me-3"></i>
+            <div>
+                <h6 class="mb-0 text-dark fw-bold">Emergency Contact</h6>
+                <span class="text-muted small">+977-{{ donor.emergency_contact }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

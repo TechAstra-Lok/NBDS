@@ -31,7 +31,7 @@
           <tr>
             <td class="ps-4">
               <div class="d-flex align-items-center gap-2">
-                <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="rounded-3" style="width:60px;height:40px;object-fit:cover;" />
+                <img loading="lazy" src="{{ ad.image_url }}" alt="{{ ad.title }}" class="rounded-3" style="width:60px;height:40px;object-fit:cover;" />
                 <div>
                   <div class="fw-semibold small">{{ ad.title }}</div>
                   <div class="text-muted small">{{ ad.description[:70] }}{% if ad.description|length > 70 %}...{% endif %}</div>

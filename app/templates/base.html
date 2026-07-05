@@ -147,6 +147,13 @@
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
+             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint in ['public.blood_banks', 'public.blood_bank_detail'] }}"
+              href="{{ url_for('public.blood_banks') }}">
+              <i class="fas fa-hospital fa-sm me-1 d-lg-none d-xl-inline"></i>Blood Banks
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.become_donor' }}"
               href="{{ url_for('public.become_donor') }}">
               <i class="fas fa-user-plus fa-sm me-1 d-lg-none d-xl-inline"></i>Become a Donor
@@ -349,7 +356,7 @@
             <small class="text-muted px-2 pt-1" style="font-size:0.65rem;">Sponsored</small>
             <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener sponsored"
               data-ad-id="{{ ad.id }}" class="d-block">
-              <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="w-100" style="height:150px;object-fit:cover;"
+              <img loading="lazy" src="{{ ad.image_url }}" alt="{{ ad.title }}" class="w-100" style="height:150px;object-fit:cover;"
                 onerror="this.src='/static/images/ad-placeholder.svg'">
             </a>
             {% if ad.description %}

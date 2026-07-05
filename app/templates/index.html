@@ -102,7 +102,7 @@
         {% for ad in banner_ads %}
         <div class="carousel-item {{ 'active' if loop.first }}">
           <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener">
-            <img src="{{ ad.image_url }}" class="d-block w-100" style="max-height:120px; object-fit:cover;"
+            <img loading="lazy" src="{{ ad.image_url }}" class="d-block w-100" style="max-height:120px; object-fit:cover;"
               alt="{{ ad.title }}">
           </a>
         </div>
@@ -111,7 +111,7 @@
     </div>
     {% else %}
     <a href="{{ url_for('public.ad_click', ad_id=banner_ads[0].id) }}" target="_blank" rel="noopener">
-      <img src="{{ banner_ads[0].image_url }}" class="img-fluid rounded-3 shadow-sm w-100"
+      <img loading="lazy" src="{{ banner_ads[0].image_url }}" class="img-fluid rounded-3 shadow-sm w-100"
         style="max-height:120px; object-fit:cover;" alt="{{ banner_ads[0].title }}">
     </a>
     {% endif %}
@@ -310,7 +310,7 @@
           <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift overflow-hidden">
               <div class="news-img-wrap" style="height:160px; overflow:hidden;">
-                <img src="{{ post.image_url }}" class="card-img-top w-100 h-100"
+                <img loading="lazy" src="{{ post.image_url }}" class="card-img-top w-100 h-100"
                   style="object-fit:cover; transition:transform 0.3s;" alt="{{ post.title }}"
                   onerror="this.src='/static/images/news-placeholder.jpg'">
               </div>
@@ -422,7 +422,7 @@
       {% if ad.is_valid %}
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
         <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener">
-          <img src="{{ ad.image_url }}" class="card-img-top" style="height:140px; object-fit:cover;"
+          <img loading="lazy" src="{{ ad.image_url }}" class="card-img-top" style="height:140px; object-fit:cover;"
             alt="{{ ad.title }}" onerror="this.src='/static/images/ad-placeholder.jpg'">
         </a>
         {% if ad.description %}

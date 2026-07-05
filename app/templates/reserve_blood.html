@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Reserve Blood | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h1 class="h3 fw-bold text-danger mb-2">Reserve Blood from {{ blood_bank.display_name }}</h1>
+          <p class="text-muted">Submit a reservation request for a hospital or patient.</p>
+          <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Hospital Name</label><input class="form-control" name="hospital_name" required></div>
+              <div class="col-md-6"><label class="form-label">Patient Name</label><input class="form-control" name="patient_name" required></div>
+              <div class="col-md-6"><label class="form-label">Blood Group</label><input class="form-control" name="blood_group" placeholder="O+" required></div>
+              <div class="col-md-6"><label class="form-label">Component</label><input class="form-control" name="component" value="Whole Blood"></div>
+              <div class="col-md-6"><label class="form-label">Units</label><input class="form-control" type="number" name="units" value="1" min="1"></div>
+              <div class="col-md-6"><label class="form-label">Priority</label><select class="form-select" name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+            </div>
+            <button class="btn btn-danger mt-4">Submit Reservation</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

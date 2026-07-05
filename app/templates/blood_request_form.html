@@ -16,8 +16,7 @@
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
       <!-- Header -->
-      <div class="card-header border-0 py-3 px-4"
-           style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+      <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
         <h4 class="text-white fw-bold mb-0">
           <i class="fas fa-circle-plus me-2"></i>Submit Blood Request
         </h4>
@@ -27,13 +26,13 @@
       </div>
 
       <div class="card-body p-4">
-        <form method="POST" action="{{ url_for('public.blood_request_form') }}"
-              novalidate id="bloodRequestForm">
+        <form method="POST" action="{{ url_for('public.blood_request_form') }}" novalidate id="bloodRequestForm"
+          enctype="multipart/form-data">
           {{ form.csrf_token }}
 
           <!-- Emergency Toggle -->
           <div class="alert d-flex align-items-center gap-3 mb-4"
-               style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:12px;">
+            style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:12px;">
             <i class="fas fa-triangle-exclamation text-warning fa-lg flex-shrink-0"></i>
             <div class="flex-grow-1">
               <strong class="small">Is this a LIFE-THREATENING emergency?</strong>
@@ -42,9 +41,8 @@
               </p>
             </div>
             <div class="form-check form-switch mb-0 flex-shrink-0">
-              <input class="form-check-input" type="checkbox" role="switch"
-                     name="is_emergency" id="is_emergency"
-                     style="width:2.8em;height:1.5em;cursor:pointer;">
+              <input class="form-check-input" type="checkbox" role="switch" name="is_emergency" id="is_emergency"
+                style="width:2.8em;height:1.5em;cursor:pointer;">
               <label class="form-check-label fw-bold small text-danger" for="is_emergency">
                 URGENT
               </label>
@@ -66,10 +64,9 @@
               <label class="form-label fw-semibold">
                 Patient Full Name <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control {{ 'is-invalid' if form.patient_name.errors }}"
-                     name="patient_name" id="patient_name"
-                     placeholder="e.g. Ram Bahadur Thapa"
-                     value="{{ form.patient_name.data or '' }}" required>
+              <input type="text" class="form-control {{ 'is-invalid' if form.patient_name.errors }}" name="patient_name"
+                id="patient_name" placeholder="e.g. Ram Bahadur Thapa" value="{{ form.patient_name.data or '' }}"
+                required>
               {% for e in form.patient_name.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
@@ -79,26 +76,38 @@
               <label class="form-label fw-semibold">
                 Medical Condition / Case <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control {{ 'is-invalid' if form.case_details.errors }}"
-                     name="case_details" id="case_details"
-                     placeholder="e.g. Surgery, Accident, Anemia"
-                     value="{{ form.case_details.data or '' }}" required>
+              <input type="text" class="form-control {{ 'is-invalid' if form.case_details.errors }}" name="case_details"
+                id="case_details" placeholder="e.g. Surgery, Accident, Anemia"
+                value="{{ form.case_details.data or '' }}" required>
               {% for e in form.case_details.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
 
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Blood Group Selector</label>
+              <div class="d-flex flex-wrap gap-1" id="bgSelector">
+                {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold bg-select-btn" data-bg="{{ bg }}"
+                  style="min-width:42px;font-size:0.8rem;">
+                  {{ bg }}
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+
+
             <div class="col-md-4">
               <label class="form-label fw-semibold">
                 Blood Group Required <span class="text-danger">*</span>
               </label>
-              <select class="form-select {{ 'is-invalid' if form.blood_group.errors }}"
-                      name="blood_group" id="blood_group" required>
+              <select class="form-select {{ 'is-invalid' if form.blood_group.errors }}" name="blood_group"
+                id="blood_group" required>
                 <option value="">— Select Blood Group —</option>
                 {% for val, label in [('A+','A+'),('A-','A-'),('B+','B+'),('B-','B-'),
-                                       ('AB+','AB+'),('AB-','AB-'),('O+','O+'),('O-','O-')] %}
-                <option value="{{ val }}"
-                        {{ 'selected' if form.blood_group.data == val }}>
+                ('AB+','AB+'),('AB-','AB-'),('O+','O+'),('O-','O-')] %}
+                <option value="{{ val }}" {{ 'selected' if form.blood_group.data==val }}>
                   {{ label }}
                 </option>
                 {% endfor %}
@@ -110,53 +119,45 @@
 
             <div class="col-md-4">
               <label class="form-label fw-semibold">
-                Units Needed <span class="text-danger">*</span>
+                Units Needed(Pints) <span class="text-danger">*</span>
               </label>
               <input type="number" class="form-control {{ 'is-invalid' if form.units_needed.errors }}"
-                     name="units_needed" id="units_needed"
-                     min="1" max="20" value="{{ form.units_needed.data or 1 }}" required>
+                name="units_needed" id="units_needed" min="1" max="20" value="{{ form.units_needed.data or 1 }}"
+                required>
               {% for e in form.units_needed.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Blood Group Selector</label>
-              <div class="d-flex flex-wrap gap-1" id="bgSelector">
-                {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
-                <button type="button"
-                        class="btn btn-sm btn-outline-danger fw-bold bg-select-btn"
-                        data-bg="{{ bg }}"
-                        style="min-width:42px;font-size:0.8rem;">
-                  {{ bg }}
-                </button>
-                {% endfor %}
-              </div>
-            </div>
-
             <div class="col-12">
               <label class="form-label fw-semibold">
-                Request Message / Urgency Details <span class="text-danger">*</span>
+                Request Message / Urgency Details
+                <span class="text-muted fw-normal small">(Optional)</span>
               </label>
-              <textarea class="form-control {{ 'is-invalid' if form.request_message.errors }}"
-                        name="request_message" id="request_message"
-                        rows="4" required
-                        placeholder="Please describe the urgency in detail. Include patient condition, time sensitivity, etc...">{{ form.request_message.data or '' }}</textarea>
+              <textarea class="form-control {{ 'is-invalid' if form.request_message.errors }}" name="request_message"
+                id="request_message" rows="4"
+                placeholder="Describe the urgency — patient condition, time sensitivity, etc. (Optional)">{{ form.request_message.data or '' }}</textarea>
               {% for e in form.request_message.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
-              <div class="form-text">Minimum 20 characters.</div>
+              <div class="form-text">Leave blank if you prefer to upload the hospital's official request paper below.
+              </div>
             </div>
           </div>
 
           <!-- ─ HOSPITAL INFO ─ -->
           <div class="section-divider mb-3">
-            <h6 class="fw-bold text-danger d-flex align-items-center gap-2">
-              <span class="badge bg-danger rounded-circle d-flex align-items-center
-                           justify-content-center" style="width:24px;height:24px;">2</span>
-              Hospital Information
-            </h6>
-            <hr class="mt-1 mb-3 border-danger opacity-25">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold text-danger d-flex align-items-center gap-2 mb-0">
+                <span class="badge bg-danger rounded-circle d-flex align-items-center
+                             justify-content-center" style="width:24px;height:24px;">2</span>
+                Hospital Information
+              </h6>
+              <button type="button" class="btn btn-sm btn-outline-danger" id="btnNearestBloodBank">
+                <i class="fas fa-location-arrow me-1"></i> Find Nearest Blood Bank
+              </button>
+            </div>
+            <hr class="mt-2 mb-3 border-danger opacity-25">
           </div>
 
           <div class="row g-3 mb-4">
@@ -164,10 +165,9 @@
               <label class="form-label fw-semibold">
                 Hospital Name <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control {{ 'is-invalid' if form.hospital.errors }}"
-                     name="hospital" id="hospital"
-                     placeholder="e.g. Bir Hospital, Kathmandu"
-                     value="{{ form.hospital.data or '' }}" required>
+              <input type="text" class="form-control {{ 'is-invalid' if form.hospital.errors }}" name="hospital"
+                id="hospital" placeholder="e.g. Bir Hospital, Kathmandu" value="{{ form.hospital.data or '' }}"
+                required>
               {% for e in form.hospital.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
@@ -181,28 +181,72 @@
 
             <div class="col-md-6">
               {{ form.district.label(class="form-label fw-semibold") }}
-              {{ form.district(class="form-select" + (" is-invalid" if form.district.errors else ""), id="district", **{'data-selected': form.district.data}) }}
+              {{ form.district(class="form-select" + (" is-invalid" if form.district.errors else ""), id="district",
+              **{'data-selected': form.district.data}) }}
               {% for e in form.district.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
             <div class="col-md-8">
               {{ form.local_level.label(class="form-label fw-semibold") }}
-              {{ form.local_level(class="form-select" + (" is-invalid" if form.local_level.errors else ""), id="local_level", **{'data-selected': form.local_level.data}) }}
+              {{ form.local_level(class="form-select" + (" is-invalid" if form.local_level.errors else ""),
+              id="local_level", **{'data-selected': form.local_level.data}) }}
               {% for e in form.local_level.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
             <div class="col-md-4">
               {{ form.ward_no.label(class="form-label fw-semibold") }}
-              {{ form.ward_no(class="form-control" + (" is-invalid" if form.ward_no.errors else ""), placeholder="e.g. 5") }}
+              {{ form.ward_no(class="form-control" + (" is-invalid" if form.ward_no.errors else ""), placeholder="e.g.
+              5") }}
               {% for e in form.ward_no.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
           </div>
+
+
+
+          <!-- ─ HOSPITAL REQUEST PAPER ─ -->
+          <div class="section-divider mb-3">
+            <h6 class="fw-bold text-danger d-flex align-items-center gap-2">
+              <span class="badge bg-danger rounded-circle d-flex align-items-center
+                           justify-content-center" style="width:24px;height:24px;">3</span>
+              Hospital Request Paper
+              <span class="badge bg-secondary fw-normal ms-1" style="font-size:0.7rem;">*</span>
+            </h6>
+            <hr class="mt-1 mb-3 border-danger opacity-25">
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Upload Hospital's Blood Request Paper</label>
+              <div class="input-group">
+                <input type="file" class="form-control {{ 'is-invalid' if form.hospital_paper.errors }}"
+                  name="hospital_paper" id="hospital_paper" accept="image/jpeg,image/jpg,image/png">
+                <label class="input-group-text" for="hospital_paper">
+                  <i class="fas fa-upload"></i>
+                </label>
+              </div>
+              {% for e in form.hospital_paper.errors %}
+              <div class="text-danger small mt-1">{{ e }}</div>
+              {% endfor %}
+              <div class="form-text">
+                <i class="fas fa-info-circle text-primary me-1"></i>
+                Accepted formats: JPG, JPEG, PNG. Upload a photo/scan of the official hospital blood request letter.
+              </div>
+              <!-- Preview -->
+              <div id="paperPreview" class="mt-2 d-none">
+                <p class="small text-muted mb-1">Preview:</p>
+                <img id="paperPreviewImg" src="" alt="Hospital Paper Preview" class="img-thumbnail"
+                  style="max-height:200px;">
+              </div>
+            </div>
+          </div>
+
+
 
           <!-- ─ CONTACT INFO ─ -->
           <div class="section-divider mb-3">
             <h6 class="fw-bold text-danger d-flex align-items-center gap-2">
               <span class="badge bg-danger rounded-circle d-flex align-items-center
-                           justify-content-center" style="width:24px;height:24px;">3</span>
+                           justify-content-center" style="width:24px;height:24px;">4</span>
               Contact Information
             </h6>
             <hr class="mt-1 mb-3 border-danger opacity-25">
@@ -214,9 +258,8 @@
                 Contact Person Name <span class="text-danger">*</span>
               </label>
               <input type="text" class="form-control {{ 'is-invalid' if form.contact_person.errors }}"
-                     name="contact_person" id="contact_person"
-                     placeholder="Who to call?"
-                     value="{{ form.contact_person.data or '' }}" required>
+                name="contact_person" id="contact_person" placeholder="Who to call?"
+                value="{{ form.contact_person.data or '' }}" required>
               {% for e in form.contact_person.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
@@ -229,9 +272,8 @@
               <div class="input-group">
                 <span class="input-group-text">🇳🇵 +977</span>
                 <input type="tel" class="form-control {{ 'is-invalid' if form.contact_number.errors }}"
-                       name="contact_number" id="contact_number"
-                       placeholder="98XXXXXXXX" maxlength="10"
-                       value="{{ form.contact_number.data or '' }}" required>
+                  name="contact_number" id="contact_number" placeholder="98XXXXXXXX" maxlength="10"
+                  value="{{ form.contact_number.data or '' }}" required>
                 {% for e in form.contact_number.errors %}
                 <div class="invalid-feedback">{{ e }}</div>
                 {% endfor %}
@@ -242,21 +284,20 @@
               <label class="form-label fw-semibold">Alternate Number</label>
               <div class="input-group">
                 <span class="input-group-text">🇳🇵 +977</span>
-                <input type="tel" class="form-control"
-                       name="alt_number" id="alt_number"
-                       placeholder="98XXXXXXXX (Optional)" maxlength="10"
-                       value="{{ form.alt_number.data or '' }}">
+                <input type="tel" class="form-control" name="alt_number" id="alt_number"
+                  placeholder="98XXXXXXXX (Optional)" maxlength="10" value="{{ form.alt_number.data or '' }}">
               </div>
             </div>
           </div>
+
+
 
           <!-- Submit -->
           <div class="d-flex gap-3 align-items-center">
             <button type="submit" name="submit" class="btn btn-danger btn-lg fw-bold px-5" id="submitBtn">
               <i class="fas fa-paper-plane me-2"></i>Submit Blood Request
             </button>
-            <a href="{{ url_for('public.blood_request_board') }}"
-               class="btn btn-outline-secondary btn-lg">
+            <a href="{{ url_for('public.blood_request_board') }}" class="btn btn-outline-secondary btn-lg">
               View All Requests
             </a>
           </div>
@@ -283,16 +324,15 @@
       </div>
       <div class="card-body p-4">
         {% set steps = [
-          ('fas fa-edit','Submit Request','Fill in patient and hospital details.'),
-          ('fas fa-bell','Instant Notification','Matching donors are notified immediately.'),
-          ('fas fa-phone','Donor Contacts You','Available donors call the contact number.'),
-          ('fas fa-heart','Blood Donated','Life is saved!'),
+        ('fas fa-edit','Submit Request','Fill in patient and hospital details.'),
+        ('fas fa-bell','Instant Notification','Matching donors are notified immediately.'),
+        ('fas fa-phone','Donor Contacts You','Available donors call the contact number.'),
+        ('fas fa-heart','Blood Donated','Life is saved!'),
         ] %}
         {% for icon, title, desc in steps %}
         <div class="d-flex gap-3 mb-3 {{ '' if not loop.last else '' }}">
           <div class="flex-shrink-0 d-flex align-items-center justify-content-center
-                      rounded-circle bg-danger text-white fw-bold"
-               style="width:36px;height:36px;font-size:0.8rem;">
+                      rounded-circle bg-danger text-white fw-bold" style="width:36px;height:36px;font-size:0.8rem;">
             {{ loop.index }}
           </div>
           <div>
@@ -312,11 +352,11 @@
         </h6>
         <ul class="list-unstyled mb-0">
           {% set tips = [
-            'Mark as EMERGENCY if life is at immediate risk',
-            'Always verify the exact blood group needed',
-            'Provide a working phone number you can answer',
-            'Include hospital ward/room for easy access',
-            'Update status once blood is received',
+          'Mark as EMERGENCY if life is at immediate risk',
+          'Always verify the exact blood group needed',
+          'Provide a working phone number you can answer',
+          'Include hospital ward/room for easy access',
+          'Update status once blood is received',
           ] %}
           {% for tip in tips %}
           <li class="d-flex gap-2 mb-2 small text-muted">
@@ -329,8 +369,7 @@
     </div>
 
     <!-- Emergency Contacts -->
-    <div class="card border-0 shadow-sm rounded-4"
-         style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);">
+    <div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);">
       <div class="card-body p-4 text-white">
         <h6 class="fw-bold mb-3">
           <i class="fas fa-phone-volume me-2"></i>Emergency Contacts
@@ -353,35 +392,135 @@
   </div>
 </div>
 
+<!-- Nearest Blood Bank Modal -->
+<div class="modal fade" id="nearestBloodBankModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-danger text-white border-0">
+        <h5 class="modal-title fw-bold"><i class="fas fa-hospital me-2"></i> Nearest Blood Bank</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 text-center" id="nearestBloodBankContent">
+        <div class="spinner-border text-danger" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2 text-muted">Locating nearest facility...</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-// Blood group selector buttons
-document.querySelectorAll('.bg-select-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const bg = this.dataset.bg;
-    document.getElementById('blood_group').value = bg;
-    document.querySelectorAll('.bg-select-btn').forEach(b => {
-      b.classList.remove('btn-danger');
-      b.classList.add('btn-outline-danger');
+  // Blood group selector buttons
+  document.querySelectorAll('.bg-select-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const bg = this.dataset.bg;
+      document.getElementById('blood_group').value = bg;
+      document.querySelectorAll('.bg-select-btn').forEach(b => {
+        b.classList.remove('btn-danger');
+        b.classList.add('btn-outline-danger');
+      });
+      this.classList.remove('btn-outline-danger');
+      this.classList.add('btn-danger');
     });
-    this.classList.remove('btn-outline-danger');
-    this.classList.add('btn-danger');
   });
-});
 
-// Phone number input restriction
-['contact_number','alt_number'].forEach(id => {
-  const el = document.getElementById(id);
-  if(el) el.addEventListener('input', function() {
-    this.value = this.value.replace(/\D/g,'').slice(0,10);
+  // Phone number input restriction
+  ['contact_number', 'alt_number'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
   });
-});
 
-// Submit button loading state
-document.getElementById('bloodRequestForm').addEventListener('submit', function() {
-  const btn = document.getElementById('submitBtn');
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
-  btn.disabled = true;
-});
+  // Submit button loading state
+  document.getElementById('bloodRequestForm').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    if (btn) {
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+      btn.disabled = true;
+    }
+  });
+
+  // Hospital paper image preview
+  const paperInput = document.getElementById('hospital_paper');
+  if (paperInput) {
+    paperInput.addEventListener('change', function () {
+      const file = this.files[0];
+      const preview = document.getElementById('paperPreview');
+      const previewImg = document.getElementById('paperPreviewImg');
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          previewImg.src = e.target.result;
+          preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.classList.add('d-none');
+        previewImg.src = '';
+      }
+    });
+  }
+
+  // Nearest Blood Bank Logic
+  const btnNearest = document.getElementById('btnNearestBloodBank');
+  if (btnNearest) {
+    btnNearest.addEventListener('click', function() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+
+      const modal = new bootstrap.Modal(document.getElementById('nearestBloodBankModal'));
+      modal.show();
+      
+      const content = document.getElementById('nearestBloodBankContent');
+      content.innerHTML = `
+        <div class="spinner-border text-danger" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Waiting for location permission and calculating distance...</p>
+      `;
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          fetch(`/api/nearest-blood-bank?lat=${lat}&lng=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.error) {
+                content.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+                return;
+              }
+              
+              content.innerHTML = `
+                <h4 class="fw-bold text-danger mb-1">${data.name}</h4>
+                <p class="text-muted mb-3"><i class="fas fa-map-marker-alt me-1"></i> ${data.address} • <strong>${data.distance_km} km away</strong></p>
+                
+                <div class="d-flex flex-column gap-2 mt-4">
+                  ${data.phone ? `<a href="tel:${data.phone}" class="btn btn-outline-danger"><i class="fas fa-phone me-1"></i> Call ${data.phone}</a>` : ''}
+                  ${data.maps_url ? `<a href="${data.maps_url}" target="_blank" rel="noopener" class="btn btn-outline-secondary"><i class="fas fa-map me-1"></i> Open in Maps</a>` : ''}
+                  <a href="${data.url}" target="_blank" class="btn btn-light"><i class="fas fa-info-circle me-1"></i> View Details</a>
+                </div>
+              `;
+            })
+            .catch(err => {
+              content.innerHTML = `<div class="alert alert-danger">Error fetching data.</div>`;
+            });
+        },
+        function(error) {
+          content.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mb-2 fa-2x"></i><br>Location access denied or unavailable.<br><small class="text-muted">${error.message}</small></div>`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  }
 </script>
 <script src="{{ url_for('static', filename='js/address.js') }}"></script>
 {% endblock %}

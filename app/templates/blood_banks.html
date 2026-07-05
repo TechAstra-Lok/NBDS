@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Blood Banks | {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row align-items-center mb-4">
+    <div class="col-lg-8">
+      <h1 class="fw-bold text-danger">National Blood Bank Directory</h1>
+      <p class="text-muted mb-0">Browse verified blood bank facilities and emergency support centers across Nepal.</p>
+    </div>
+    <div class="col-lg-4">
+      <form method="get" class="row g-2">
+        <div class="col-12">
+          <input class="form-control" name="q" value="{{ search_query }}" placeholder="Search district, province or service" />
+        </div>
+        <div class="col-md-6">
+          <select class="form-select" name="province" id="provinceSelect">
+            <option value="">All Provinces</option>
+            {% for province_name in provinces %}
+              <option value="{{ province_name }}" {% if province_filter == province_name %}selected{% endif %}>{{ province_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" name="district" id="districtSelect">
+            <option value="">All Districts</option>
+            {% for district_name in districts %}
+              <option value="{{ district_name }}" {% if district_filter == district_name %}selected{% endif %}>{{ district_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-danger w-100">Go</button>
+        </div>
+        <div class="col-12">
+          <label class="form-check-label small text-muted">
+            <input class="form-check-input me-1" type="checkbox" name="emergency_only" value="1" {% if emergency_only %}checked{% endif %}> Emergency panel only
+          </label>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    {% for bank in blood_banks %}
+      <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h5 class="card-title mb-1">{{ bank.resolved_display_name }}</h5>
+                <div class="text-muted small">{{ bank.service_type or bank.branch_type }}</div>
+              </div>
+              <span class="badge {{ 'bg-success' if bank.is_operational else 'bg-secondary' }}">{{ bank.status|title }}</span>
+            </div>
+            <p class="small text-muted mb-2">
+              <i class="fas fa-map-marker-alt me-1"></i>{{ bank.district or 'N/A' }}, {{ bank.province or 'N/A' }}
+            </p>
+            {% if bank.contact_number or bank.phone %}<p class="small mb-1"><i class="fas fa-phone me-1"></i>{{ bank.contact_number or bank.phone }}</p>{% endif %}
+            {% if bank.email %}<p class="small mb-1"><i class="fas fa-envelope me-1"></i>{{ bank.email }}</p>{% endif %}
+            {% if bank.is_emergency_panel or bank.emergency_available %}<p class="small text-danger mb-2"><i class="fas fa-bolt me-1"></i>Emergency panel / emergency support</p>{% endif %}
+            {% if bank.is_grouped_entry %}<p class="small text-muted mb-0"><i class="fas fa-layer-group me-1"></i>Grouped entry preserved</p>{% endif %}
+          </div>
+          <div class="card-footer bg-white border-0 pt-0 d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('public.blood_bank_detail', bank_id=bank.id) }}" class="btn btn-outline-danger btn-sm">View Details</a>
+            {% if bank.contact_number or bank.phone %}<a href="tel:{{ bank.contact_number or bank.phone }}" class="btn btn-outline-secondary btn-sm">Call</a>{% endif %}
+            {% if bank.google_maps_url %}<a href="{{ bank.google_maps_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-sm">Open Map</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-info">No blood banks found for the selected filters.</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // IDE-safe JSON parsing for Jinja objects
+    const provinceDistrictsMap = JSON.parse('{{ province_districts_map | tojson | safe }}');
+    const allDistricts = JSON.parse('{{ districts | tojson | safe }}');
+    const provinceSelect = document.getElementById("provinceSelect");
+    const districtSelect = document.getElementById("districtSelect");
+    
+    // Remember currently selected district
+    const selectedDistrict = "{{ district_filter }}";
+
+    function updateDistricts() {
+      const selectedProvince = provinceSelect.value;
+      let optionsHtml = '<option value="">All Districts</option>';
+      
+      let availableDistricts = [];
+      if (selectedProvince && provinceDistrictsMap[selectedProvince]) {
+        availableDistricts = provinceDistrictsMap[selectedProvince];
+      } else {
+        availableDistricts = allDistricts;
+      }
+      
+      availableDistricts.forEach(d => {
+        const isSelected = (d === selectedDistrict) ? 'selected' : '';
+        optionsHtml += `<option value="${d}" ${isSelected}>${d}</option>`;
+      });
+      
+      districtSelect.innerHTML = optionsHtml;
+    }
+
+    provinceSelect.addEventListener("change", function() {
+      // Clear selected district when changing province manually
+      districtSelect.value = ""; 
+      updateDistricts();
+    });
+
+    // Initial load
+    updateDistricts();
+    if (selectedDistrict) {
+      districtSelect.value = selectedDistrict;
+    }
+  });
+</script>
+{% endblock %}

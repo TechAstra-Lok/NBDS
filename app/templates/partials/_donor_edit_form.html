@@ -1,0 +1,149 @@
+<form method="POST" action="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}" class="needs-validation" novalidate>
+    {{ profile_form.hidden_tag() }}
+    
+    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Basic Information</h6>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            {{ profile_form.full_name.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.full_name(class="form-control rounded-3") }}
+        </div>
+        <div class="col-md-3">
+            {{ profile_form.age.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.age(class="form-control rounded-3") }}
+        </div>
+        <div class="col-md-3">
+            {{ profile_form.weight.label(class="form-label small fw-bold text-muted") }}
+            <div class="input-group">
+                {{ profile_form.weight(class="form-control rounded-3") }}
+                <span class="input-group-text bg-light border-0">kg</span>
+            </div>
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.gender.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.gender(class="form-select rounded-3") }}
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.donor_type.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.donor_type(class="form-select rounded-3") }}
+        </div>
+    </div>
+    
+    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4">Contact Information</h6>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <label class="form-label small fw-bold text-muted">Primary Mobile (Used for Login)</label>
+            <input type="text" class="form-control rounded-3 bg-light text-muted" value="+977-{{ donor.phone1 }}" readonly>
+            <div class="form-text small"><i class="fas fa-lock me-1 text-warning"></i>Contact admin to change primary number</div>
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.phone2.label(class="form-label small fw-bold text-muted") }}
+            <div class="input-group">
+                <span class="input-group-text bg-light border-0">+977</span>
+                {{ profile_form.phone2(class="form-control rounded-3 border-start-0") }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.emergency_contact.label(class="form-label small fw-bold text-muted") }}
+            <div class="input-group">
+                <span class="input-group-text bg-danger text-white border-0"><i class="fas fa-notes-medical"></i></span>
+                <span class="input-group-text bg-light border-0 border-start">+977</span>
+                {{ profile_form.emergency_contact(class="form-control rounded-3 border-start-0") }}
+            </div>
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.social_link.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.social_link(class="form-control rounded-3", placeholder="https://facebook.com/...") }}
+        </div>
+    </div>
+    
+    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4">Current Residence</h6>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            {{ profile_form.curr_province.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.curr_province(class="form-select rounded-3", id="curr_province") }}
+        </div>
+        <div class="col-md-6">
+            {{ profile_form.curr_district.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.curr_district(class="form-select rounded-3", id="curr_district") }}
+        </div>
+        <div class="col-md-4">
+            {{ profile_form.curr_local_level.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.curr_local_level(class="form-select rounded-3", id="curr_local_level") }}
+        </div>
+        <div class="col-md-4">
+            {{ profile_form.curr_ward.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.curr_ward(class="form-control rounded-3") }}
+        </div>
+        <div class="col-md-4">
+            {{ profile_form.curr_tole.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.curr_tole(class="form-control rounded-3") }}
+        </div>
+    </div>
+    
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            {{ profile_form.donor_notes.label(class="form-label small fw-bold text-muted") }}
+            {{ profile_form.donor_notes(class="form-control rounded-3", placeholder="Any health context you want admins to know...") }}
+        </div>
+    </div>
+    
+    <div class="card bg-light border-0 rounded-4 p-3 mb-4">
+        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Notification Preferences</h6>
+        <p class="small text-muted mb-3">Choose how you want to be alerted when someone nearby needs blood.</p>
+        
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="form-check form-switch mb-0">
+                    {{ profile_form.email_alerts(class="form-check-input", role="switch") }}
+                    {{ profile_form.email_alerts.label(class="form-check-label fw-bold text-dark") }}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch mb-0">
+                    {{ profile_form.sms_alerts(class="form-check-input", role="switch") }}
+                    {{ profile_form.sms_alerts.label(class="form-check-label fw-bold text-dark") }}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch mb-0">
+                    {{ profile_form.in_app_alerts(class="form-check-input", role="switch") }}
+                    {{ profile_form.in_app_alerts.label(class="form-check-label fw-bold text-dark") }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card bg-light border-0 rounded-4 p-3 mb-4">
+        <div class="form-check form-switch mb-0 d-flex align-items-center">
+            {{ profile_form.is_public(class="form-check-input fs-4 me-3 mt-0", role="switch") }}
+            <div>
+                {{ profile_form.is_public.label(class="form-check-label fw-bold text-dark d-block") }}
+                <span class="small text-muted">If disabled, your profile will be hidden from the public directory. Only admins and hospitals can see your contact details.</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+        <button type="reset" class="btn btn-light rounded-3 px-4">Cancel</button>
+        <button type="submit" name="profile_submit" value="1" class="btn btn-success rounded-3 px-4 fw-bold shadow-sm">
+            <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+    </div>
+</form>
+
+<!-- Use existing address.js for cascade loading -->
+<script src="{{ url_for('static', filename='js/address.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addressScript = document.createElement('script');
+        addressScript.src = "{{ url_for('static', filename='js/address.js') }}";
+        document.body.appendChild(addressScript);
+        
+        addressScript.onload = function() {
+            if (typeof initAddressFields === 'function') {
+                initAddressFields('curr_province', 'curr_district', 'curr_local_level', 
+                                  '{{ donor.curr_district }}', '{{ donor.curr_local_level }}');
+            }
+        };
+    });
+</script>
