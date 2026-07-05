@@ -142,8 +142,28 @@
         {% if req.request_message %}
         <p class="small text-muted p-2 rounded-2 mb-2"
            style="background:#f8f9fa;font-style:italic;border-left:3px solid #DC2626;">
-          "{{ req.request_message[:100] }}..."
+          "{{ req.request_message[:120] }}{% if req.request_message|length > 120 %}...{% endif %}"
         </p>
+        {% endif %}
+        
+        <!-- Verified Hospital Paper -->
+        {% if req.hospital_paper_file %}
+        <div class="mb-3">
+          {% if req.hospital_paper_verified %}
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-success" style="font-size:0.65rem;"><i class="fas fa-check-circle me-1"></i>Verified Request</span>
+            <span class="small text-muted" style="font-size:0.7rem;">Hospital Paper</span>
+          </div>
+          <a href="{{ url_for('static', filename='uploads/request_papers/' ~ req.hospital_paper_file) }}" target="_blank" class="d-block overflow-hidden rounded border" style="max-height: 80px;">
+            <img src="{{ url_for('static', filename='uploads/request_papers/' ~ req.hospital_paper_file) }}" alt="Hospital Paper" class="img-fluid w-100" style="object-fit: cover; opacity: 0.9; hover: opacity 1;">
+          </a>
+          {% else %}
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-secondary" style="font-size:0.65rem;"><i class="fas fa-hourglass-half me-1"></i>Under Review</span>
+            <span class="small text-muted" style="font-size:0.7rem;">Hospital Paper Uploaded</span>
+          </div>
+          {% endif %}
+        </div>
         {% endif %}
 
         <!-- Hospital & Contact -->

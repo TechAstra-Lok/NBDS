@@ -737,6 +737,7 @@ class BloodRequest(db.Model):
     # Location
     hospital        = db.Column(db.String(200), nullable=False)
     hospital_paper_file = db.Column(db.String(255), nullable=True)
+    hospital_paper_verified = db.Column(db.Boolean, default=None, nullable=True)
     province        = db.Column(db.String(60))
     district        = db.Column(db.String(80), index=True)
     local_level     = db.Column(db.String(100))

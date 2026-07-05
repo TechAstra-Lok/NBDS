@@ -57,6 +57,9 @@ class Config:
     
     # Scheduler
     SCHEDULER_API_ENABLED = True
+    
+    # AI / Generative services
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
     @staticmethod
     def init_app(app):

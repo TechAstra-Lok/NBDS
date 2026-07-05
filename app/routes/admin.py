@@ -627,6 +627,20 @@ def update_request_status(id, new_status):
     return redirect(url_for('admin.blood_requests'))
 
 
+@admin_bp.route('/requests/<int:id>/verify-paper/<string:action>', methods=['POST'])
+@role_required('admin', 'moderator')
+def verify_hospital_paper(id, action):
+    req = BloodRequest.query.get_or_404(id)
+    if action == 'verify':
+        req.hospital_paper_verified = True
+        flash(f'Hospital paper for request {req.request_id} approved.', 'success')
+    elif action == 'reject':
+        req.hospital_paper_verified = False
+        flash(f'Hospital paper for request {req.request_id} rejected.', 'warning')
+    db.session.commit()
+    return redirect(url_for('admin.blood_requests'))
+
+
 @admin_bp.route('/requests/<int:id>/delete', methods=['POST'])
 @role_required('admin', 'moderator')
 def delete_request(id):

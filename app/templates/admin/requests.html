@@ -97,6 +97,20 @@
             </td>
             <td class="small">
               <div class="fw-semibold">{{ req.hospital[:30] }}...</div>
+              {% if req.hospital_paper_file %}
+              <div class="mt-1">
+                <a href="{{ url_for('static', filename='uploads/request_papers/' ~ req.hospital_paper_file) }}" target="_blank" class="text-decoration-none">
+                  <i class="fas fa-file-image me-1"></i>Paper
+                </a>
+                {% if req.hospital_paper_verified == True %}
+                <span class="badge bg-success ms-1" title="Verified">✓</span>
+                {% elif req.hospital_paper_verified == False %}
+                <span class="badge bg-danger ms-1" title="Rejected">✗</span>
+                {% else %}
+                <span class="badge bg-secondary ms-1" title="Pending">?</span>
+                {% endif %}
+              </div>
+              {% endif %}
             </td>
             <td class="small">
               <div class="fw-semibold">{{ req.contact_person }}</div>
@@ -148,6 +162,32 @@
                     </form>
                   </li>
                   {% endif %}
+                  
+                  <!-- Paper Verification Actions -->
+                  {% if req.hospital_paper_file %}
+                  <li><hr class="dropdown-divider"></li>
+                  {% if req.hospital_paper_verified != True %}
+                  <li>
+                    <form method="POST" action="{{ url_for('admin.verify_hospital_paper', id=req.id, action='verify') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-success">
+                        <i class="fas fa-check-double me-2"></i>Approve Paper
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+                  {% if req.hospital_paper_verified != False %}
+                  <li>
+                    <form method="POST" action="{{ url_for('admin.verify_hospital_paper', id=req.id, action='reject') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="dropdown-item text-warning">
+                        <i class="fas fa-ban me-2"></i>Reject Paper
+                      </button>
+                    </form>
+                  </li>
+                  {% endif %}
+                  {% endif %}
+                  
                   <li><hr class="dropdown-divider"></li>
                   <li>
                     <form method="POST"

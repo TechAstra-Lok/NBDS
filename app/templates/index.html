@@ -195,11 +195,24 @@
                   <i class="fas fa-notes-medical text-danger me-1"></i>{{ req.case_details }}
                 </p>
 
+                <!-- Urgency Message -->
+                {% if req.request_message %}
+                <p class="small text-muted p-2 rounded-2 mb-2"
+                   style="background:#f8f9fa;font-style:italic;border-left:3px solid #DC2626;">
+                  "{{ req.request_message[:120] }}{% if req.request_message|length > 120 %}...{% endif %}"
+                </p>
+                {% endif %}
+
                 <!-- Details -->
                 <div class="req-details small">
                   <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-hospital text-danger me-2" style="width:14px;"></i>
-                    <span class="text-truncate">{{ req.hospital }}</span>
+                    <span class="text-truncate">
+                      {{ req.hospital }}
+                      {% if req.hospital_paper_file %}
+                      <span class="badge bg-light text-secondary ms-1 border" title="Hospital paper attached">📄</span>
+                      {% endif %}
+                    </span>
                   </div>
                   <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-vials text-warning me-2" style="width:14px;"></i>

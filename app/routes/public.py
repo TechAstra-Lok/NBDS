@@ -536,8 +536,14 @@ def blood_request_form():
             filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
             upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
             os.makedirs(upload_dir, exist_ok=True)
-            paper_file.save(os.path.join(upload_dir, filename))
+            saved_path = os.path.join(upload_dir, filename)
+            paper_file.save(saved_path)
             req.hospital_paper_file = filename
+            
+            # Verify the uploaded paper
+            from app.services.document_verification import verify_blood_request_paper
+            verified = verify_blood_request_paper(saved_path)
+            req.hospital_paper_verified = verified
 
         db.session.commit()
         
