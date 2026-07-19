@@ -288,6 +288,30 @@
                   placeholder="98XXXXXXXX (Optional)" maxlength="10" value="{{ form.alt_number.data or '' }}">
               </div>
             </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">
+                4-Digit PIN <span class="text-danger">*</span>
+              </label>
+              <input type="password" class="form-control {{ 'is-invalid' if form.pin.errors }}" name="pin" id="pin"
+                placeholder="Set a 4-digit PIN" maxlength="4" required>
+              {% for e in form.pin.errors %}
+              <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+              <div class="form-text" align="center"><b>You will need this PIN to manage or cancel your request
+                  later.</b></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">
+                Confirm PIN <span class="text-danger">*</span>
+              </label>
+              <input type="password" class="form-control {{ 'is-invalid' if form.confirm_pin.errors }}"
+                name="confirm_pin" id="confirm_pin" placeholder="Confirm your 4-digit PIN" maxlength="4" required>
+              {% for e in form.confirm_pin.errors %}
+              <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
           </div>
 
 
@@ -469,7 +493,7 @@
   // Nearest Blood Bank Logic
   const btnNearest = document.getElementById('btnNearestBloodBank');
   if (btnNearest) {
-    btnNearest.addEventListener('click', function() {
+    btnNearest.addEventListener('click', function () {
       if (!navigator.geolocation) {
         alert('Geolocation is not supported by your browser.');
         return;
@@ -477,7 +501,7 @@
 
       const modal = new bootstrap.Modal(document.getElementById('nearestBloodBankModal'));
       modal.show();
-      
+
       const content = document.getElementById('nearestBloodBankContent');
       content.innerHTML = `
         <div class="spinner-border text-danger" role="status">
@@ -487,10 +511,10 @@
       `;
 
       navigator.geolocation.getCurrentPosition(
-        function(position) {
+        function (position) {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          
+
           fetch(`/api/nearest-blood-bank?lat=${lat}&lng=${lng}`)
             .then(res => res.json())
             .then(data => {
@@ -498,7 +522,7 @@
                 content.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
                 return;
               }
-              
+
               content.innerHTML = `
                 <h4 class="fw-bold text-danger mb-1">${data.name}</h4>
                 <p class="text-muted mb-3"><i class="fas fa-map-marker-alt me-1"></i> ${data.address} • <strong>${data.distance_km} km away</strong></p>
@@ -514,7 +538,7 @@
               content.innerHTML = `<div class="alert alert-danger">Error fetching data.</div>`;
             });
         },
-        function(error) {
+        function (error) {
           content.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mb-2 fa-2x"></i><br>Location access denied or unavailable.<br><small class="text-muted">${error.message}</small></div>`;
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }

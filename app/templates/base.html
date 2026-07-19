@@ -192,11 +192,48 @@
             <span class="d-xl-none">Request</span>
           </a>
           
-          {% if current_user.is_authenticated %}
+          {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
+          <!-- Notification Bell -->
+          <div class="dropdown me-1" id="notifBellDropdown">
+            <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
+              data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
+              <i class="fas fa-bell"></i>
+              <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
+                id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
+              <!-- Notification Header -->
+              <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+                style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+                <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
+                <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
+                  title="Mark all as read" style="font-size:0.75rem;">
+                  <i class="fas fa-check-double me-1"></i>All Read
+                </button>
+              </div>
+              <!-- Notification List -->
+              <div id="notifList" style="max-height:360px;overflow-y:auto;">
+                <div class="text-center text-muted py-4">
+                  <i class="fas fa-spinner fa-spin me-1"></i> Loading...
+                </div>
+              </div>
+              <!-- Footer -->
+              <div class="border-top text-center py-2" style="background:#f9fafb;">
+                <a href="{{ url_for('notifications.preferences') }}" class="text-danger text-decoration-none small fw-semibold">
+                  <i class="fas fa-cog me-1"></i>Notification Preferences
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
           <div class="dropdown">
             <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
               <i class="fas fa-user-circle me-1"></i>
-              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+              {% if session.get('bloodbank_account_id') %}
+                Blood Bank Panel
+              {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
                 Donor Panel
               {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
                 Volunteer Panel
@@ -205,15 +242,21 @@
               {% endif %}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
-                <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
-              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-                <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
+              {% if session.get('bloodbank_account_id') %}
+                <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
               {% else %}
-                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
+                {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+                  <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
+                {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+                  <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
+                {% else %}
+                  <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
               {% endif %}
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
             </ul>
           </div>
           {% else %}
@@ -225,6 +268,7 @@
               <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
               <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
               <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
               <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
             </ul>
           </div>
@@ -592,6 +636,99 @@
 
   <!-- Nepali Date Picker JS -->
   <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
+
+  {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const bellBtn = document.getElementById('notifBellBtn');
+      const badge = document.getElementById('notifBadge');
+      const notifList = document.getElementById('notifList');
+      const markAllReadBtn = document.getElementById('markAllReadBtn');
+
+      function updateUnreadCount() {
+        fetch('/notifications/api/unread-count')
+          .then(r => r.json())
+          .then(data => {
+            if (data.unread_count > 0) {
+              badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+              badge.classList.remove('d-none');
+            } else {
+              badge.classList.add('d-none');
+            }
+          }).catch(console.error);
+      }
+
+      function loadNotifications() {
+        notifList.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i> Loading...</div>';
+        fetch('/notifications/api/list?per_page=10')
+          .then(r => r.json())
+          .then(data => {
+            if (data.notifications && data.notifications.length > 0) {
+              notifList.innerHTML = data.notifications.map(n => `
+                <div class="px-3 py-2 border-bottom ${n.is_read ? 'bg-white' : 'bg-light'} position-relative" style="font-size: 0.85rem;">
+                  <div class="fw-bold text-dark mb-1 d-flex justify-content-between">
+                    <span>${n.title}</span>
+                    <small class="text-muted fw-normal">${new Date(n.created_at).toLocaleDateString()}</small>
+                  </div>
+                  <div class="text-muted mb-1">${n.message}</div>
+                  ${!n.is_read ? `
+                    <button class="btn btn-link btn-sm text-decoration-none p-0 mark-read-btn text-danger" data-id="${n.id}">
+                      Mark as read
+                    </button>
+                  ` : ''}
+                </div>
+              `).join('');
+            } else {
+              notifList.innerHTML = '<div class="text-center text-muted py-4">No notifications</div>';
+            }
+          }).catch(err => {
+            notifList.innerHTML = '<div class="text-center text-danger py-4">Failed to load</div>';
+          });
+      }
+
+      if (bellBtn) {
+        updateUnreadCount();
+        setInterval(updateUnreadCount, 60000); // Poll every minute
+        
+        bellBtn.addEventListener('show.bs.dropdown', function () {
+          loadNotifications();
+        });
+      }
+
+      notifList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('mark-read-btn')) {
+          e.preventDefault();
+          const id = e.target.getAttribute('data-id');
+          fetch(`/notifications/api/mark-read/${id}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+              if(data.success) {
+                e.target.closest('.border-bottom').classList.remove('bg-light');
+                e.target.closest('.border-bottom').classList.add('bg-white');
+                e.target.remove();
+                updateUnreadCount();
+              }
+            });
+        }
+      });
+
+      if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          fetch('/notifications/api/mark-all-read', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+              if(data.success) {
+                loadNotifications();
+                updateUnreadCount();
+              }
+            });
+        });
+      }
+    });
+  </script>
+  {% endif %}
 
   {% block extra_js %}{% endblock %}
 </body>

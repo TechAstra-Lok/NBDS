@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}"/>
+  <title>{% block title %}Blood Bank Portal{% endblock %} — NBD</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  {% block extra_css %}{% endblock %}
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f0f2f5; min-height: 100vh; }
+    .bb-navbar { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    .bb-navbar .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
+    .bb-card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .bb-hero-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bb-navbar sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('bloodbank.dashboard') }}">
+        <div class="bg-danger rounded-2 d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+          <i class="fas fa-hospital text-white" style="font-size:0.9rem;"></i>
+        </div>
+        <span>Blood Bank Portal</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#bbNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="bbNav">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          {% if session.get('bloodbank_account_id') %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('bloodbank.dashboard') }}"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('bloodbank.inventory') }}"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('bloodbank.reservations') }}"><i class="fas fa-clipboard-list me-1"></i> Reservations</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('bloodbank.staff') }}"><i class="fas fa-users me-1"></i> Staff</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('bloodbank.change_password') }}"><i class="fas fa-key me-1"></i> Change Password</a>
+          </li>
+          <li class="nav-item ms-lg-2">
+            <span class="text-white-50 small me-2"><i class="fas fa-user-circle me-1"></i>{{ session.get('bloodbank_bank_name', 'Blood Bank') }}</span>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-sm btn-outline-light" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash Messages -->
+  <div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Content -->
+  <main class="container py-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

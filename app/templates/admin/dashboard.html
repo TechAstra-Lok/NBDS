@@ -35,19 +35,84 @@
   </div>
 </div>
 
-<!-- ═══════ STAT CARDS ═══════ -->
+<!-- ═══════ STATS DIRECTORIES ═══════ -->
+<h5 class="fw-bold mb-3 mt-4 text-dark"><i class="fas fa-id-card text-danger me-2"></i>Donor & Medical Directory</h5>
 <div class="row g-3 mb-4">
-  {% set cards = [
-    ('Total Donors', total_donors, 'fa-users', 'danger', url_for('admin.donors'), '+' ~ total_donors ~ ' registered'),
+  {% set donor_cards = [
+    ('Total Donors', total_donors, 'fa-users', 'danger', url_for('admin.donors'), 'Registered accounts'),
     ('Available Donors', avail_donors, 'fa-check-circle', 'success', url_for('admin.donors', status='available'), 'Ready to donate'),
-    ('Active Requests', active_requests, 'fa-tint', 'warning', url_for('admin.blood_requests', status='active'), 'Need urgent help'),
-    ('Fulfilled', fulfilled, 'fa-heart', 'info', url_for('admin.blood_requests', status='fulfilled'), 'Lives saved'),
-    ('News Posts', total_news, 'fa-newspaper', 'primary', url_for('admin.news'), 'Published'),
-    ('Today Visitors', today_visitors, 'fa-eye', 'secondary', '#', week_visitors ~ ' this week'),
-    ('Notices', total_notices, 'fa-bell', 'warning', url_for('admin.notices'), 'Active notices'),
-    ('Messages', unread_contacts, 'fa-envelope', 'danger', url_for('admin.contacts'), 'Unread'),
+    ('Recently Donated', recently_donated_donors, 'fa-history', 'info', url_for('admin.donors'), 'In cool-down'),
+    ('Unavailable Donors', unavailable_donors, 'fa-ban', 'secondary', url_for('admin.donors'), 'Not available'),
+    ('Volunteer Doctors', volunteer_doctors, 'fa-user-md', 'danger', url_for('admin.volunteers'), 'Medical specialists'),
+    ('Volunteer Nurses', volunteer_nurses, 'fa-user-nurse', 'primary', url_for('admin.volunteers'), 'Healthcare support'),
+    ('Volunteer HAs', volunteer_has, 'fa-briefcase-medical', 'info', url_for('admin.volunteers'), 'Health Assistants'),
+    ('Blood Banks', total_blood_banks, 'fa-hospital', 'dark', url_for('admin.blood_banks'), 'Pinpoint locations')
   ] %}
-  {% for label, val, icon, color, link, sub in cards %}
+  {% for label, val, icon, color, link, sub in donor_cards %}
+  <div class="col-6 col-md-4 col-xl-3">
+    <a href="{{ link }}" class="text-decoration-none">
+      <div class="admin-stat-card card border-0 shadow-sm hover-lift rounded-4">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="stat-val fw-black fs-2 text-{{ color }}">{{ val }}</div>
+              <div class="stat-lbl fw-semibold text-dark small">{{ label }}</div>
+              <div class="stat-sub text-muted" style="font-size:0.75rem;">{{ sub }}</div>
+            </div>
+            <div class="stat-icon-wrap rounded-3 p-3 bg-{{ color }}-soft">
+              <i class="fas {{ icon }} text-{{ color }} fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<h5 class="fw-bold mb-3 text-dark"><i class="fas fa-tint text-danger me-2"></i>Requests & Success Stories</h5>
+<div class="row g-3 mb-4">
+  {% set request_cards = [
+    ('Total Requests', total_requests, 'fa-tint', 'danger', url_for('admin.blood_requests'), 'Total requests created'),
+    ('Active Requests', active_requests, 'fa-exclamation-circle', 'warning', url_for('admin.blood_requests', status='active'), 'Need urgent help'),
+    ('Fulfilled Requests', fulfilled, 'fa-heart', 'success', url_for('admin.blood_requests', status='fulfilled'), 'Completed cases'),
+    ('Success Stories', total_stories, 'fa-star', 'primary', url_for('admin.success_stories'), 'Approved stories'),
+    ('Pending Stories', pending_success_stories, 'fa-hourglass-half', 'secondary', url_for('admin.success_stories'), 'Pending moderation')
+  ] %}
+  {% for label, val, icon, color, link, sub in request_cards %}
+  <div class="col-6 col-md-4 col-xl-3">
+    <a href="{{ link }}" class="text-decoration-none">
+      <div class="admin-stat-card card border-0 shadow-sm hover-lift rounded-4">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="stat-val fw-black fs-2 text-{{ color }}">{{ val }}</div>
+              <div class="stat-lbl fw-semibold text-dark small">{{ label }}</div>
+              <div class="stat-sub text-muted" style="font-size:0.75rem;">{{ sub }}</div>
+            </div>
+            <div class="stat-icon-wrap rounded-3 p-3 bg-{{ color }}-soft">
+              <i class="fas {{ icon }} text-{{ color }} fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<h5 class="fw-bold mb-3 text-dark"><i class="fas fa-cogs text-danger me-2"></i>Platform Operations & Outreach</h5>
+<div class="row g-3 mb-4">
+  {% set ops_cards = [
+    ('Partners', total_partners, 'fa-handshake', 'primary', url_for('admin.partners'), 'Corporate partners'),
+    ('Staff Members', total_staff, 'fa-user-tie', 'dark', url_for('admin.staff'), 'Active employees'),
+    ('Advertisements', total_advertisements, 'fa-ad', 'info', url_for('admin.advertisements'), 'Banners & campaigns'),
+    ('Pending Events', pending_events, 'fa-calendar-alt', 'warning', url_for('admin.news'), 'Upcoming programs'),
+    ('Notifications Sent', notifications_sent, 'fa-paper-plane', 'success', url_for('admin.delivery_logs'), 'Delivered notices'),
+    ('Notifications Failed', notifications_failed, 'fa-exclamation-triangle', 'danger', url_for('admin.delivery_logs'), 'Dispatch errors'),
+    ('Today Visitors', today_visitors, 'fa-eye', 'secondary', '#', 'Traffic today')
+  ] %}
+  {% for label, val, icon, color, link, sub in ops_cards %}
   <div class="col-6 col-md-4 col-xl-3">
     <a href="{{ link }}" class="text-decoration-none">
       <div class="admin-stat-card card border-0 shadow-sm hover-lift rounded-4">
@@ -180,16 +245,36 @@
   </div>
 </div>
 
+<script id="dashboard-data" type="application/json">
+{
+  "monthly_data": [
+    {% for d in monthly_data %}
+    {"month": "{{ d.month }}", "count": {{ d.count }}}{{ "," if not loop.last else "" }}
+    {% endfor %}
+  ],
+  "bg_breakdown": [
+    {% for bg in bg_breakdown %}
+    {"blood_group": "{{ bg.blood_group }}", "count": {{ bg.count }}}{{ "," if not loop.last else "" }}
+    {% endfor %}
+  ]
+}
+</script>
+
 <script>
+// Parse data safely from JSON block to prevent linter / parser syntax errors
+const dashboardData = JSON.parse(document.getElementById('dashboard-data').textContent);
+const monthlyData = dashboardData.monthly_data;
+const bgBreakdown = dashboardData.bg_breakdown;
+
 // Monthly Chart
 const monthlyCtx = document.getElementById('monthlyChart');
 new Chart(monthlyCtx, {
   type: 'bar',
   data: {
-    labels: [{% for d in monthly_data %}'{{ d.month }}',{% endfor %}],
+    labels: monthlyData.map(d => d.month),
     datasets: [{
       label: 'New Donors',
-      data: [{% for d in monthly_data %}{{ d.count }},{% endfor %}],
+      data: monthlyData.map(d => d.count),
       backgroundColor: 'rgba(220, 38, 38, 0.7)',
       borderColor: 'rgba(220, 38, 38, 1)',
       borderWidth: 2,
@@ -208,9 +293,9 @@ const bgCtx = document.getElementById('bgChart');
 new Chart(bgCtx, {
   type: 'doughnut',
   data: {
-    labels: [{% for bg in bg_breakdown %}'{{ bg.blood_group }}',{% endfor %}],
+    labels: bgBreakdown.map(bg => bg.blood_group),
     datasets: [{
-      data: [{% for bg in bg_breakdown %}{{ bg.count }},{% endfor %}],
+      data: bgBreakdown.map(bg => bg.count),
       backgroundColor: [
         '#DC2626','#EF4444','#F97316','#EAB308',
         '#22C55E','#06B6D4','#6366F1','#8B5CF6'

@@ -129,6 +129,7 @@ class DonorRegistrationForm(FlaskForm):
     
     donor_type          = SelectField('Donor Type *', choices=DONOR_TYPE_CHOICES, validators=[DataRequired()])
     social_link         = StringField('Social Media Link (Optional)', validators=[Optional(), Length(max=300)])
+    consent             = BooleanField('I confirm that the information provided is accurate and I agree to be contacted by patients in need of blood. I understand my phone number will be visible to people searching for donors.', validators=[DataRequired(message='You must agree to the terms and conditions to register.')])
     
     submit              = SubmitField('Register as Blood Donor')
     
@@ -142,9 +143,9 @@ class DonorRegistrationForm(FlaskForm):
 
 
 class DonorEditForm(FlaskForm):
-    donor_id            = IntegerField(widget=HiddenInput())
+    record_id           = IntegerField(widget=HiddenInput())
     full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
-    email               = StringField('Email Address *', validators=[DataRequired(), Email(), Length(max=120)])
+    email               = StringField('Email Address', validators=[Optional(), Email(), Length(max=120)])
     phone1              = StringField('Primary Mobile *', validators=[DataRequired(), validate_nepal_mobile])
     phone2              = StringField('Secondary Mobile', validators=[Optional(), validate_nepal_mobile])
     age                 = IntegerField('Age *', validators=[DataRequired(), NumberRange(min=18, max=65)])
@@ -286,6 +287,14 @@ class BloodRequestForm(FlaskForm):
     contact_person  = StringField('Contact Person Name *', validators=[DataRequired(), Length(min=2, max=150)])
     contact_number  = StringField('Contact Number *', validators=[DataRequired(), validate_nepal_mobile])
     alt_number      = StringField('Alternate Number', validators=[Optional(), validate_nepal_mobile])
+    
+    pin             = PasswordField('4-Digit PIN *', validators=[
+        DataRequired(), Regexp(r'^\d{4}$', message="PIN must be exactly 4 digits")
+    ])
+    confirm_pin     = PasswordField('Confirm PIN *', validators=[
+        DataRequired(), EqualTo('pin', message='PINs must match')
+    ])
+    
     is_emergency    = BooleanField('Mark as EMERGENCY')
     hospital_paper  = FileField('Hospital Request Paper (Optional)', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png'], 'Images only!')])
     submit          = SubmitField('Submit Blood Request')
@@ -375,8 +384,7 @@ class BloodBankForm(FlaskForm):
     city = StringField('City/Municipality', validators=[Optional(), Length(max=120)])
     contact_number = StringField('Contact Number', validators=[DataRequired(), Length(max=20)])
     alternate_contact_number = StringField('Alternate Contact (Optional)', validators=[Optional(), Length(max=20)])
-    latitude = FloatField('Latitude', validators=[Optional()])
-    longitude = FloatField('Longitude', validators=[Optional()])
+    maps_url = StringField('Google Maps Link / Plus Code', validators=[Optional(), Length(max=500)])
     is_emergency_panel = BooleanField('Is Emergency Panel?')
     is_grouped_entry = BooleanField('Is Grouped Entry?')
     is_active = BooleanField('Is Active?', default=True)
@@ -431,5 +439,7 @@ class PartnerForm(FlaskForm):
 # ─── Request Management Form ────────────────
 class RequestManagementForm(FlaskForm):
     request_id      = StringField('Request ID *', validators=[DataRequired(), Length(min=5, max=30)])
-    contact_number  = StringField('Contact Number *', validators=[DataRequired(), validate_nepal_mobile])
+    pin             = PasswordField('4-Digit PIN *', validators=[
+        DataRequired(), Regexp(r'^\d{4}$', message="PIN must be exactly 4 digits")
+    ])
     submit          = SubmitField('Find My Request')

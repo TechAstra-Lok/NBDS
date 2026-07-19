@@ -1,0 +1,139 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Account — {{ bank.resolved_display_name }}{% endblock %}
+{% block page_title %}Blood Bank Account Details{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>{{ bank.resolved_display_name }}</h5>
+        <span class="badge {{ 'bg-success' if account.account_status == 'active' else ('bg-warning text-dark' if account.account_status == 'pending' else 'bg-secondary') }} fs-6">
+          {{ account.account_status|capitalize }}
+        </span>
+      </div>
+      <div class="card-body">
+
+        <div class="row g-3 mb-4">
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Login ID</label>
+            <div class="fw-bold fs-5 font-monospace">{{ account.login_id }}</div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Temporary Password</label>
+            {% if account.password_change_required and account.temp_password %}
+              <div class="fw-bold fs-5 font-monospace text-danger">{{ account.temp_password }}</div>
+              <div class="small text-muted">Visible to admin until changed</div>
+            {% else %}
+              <div class="text-muted"><em>Hidden / Changed</em></div>
+            {% endif %}
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Blood Bank</label>
+            <div class="fw-bold">{{ bank.resolved_display_name }}</div>
+            <div class="small text-muted">{{ bank.district or 'N/A' }}, {{ bank.province or 'N/A' }}</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Created</label>
+            <div>{{ account.created_at.strftime('%Y-%m-%d %H:%M') if account.created_at else '—' }}</div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Last Login</label>
+            <div>{{ account.last_login_at.strftime('%Y-%m-%d %H:%M') if account.last_login_at else 'Never' }}</div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Password Changed</label>
+            <div>{{ account.password_changed_at.strftime('%Y-%m-%d %H:%M') if account.password_changed_at else 'Never (first login pending)' }}</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Force Password Change</label>
+            <div>
+              {% if account.password_change_required %}
+                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i> Yes</span>
+              {% else %}
+                <span class="badge bg-success">No</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Account Locked</label>
+            <div>
+              {% if account.is_locked %}
+                <span class="badge bg-danger"><i class="fas fa-lock"></i> Locked</span>
+                {% if account.locked_until %}
+                  <div class="small text-muted">Until {{ account.locked_until.strftime('%Y-%m-%d %H:%M') }}</div>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-success"><i class="fas fa-lock-open"></i> Unlocked</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label text-muted small mb-0">Failed Login Attempts</label>
+            <div>{{ account.failed_login_attempts or 0 }}</div>
+          </div>
+        </div>
+
+        <hr>
+
+        <h6 class="fw-bold mb-3"><i class="fas fa-history me-1"></i> Recent Login History</h6>
+        {% if account.login_history %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead><tr><th>Time</th><th>Status</th><th>IP Address</th><th>User Agent</th></tr></thead>
+            <tbody>
+              {% set sorted_history = account.login_history|sort(attribute='login_time', reverse=True) %}
+              {% for entry in sorted_history[:10] %}
+              <tr>
+                <td class="small">{{ entry.login_time.strftime('%Y-%m-%d %H:%M:%S') if entry.login_time else '—' }}</td>
+                <td>
+                  <span class="badge {{ 'bg-success' if entry.status == 'success' else 'bg-danger' }}">{{ entry.status|capitalize }}</span>
+                </td>
+                <td class="small font-monospace">{{ entry.ip_address or '—' }}</td>
+                <td class="small text-truncate" style="max-width:200px;">{{ entry.user_agent or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No login history recorded yet.</p>
+        {% endif %}
+
+      </div>
+      <div class="card-footer bg-white d-flex justify-content-between">
+        <a href="{{ url_for('admin.blood_banks') }}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
+        <div class="d-flex gap-2">
+          {% if account.is_locked %}
+          <form method="post" action="{{ url_for('admin.toggle_blood_bank_account_lock', id=bank.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="unlock" />
+            <button type="submit" class="btn btn-outline-success"><i class="fas fa-lock-open me-1"></i> Unlock</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('admin.toggle_blood_bank_account_lock', id=bank.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="action" value="lock" />
+            <button type="submit" class="btn btn-outline-warning"><i class="fas fa-lock me-1"></i> Lock</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{{ url_for('admin.reset_blood_bank_password', id=bank.id) }}" onsubmit="return confirm('Reset password? A new temporary password will be generated.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn btn-outline-danger"><i class="fas fa-key me-1"></i> Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'bloodbank/layout.html' %}
+{% block title %}Inventory — {{ bank.resolved_display_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-boxes-stacked text-danger me-2"></i>Blood Inventory</h4>
+    <p class="text-muted small mb-0">Manage your blood stock levels for each group and component</p>
+  </div>
+  <a href="{{ url_for('bloodbank.add_inventory') }}" class="btn btn-danger">
+    <i class="fas fa-plus me-1"></i> Add Blood Group
+  </a>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card bb-card h-100">
+      <div class="card-body text-center py-3">
+        <div class="text-muted small">Total Groups</div>
+        <div class="fw-bold fs-3 text-primary">{{ items | length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card bb-card h-100">
+      <div class="card-body text-center py-3">
+        <div class="text-muted small">Available Units</div>
+        <div class="fw-bold fs-3 text-success">{{ items | sum(attribute='units_available') }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card bb-card h-100">
+      <div class="card-body text-center py-3">
+        <div class="text-muted small">Reserved Units</div>
+        <div class="fw-bold fs-3 text-info">{{ items | sum(attribute='units_reserved') }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card bb-card h-100">
+      <div class="card-body text-center py-3">
+        <div class="text-muted small">Low Stock Alerts</div>
+        {% set low_count = items | selectattr('units_available', 'lt', 4) | list | length %}
+        <div class="fw-bold fs-3 {{ 'text-danger' if low_count > 0 else 'text-success' }}">{{ low_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="card bb-card">
+  <div class="card-body p-0">
+    {% if items %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Blood Group</th>
+            <th>Component</th>
+            <th class="text-center">Available</th>
+            <th class="text-center">Reserved</th>
+            <th class="text-center">Min Stock</th>
+            <th class="text-center">Max Stock</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="ps-4"><span class="badge bg-danger fs-6 px-3">{{ item.blood_group }}</span></td>
+            <td>{{ item.component }}</td>
+            <td class="text-center fw-bold fs-5">{{ item.units_available }}</td>
+            <td class="text-center text-info">{{ item.units_reserved }}</td>
+            <td class="text-center text-muted">{{ item.minimum_stock }}</td>
+            <td class="text-center text-muted">{{ item.maximum_stock }}</td>
+            <td>
+              {% if item.units_available <= 0 %}
+                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Out of Stock</span>
+              {% elif item.units_available < item.minimum_stock %}
+                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>Low Stock</span>
+              {% elif item.units_available >= item.maximum_stock %}
+                <span class="badge bg-info"><i class="fas fa-arrow-up me-1"></i>Full</span>
+              {% else %}
+                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Adequate</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ item.last_updated.strftime('%Y-%m-%d %H:%M') if item.last_updated else 'N/A' }}</td>
+            <td class="text-end pe-4">
+              <a href="{{ url_for('bloodbank.edit_inventory', id=item.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit / Update Stock">
+                <i class="fas fa-edit"></i>
+              </a>
+              <form action="{{ url_for('bloodbank.delete_inventory', id=item.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"
+                        onclick="return confirm('Delete inventory for {{ item.blood_group }} ({{ item.component }})? This cannot be undone.');">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <div class="bb-hero-icon bg-danger bg-opacity-10 text-danger mx-auto mb-3">
+        <i class="fas fa-tint"></i>
+      </div>
+      <h5 class="fw-bold">No Inventory Yet</h5>
+      <p class="text-muted mb-3">Start by adding blood groups and their stock levels.</p>
+      <a href="{{ url_for('bloodbank.add_inventory') }}" class="btn btn-danger">
+        <i class="fas fa-plus me-1"></i> Add Your First Blood Group
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'bloodbank/layout.html' %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="min-height: 70vh;">
+  <div class="col-sm-10 col-md-7 col-lg-5 col-xl-4 d-flex align-items-center">
+    <div class="card bb-card w-100">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="bb-hero-icon bg-danger bg-opacity-10 text-danger mx-auto mb-3">
+            <i class="fas fa-hospital"></i>
+          </div>
+          <h4 class="fw-bold mb-1">Blood Bank Login</h4>
+          <p class="text-muted small">Sign in with your assigned credentials</p>
+        </div>
+
+        <form method="post" action="{{ url_for('bloodbank.login') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <div class="mb-3">
+            <label for="login_id" class="form-label fw-semibold">Login ID</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+              <input type="text" class="form-control" id="login_id" name="login_id"
+                     placeholder="e.g. BBB-KTM-001" required autofocus>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label fw-semibold">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input type="password" class="form-control" id="password" name="password"
+                     placeholder="Enter your password" required>
+              <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold">
+            <i class="fas fa-sign-in-alt me-1"></i> Sign In
+          </button>
+        </form>
+
+        <div class="text-center mt-4">
+          <p class="text-muted small mb-0">
+            Don't have an account? Contact your system administrator.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+  const input = document.getElementById('password');
+  const icon = this.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+});
+</script>
+{% endblock %}

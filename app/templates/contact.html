@@ -28,14 +28,14 @@
       <i class="fas fa-plus me-2"></i>Post Emergency Request Now
     </a>
   </div>
-</div>
+</div><br>
 
-<div class="row g-4">
+<div class="row g-4 justify-content-center">
   <!-- Contact Form -->
-  <div class="col-lg-7">
+  <div class="col-lg-8">
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-body p-4">
-        <h5 class="fw-bold mb-4">Send Us a Message</h5>
+        <h5 class="fw-bold mb-4 text-center">Send Us a Message</h5>
         <form method="POST" action="{{ url_for('public.contact') }}" novalidate id="contactForm">
           {{ form.hidden_tag() }}
           <div class="row g-3">
@@ -79,7 +79,7 @@
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
-            <div class="col-12">
+            <div class="col-12 text-center mt-4">
               <button type="submit" class="btn btn-danger fw-bold px-5" id="sendBtn">
                 <i class="fas fa-paper-plane me-2"></i>Send Message
               </button>
@@ -90,6 +90,7 @@
     </div>
   </div>
 
+
   <!-- Emergency Box -->
   <div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
     <div class="card-body p-4 text-white">
@@ -97,8 +98,8 @@
         <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
       </h6>
       <p class="small opacity-90 mb-3">
-        Don't send a message for emergencies. Post a blood request directly and
-        donors will be notified immediately.
+        <B>Don't send a message for emergencies. Post a blood request directly and
+          donors will be notified immediately.</B>
       </p>
       <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white fw-bold w-100" style="color:#DC2626;">
         <i class="fas fa-plus me-2"></i>Post Emergency Request Now
@@ -106,32 +107,35 @@
     </div>
   </div>
 
+
   <!-- Contact Info -->
-  <div class="col-lg-5">
+  <div class="col-lg-8">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
-        <h5 class="fw-bold mb-4">Get in Touch</h5>
-        {% for icon, color, title, detail in [
-        ('fas fa-location-dot','danger','Address','Kathmandu Metropolitan City, Bagmati Pradesh, Nepal'),
-        ('fas fa-phone','success','Phone','+977-1-4XXXXXXX (Office)\n+977-98XXXXXXXX (Emergency)'),
-        ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org\nsupport@nepaliblooddonors.org'),
-        ('fas fa-clock','warning','Office Hours','Sunday – Friday: 9AM – 5PM\nEmergency Line: 24/7'),
-        ] %}
-        <div class="d-flex gap-3 mb-4">
-          <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
-            style="width:44px;height:44px;background:var(--bs-{{ color }}-bg-subtle,rgba(0,0,0,0.05));">
-            <i class="{{ icon }} text-{{ color }}"></i>
+        <h5 class="fw-bold mb-4 text-center">Get in Touch</h5>
+        <div class="row g-4">
+          {% for icon, color, title, detail in [
+          ('fas fa-location-dot','danger','Address','Kathmandu, Nepal'),
+          ('fas fa-phone','success','Phone','+977-9816003020'),
+          ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org'),
+          ('fas fa-clock','warning','Office Hours','Sun–Fri: 9AM–5PM'),
+          ] %}
+          <div class="col-md-6">
+            <div class="d-flex gap-3 align-items-center">
+              <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-{{ color }}-subtle"
+                style="width:44px;height:44px;">
+                <i class="{{ icon }} text-{{ color }}"></i>
+              </div>
+              <div>
+                <div class="fw-semibold small">{{ title }}</div>
+                <div class="text-muted small" style="white-space:pre-line;">{{ detail }}</div>
+              </div>
+            </div>
           </div>
-          <div>
-            <div class="fw-semibold small">{{ title }}</div>
-            <div class="text-muted small" style="white-space:pre-line;">{{ detail }}</div>
-          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
     </div>
-
-
   </div>
 </div>
 

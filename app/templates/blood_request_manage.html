@@ -18,8 +18,8 @@
             {{ form.request_id(class_='form-control') }}
           </div>
           <div class="col-md-6">
-            <label class="form-label">{{ form.contact_number.label.text }}</label>
-            {{ form.contact_number(class_='form-control') }}
+            <label class="form-label">{{ form.pin.label.text }}</label>
+            {{ form.pin(class_='form-control') }}
           </div>
           <div class="col-12 d-flex gap-2">
             {{ form.submit(class_='btn btn-danger') }}
@@ -64,22 +64,41 @@
           </div>
 
           <div class="d-flex gap-2 flex-wrap">
+            {% if not request_record.is_emergency %}
+            <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
+              {{ form.csrf_token }}
+              <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
+              <input type="hidden" name="pin" value="{{ request_record.pin }}" />
+              <input type="hidden" name="action" value="urgent" />
+              <button type="submit" class="btn btn-warning fw-bold text-dark">Mark as URGENT</button>
+            </form>
+            {% endif %}
+
             {% if request_record.status != 'fulfilled' %}
             <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
               {{ form.csrf_token }}
               <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
-              <input type="hidden" name="contact_number" value="{{ request_record.contact_number }}" />
-              <input type="hidden" name="new_status" value="fulfilled" />
+              <input type="hidden" name="pin" value="{{ request_record.pin }}" />
+              <input type="hidden" name="action" value="fulfilled" />
               <button type="submit" class="btn btn-success">Mark Fulfilled</button>
             </form>
             {% endif %}
-            {% if request_record.status != 'closed' %}
+
+            {% if request_record.status not in ('cancelled', 'fulfilled') %}
             <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
               {{ form.csrf_token }}
               <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
-              <input type="hidden" name="contact_number" value="{{ request_record.contact_number }}" />
-              <input type="hidden" name="new_status" value="closed" />
-              <button type="submit" class="btn btn-secondary">Mark Closed</button>
+              <input type="hidden" name="pin" value="{{ request_record.pin }}" />
+              <input type="hidden" name="action" value="managed_from_other_source" />
+              <button type="submit" class="btn btn-info">Managed from Other Source</button>
+            </form>
+
+            <form method="POST" action="{{ url_for('public.public_update_request_status', id=request_record.id) }}">
+              {{ form.csrf_token }}
+              <input type="hidden" name="request_id" value="{{ request_record.request_id }}" />
+              <input type="hidden" name="pin" value="{{ request_record.pin }}" />
+              <input type="hidden" name="action" value="cancelled" />
+              <button type="submit" class="btn btn-danger">Cancel Request</button>
             </form>
             {% endif %}
           </div>

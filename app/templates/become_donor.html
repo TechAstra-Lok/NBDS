@@ -221,12 +221,9 @@
 
           <!-- Terms -->
           <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" id="agreeTerms" required>
-            <label class="form-check-label small" for="agreeTerms">
-              I confirm that the information provided is accurate and I agree to be
-              contacted by patients in need of blood. I understand my phone number will be
-              visible to people searching for donors.
-            </label>
+            {{ form.consent(class="form-check-input" + (" is-invalid" if form.consent.errors else ""), id="agreeTerms") }}
+            {{ form.consent.label(class="form-check-label small fw-bold text-danger", for="agreeTerms") }}
+            {% for e in form.consent.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
           </div>
 
           <!-- Submit -->

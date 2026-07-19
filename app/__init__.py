@@ -11,9 +11,27 @@ from flask_apscheduler import APScheduler
 from sqlalchemy import inspect, text
 from flask_caching import Cache
 
-# एक्सटेन्सनहरू सुरुमै सिर्जना गर्ने (Global instance)
+from flask import g
+from flask_sqlalchemy.session import Session
+
+class TenantAwareSession(Session):
+    def get_bind(self, mapper=None, clause=None, **kwargs):
+        if mapper is not None:
+            bind_key = getattr(mapper.class_, '__bind_key__', None)
+            if bind_key == 'tenant':
+                if hasattr(g, 'tenant_engine') and g.tenant_engine:
+                    return g.tenant_engine
+                # Fallback: return main engine so legacy data is still accessible.
+                # This allows admin/API routes to work on banks not yet provisioned.
+                import logging
+                logging.getLogger(__name__).debug(
+                    "Tenant model accessed without tenant context — falling back to main DB."
+                )
+                mapper = None
+        return super().get_bind(mapper, clause, **kwargs)
+
 csrf = CSRFProtect()
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={"class_": TenantAwareSession})
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 300})
 login_manager = LoginManager()
 login_manager.login_view = 'admin.login'
@@ -67,8 +85,7 @@ def create_app(config_name=None):
         # मोडेलहरू इम्पोर्ट गर्ने (डाटाबेस माइग्रेसनको लागि अनिवार्य)
         from app import models  # noqa: F401
         
-        # टेबलहरू सिर्जना गर्ने
-        db.create_all()
+        # We use Alembic for migrations, so db.create_all() is removed.
         _ensure_legacy_schema_columns(app)
         
         # सिड एडमिन अकाउन्ट बनाउने
@@ -78,10 +95,14 @@ def create_app(config_name=None):
         from app.routes.public import public_bp
         from app.routes.admin import admin_bp
         from app.routes.api import api_bp
+        from app.routes.notifications import notifications_bp
+        from app.routes.bloodbank import bloodbank_bp
         
         app.register_blueprint(public_bp)
         app.register_blueprint(admin_bp, url_prefix='/admin')
         app.register_blueprint(api_bp, url_prefix='/api/v1')
+        app.register_blueprint(notifications_bp)
+        app.register_blueprint(bloodbank_bp, url_prefix='/bloodbank')
         
         # एरर ह्यान्डलरहरू सुचारु गर्ने
         _register_error_handlers(app)
@@ -111,6 +132,7 @@ def _ensure_legacy_schema_columns(app):
             Donor,
             AuditLog,
             BloodBank,
+            BloodBankAccount,
             BloodInventory,
             BloodInventoryMovement,
             BloodRequest,
@@ -121,6 +143,7 @@ def _ensure_legacy_schema_columns(app):
             DonorDonationHistory,
             NotificationDeliveryLog,
             DonorNotificationPreference,
+            PublicBloodBankCache,
         )
 
         inspector = inspect(db.engine)
@@ -130,6 +153,7 @@ def _ensure_legacy_schema_columns(app):
             ('donors', Donor),
             ('blood_requests', BloodRequest),
             ('blood_banks', BloodBank),
+            ('blood_bank_accounts', BloodBankAccount),
             ('blood_inventory', BloodInventory),
             ('blood_reservations', BloodReservation),
             ('blood_inventory_movements', BloodInventoryMovement),
@@ -140,6 +164,7 @@ def _ensure_legacy_schema_columns(app):
             ('donor_donation_history', DonorDonationHistory),
             ('notification_delivery_logs', NotificationDeliveryLog),
             ('donor_notification_preferences', DonorNotificationPreference),
+            ('public_blood_bank_cache', PublicBloodBankCache),
         ]
 
         for table_name, model_cls in model_tables:

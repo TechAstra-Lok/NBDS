@@ -405,32 +405,105 @@ def nearest_blood_bank():
 @public_bp.route('/blood-banks/<int:bank_id>')
 def blood_bank_detail(bank_id):
     blood_bank = BloodBank.query.get_or_404(bank_id)
-    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank_id).order_by(BloodInventory.blood_group).all()
-    return render_template('blood_bank_detail.html', blood_bank=blood_bank, inventory_items=inventory_items)
+    
+    # Load from public cache to prevent cross-database tenant engine runtime errors
+    from app.models import PublicBloodBankCache
+    cache = PublicBloodBankCache.query.filter_by(blood_bank_id=bank_id).first()
+    inventory_items = []
+    if cache:
+        group_mapping = {
+            'A+': cache.a_pos, 'A-': cache.a_neg,
+            'B+': cache.b_pos, 'B-': cache.b_neg,
+            'AB+': cache.ab_pos, 'AB-': cache.ab_neg,
+            'O+': cache.o_pos, 'O-': cache.o_neg
+        }
+        for group, val in group_mapping.items():
+            if val > 0:
+                inventory_items.append({
+                    'blood_group': group,
+                    'component': 'Any / Whole Blood',
+                    'available_units': val,
+                    'units_reserved': 0
+                })
+    
+    # Resolve tenant DB and fetch staff members
+    staff_members = []
+    if blood_bank.tenant_id:
+        try:
+            from app.services.tenant_service import TenantResolutionService
+            from app.models import StaffMember
+            TenantResolutionService.resolve_tenant(blood_bank.tenant_id)
+            staff_members = StaffMember.query.filter_by(is_active=True).order_by(StaffMember.created_at.desc()).all()
+        except Exception:
+            pass  # Tenant not provisioned or inactive — just skip staff
+                
+    return render_template('blood_bank_detail.html', blood_bank=blood_bank, inventory_items=inventory_items, staff_members=staff_members)
 
 
 @public_bp.route('/blood-banks/<int:bank_id>/reserve', methods=['GET', 'POST'])
 def reserve_blood(bank_id):
     blood_bank = BloodBank.query.get_or_404(bank_id)
     if request.method == 'POST':
+        hospital_name = request.form.get('hospital_name', '').strip()
+        patient_name = request.form.get('patient_name', '').strip()
+        blood_group = request.form.get('blood_group', '').strip()
+        component = request.form.get('component', 'Whole Blood').strip() or 'Whole Blood'
+        units = int(request.form.get('units', 1) or 1)
+        priority = request.form.get('priority', 'normal').strip() or 'normal'
+        paper_file = request.files.get('hospital_paper')
+
+        if not hospital_name or not patient_name or not blood_group or not paper_file or not paper_file.filename:
+            flash('All required fields, including the Hospital Request Paper, must be provided.', 'danger')
+            return redirect(url_for('public.reserve_blood', bank_id=blood_bank.id))
+
         reservation = BloodReservation(
             blood_bank_id=blood_bank.id,
-            hospital_name=request.form.get('hospital_name', '').strip() or 'Unknown Hospital',
-            patient_name=request.form.get('patient_name', '').strip() or 'Unknown Patient',
-            blood_group=request.form.get('blood_group', '').strip(),
-            component=request.form.get('component', 'Whole Blood').strip() or 'Whole Blood',
-            units=int(request.form.get('units', 1) or 1),
-            priority=request.form.get('priority', 'normal').strip() or 'normal',
+            hospital_name=hospital_name,
+            patient_name=patient_name,
+            blood_group=blood_group,
+            component=component,
+            units=units,
+            priority=priority,
             status='pending',
         )
         db.session.add(reservation)
         db.session.flush()
+        
+        import os
+        import uuid
+        ext = paper_file.filename.rsplit('.', 1)[-1].lower() if '.' in paper_file.filename else 'jpg'
+        filename = f"resv_{reservation.id}_{uuid.uuid4().hex[:8]}.{ext}"
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'reservation_papers')
+        os.makedirs(upload_dir, exist_ok=True)
+        saved_path = os.path.join(upload_dir, filename)
+        paper_file.save(saved_path)
+        reservation.hospital_paper_file = filename
+
         reservation.qr_code = generate_qr_code('reservation', reservation.id)
         db.session.commit()
         flash('Reservation request submitted successfully.', 'success')
         return redirect(url_for('public.blood_bank_detail', bank_id=blood_bank.id))
 
-    return render_template('reserve_blood.html', blood_bank=blood_bank)
+    from app.models import PublicBloodBankCache
+    cache = PublicBloodBankCache.query.filter_by(blood_bank_id=bank_id).first()
+    inventory_items = []
+    if cache:
+        group_mapping = {
+            'A+': cache.a_pos, 'A-': cache.a_neg,
+            'B+': cache.b_pos, 'B-': cache.b_neg,
+            'AB+': cache.ab_pos, 'AB-': cache.ab_neg,
+            'O+': cache.o_pos, 'O-': cache.o_neg
+        }
+        for group, val in group_mapping.items():
+            if val > 0:
+                inventory_items.append({
+                    'blood_group': group,
+                    'component': 'Any / Whole Blood',
+                    'available_units': val,
+                    'units_reserved': 0
+                })
+
+    return render_template('reserve_blood.html', blood_bank=blood_bank, inventory_items=inventory_items)
 
 
 # ════════════════════════════════════════════
@@ -522,6 +595,7 @@ def blood_request_form():
             contact_person  = form.contact_person.data.strip(),
             contact_number  = form.contact_number.data.strip(),
             alt_number      = form.alt_number.data.strip() if form.alt_number.data else "",
+            pin             = form.pin.data.strip(),
             is_emergency    = form.is_emergency.data,
         )
         db.session.add(req)
@@ -609,11 +683,11 @@ def manage_blood_request():
     if form.validate_on_submit():
         request_record = BloodRequest.query.filter_by(
             request_id=form.request_id.data.strip(),
-            contact_number=form.contact_number.data.strip()
+            pin=form.pin.data.strip()
         ).first()
 
         if not request_record:
-            flash('No matching blood request found. Please verify Request ID and contact number.', 'danger')
+            flash('No matching blood request found. Please verify Request ID and PIN.', 'danger')
 
     return render_template('blood_request_manage.html', form=form, request_record=request_record)
 
@@ -622,24 +696,28 @@ def manage_blood_request():
 def public_update_request_status(id):
     request_record = BloodRequest.query.get_or_404(id)
     request_id = request.form.get('request_id', '').strip()
-    contact_number = request.form.get('contact_number', '').strip()
-    new_status = request.form.get('new_status', '').strip()
+    pin = request.form.get('pin', '').strip()
+    action = request.form.get('action', '').strip()
 
-    if not request_id or not contact_number or request_record.request_id != request_id or request_record.contact_number != contact_number:
-        flash('Authorization failed. Please confirm your request details.', 'danger')
+    if not request_id or not pin or request_record.request_id != request_id or request_record.pin != pin:
+        flash('Authorization failed. Please confirm your request details (ID and PIN).', 'danger')
         return redirect(url_for('public.manage_blood_request'))
 
-    if new_status not in ('fulfilled', 'closed'):
-        flash('Invalid status selected.', 'danger')
-        return redirect(url_for('public.manage_blood_request'))
+    if action == 'urgent':
+        request_record.is_emergency = True
+        flash('Request marked as URGENT.', 'success')
+    elif action in ('fulfilled', 'cancelled', 'managed_from_other_source'):
+        if request_record.status == action:
+            flash(f'Request is already {action.replace("_", " ")}.', 'info')
+        else:
+            request_record.status = action
+            if action == 'fulfilled':
+                request_record.fulfilled_date = datetime.utcnow()
+            flash(f'Your request has been marked as {action.replace("_", " ")}.', 'success')
+    else:
+        flash('Invalid action selected.', 'danger')
 
-    if request_record.status == new_status:
-        flash(f'Request is already marked {new_status}.', 'info')
-        return redirect(url_for('public.manage_blood_request'))
-
-    request_record.status = new_status
     db.session.commit()
-    flash(f'Your request has been marked {new_status}.', 'success')
     return redirect(url_for('public.manage_blood_request'))
 
 

@@ -94,12 +94,18 @@ def run_migrations_online():
     if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
 
+    def include_object(object, name, type_, reflected, compare_to):
+        if type_ == "table" and object.info.get("bind_key") == "tenant":
+            return False
+        return True
+
     connectable = get_engine()
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
+            include_object=include_object,
             **conf_args
         )
 

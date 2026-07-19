@@ -6,6 +6,17 @@ from sqlalchemy import desc, or_, func
 api_bp = Blueprint('api', __name__)
 
 
+def _resolve_api_bank_tenant(bank_id):
+    """Resolve tenant context for a bank so tenant-scoped queries work."""
+    bank = BloodBank.query.get(bank_id)
+    if bank and bank.tenant_id and bank.db_name and bank.tenant_status == 'Active':
+        try:
+            from app.services.tenant_service import TenantResolutionService
+            TenantResolutionService.resolve_tenant(bank.tenant_id)
+        except Exception:
+            pass
+
+
 @api_bp.route('/donors/search')
 def search_donors():
     blood_group = request.args.get('bg', '')
@@ -22,7 +33,7 @@ def search_donors():
     if q:
         query = query.filter(or_(
             Donor.full_name.ilike(f'%{q}%'),
-            Donor.curr_city.ilike(f'%{q}%'),
+            Donor.curr_local_level.ilike(f'%{q}%'),
         ))
     
     donors = query.order_by(desc(Donor.created_at)).limit(limit).all()
@@ -80,6 +91,7 @@ def blood_banks_api():
 
 @api_bp.route('/blood-banks/<int:bank_id>/inventory')
 def blood_bank_inventory_api(bank_id):
+    _resolve_api_bank_tenant(bank_id)
     inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank_id).order_by(BloodInventory.blood_group).all()
     inventory_payload = []
     for item in inventory_items:
@@ -96,6 +108,7 @@ def blood_bank_inventory_api(bank_id):
 
 @api_bp.route('/blood-banks/<int:bank_id>/reservations')
 def blood_bank_reservations_api(bank_id):
+    _resolve_api_bank_tenant(bank_id)
     reservations = BloodReservation.query.filter_by(blood_bank_id=bank_id).order_by(BloodReservation.requested_at.desc()).all()
     return jsonify({
         'success': True,
@@ -106,6 +119,7 @@ def blood_bank_reservations_api(bank_id):
 
 @api_bp.route('/blood-banks/<int:bank_id>/transfers')
 def blood_bank_transfers_api(bank_id):
+    _resolve_api_bank_tenant(bank_id)
     transfers = BloodTransfer.query.filter((BloodTransfer.source_bank_id == bank_id) | (BloodTransfer.destination_bank_id == bank_id)).order_by(BloodTransfer.created_at.desc()).all()
     return jsonify({
         'success': True,
@@ -116,6 +130,7 @@ def blood_bank_transfers_api(bank_id):
 
 @api_bp.route('/blood-banks/<int:bank_id>/alerts')
 def blood_bank_alerts_api(bank_id):
+    _resolve_api_bank_tenant(bank_id)
     alerts = LowStockAlert.query.filter_by(blood_bank_id=bank_id).order_by(LowStockAlert.created_at.desc()).all()
     return jsonify({
         'success': True,

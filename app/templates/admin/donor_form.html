@@ -22,7 +22,7 @@
       novalidate id="donorForm">
   {{ form.hidden_tag() }}
   {% if action == 'Edit' and donor %}
-    {{ form.donor_id() }}
+    {{ form.record_id() }}
   {% endif %}
 
   <!-- ══════ PERSONAL INFORMATION ══════ -->
@@ -43,6 +43,17 @@
                  name="full_name" placeholder="Donor's full legal name"
                  value="{{ form.full_name.data or '' }}" required>
           {% for e in form.full_name.errors %}
+          <div class="invalid-feedback">{{ e }}</div>
+          {% endfor %}
+        </div>
+        <!-- Email -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Email Address <span class="fw-normal small text-muted">(Optional)</span></label>
+          <input type="email"
+                 class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                 name="email" placeholder="donor@example.com"
+                 value="{{ form.email.data or '' }}">
+          {% for e in form.email.errors %}
           <div class="invalid-feedback">{{ e }}</div>
           {% endfor %}
         </div>
@@ -101,16 +112,22 @@
                  value="{{ form.perm_district.data or '' }}">
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold">City / Village</label>
-          <input type="text" class="form-control" name="perm_city"
-                 placeholder="e.g. Baneshwor"
-                 value="{{ form.perm_city.data or '' }}">
-        </div>
-        <div class="col-md-6">
           <label class="form-label fw-semibold">Local Level / Municipality</label>
           <input type="text" class="form-control" name="perm_local_level"
                  placeholder="e.g. Kathmandu Metropolitan City"
                  value="{{ form.perm_local_level.data or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Ward No</label>
+          <input type="text" class="form-control" name="perm_ward"
+                 placeholder="e.g. 14"
+                 value="{{ form.perm_ward.data or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Tole / Street</label>
+          <input type="text" class="form-control" name="perm_tole"
+                 placeholder="e.g. Baneshwor"
+                 value="{{ form.perm_tole.data or '' }}">
         </div>
       </div>
     </div>
@@ -162,20 +179,28 @@
           {% endfor %}
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold">City / Town <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold">Local Level / Municipality <span class="text-danger">*</span></label>
           <input type="text"
-                 class="form-control {% if form.curr_city.errors %}is-invalid{% endif %}"
-                 name="curr_city" placeholder="e.g. Thamel"
-                 value="{{ form.curr_city.data or '' }}" required>
-          {% for e in form.curr_city.errors %}
+                 class="form-control {% if form.curr_local_level.errors %}is-invalid{% endif %}"
+                 name="curr_local_level" placeholder="e.g. Kathmandu Metropolitan City"
+                 value="{{ form.curr_local_level.data or '' }}" required>
+          {% for e in form.curr_local_level.errors %}
           <div class="invalid-feedback">{{ e }}</div>
           {% endfor %}
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Local Level / Municipality</label>
-          <input type="text" class="form-control" name="curr_local_level"
-                 placeholder="e.g. Kathmandu Metropolitan-Ward 14"
-                 value="{{ form.curr_local_level.data or '' }}">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Ward No</label>
+          <input type="text" class="form-control {% if form.curr_ward.errors %}is-invalid{% endif %}" 
+                 name="curr_ward"
+                 placeholder="e.g. 14"
+                 value="{{ form.curr_ward.data or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Tole / Street</label>
+          <input type="text" class="form-control {% if form.curr_tole.errors %}is-invalid{% endif %}" 
+                 name="curr_tole"
+                 placeholder="e.g. Thamel"
+                 value="{{ form.curr_tole.data or '' }}">
         </div>
       </div>
     </div>
@@ -348,14 +373,16 @@
       var fields = {
         perm_province:    document.querySelector('select[name="perm_province"]'),
         perm_district:    document.getElementById('permDistrict'),
-        perm_city:        document.querySelector('input[name="perm_city"]'),
-        perm_local_level: document.querySelector('input[name="perm_local_level"]')
+        perm_local_level: document.querySelector('input[name="perm_local_level"]'),
+        perm_ward:        document.querySelector('input[name="perm_ward"]'),
+        perm_tole:        document.querySelector('input[name="perm_tole"]')
       };
       var targets = {
         perm_province:    document.querySelector('select[name="curr_province"]'),
         perm_district:    document.getElementById('currDistrict'),
-        perm_city:        document.querySelector('input[name="curr_city"]'),
-        perm_local_level: document.querySelector('input[name="curr_local_level"]')
+        perm_local_level: document.querySelector('input[name="curr_local_level"]'),
+        perm_ward:        document.querySelector('input[name="curr_ward"]'),
+        perm_tole:        document.querySelector('input[name="curr_tole"]')
       };
       Object.keys(fields).forEach(function(k) {
         if (fields[k] && targets[k]) targets[k].value = fields[k].value;

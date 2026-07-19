@@ -9,7 +9,25 @@
         <div class="card-body">
           <h1 class="h3 fw-bold text-danger mb-2">Reserve Blood from {{ blood_bank.display_name }}</h1>
           <p class="text-muted">Submit a reservation request for a hospital or patient.</p>
-          <form method="post">
+
+          {% if inventory_items %}
+          <div class="table-responsive mb-4 mt-3">
+            <h5 class="fw-bold mb-2">Current Available Inventory</h5>
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <thead class="table-light"><tr><th>Blood Group</th><th>Component</th><th>Available</th></tr></thead>
+              <tbody>
+                {% for item in inventory_items %}
+                <tr>
+                  <td class="fw-bold text-danger">{{ item.blood_group }}</td>
+                  <td>{{ item.component }}</td>
+                  <td><span class="badge bg-success">{{ item.available_units }} units</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <div class="row g-3">
               <div class="col-md-6"><label class="form-label">Hospital Name</label><input class="form-control" name="hospital_name" required></div>
@@ -18,6 +36,11 @@
               <div class="col-md-6"><label class="form-label">Component</label><input class="form-control" name="component" value="Whole Blood"></div>
               <div class="col-md-6"><label class="form-label">Units</label><input class="form-control" type="number" name="units" value="1" min="1"></div>
               <div class="col-md-6"><label class="form-label">Priority</label><select class="form-select" name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+              <div class="col-12">
+                <label class="form-label text-danger fw-bold">Hospital's Blood Request Paper *</label>
+                <input class="form-control" type="file" name="hospital_paper" accept=".jpg,.jpeg,.png" required>
+                <div class="form-text">Please upload a clear photo or scan of the official hospital request form (JPG, PNG).</div>
+              </div>
             </div>
             <button class="btn btn-danger mt-4">Submit Reservation</button>
           </form>

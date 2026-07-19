@@ -1,0 +1,128 @@
+{% extends "admin/layout.html" %}
+{% block title %}Volunteer Approvals{% endblock %}
+{% block page_title %}Volunteer Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <h5 class="mb-0 text-muted">Moderate and approve medical volunteer registrations (Doctors, Nurses, HAs).</h5>
+  </div>
+  <form method="GET" class="d-flex gap-2">
+    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by name, email, phone..." value="{{ search }}">
+    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-search"></i></button>
+  </form>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4 py-3">Volunteer Details</th>
+            <th>Designation</th>
+            <th>Specialization</th>
+            <th>Contact Info</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for volunteer in pagination.items %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-weight: bold;">
+                  {{ volunteer.full_name[0]|upper }}
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-bold">{{ volunteer.full_name }}</h6>
+                  <span class="text-muted small">Joined {{ volunteer.created_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if volunteer.designation == 'Doctor' %}
+              <span class="badge bg-danger"><i class="fas fa-user-md me-1"></i> Doctor</span>
+              {% elif volunteer.designation == 'Nurse' %}
+              <span class="badge bg-primary"><i class="fas fa-user-nurse me-1"></i> Nurse</span>
+              {% elif volunteer.designation == 'HA' %}
+              <span class="badge bg-info text-dark"><i class="fas fa-briefcase-medical me-1"></i> HA</span>
+              {% else %}
+              <span class="badge bg-secondary">{{ volunteer.designation }}</span>
+              {% endif %}
+            </td>
+            <td>{{ volunteer.working_field or 'General' }}</td>
+            <td>
+              <div><i class="fas fa-envelope fa-sm text-muted me-1"></i> {{ volunteer.email }}</div>
+              <div><i class="fas fa-phone fa-sm text-muted me-1"></i> {{ volunteer.phone1 }}</div>
+              {% if volunteer.phone2 %}
+              <div><i class="fas fa-phone fa-sm text-muted me-1"></i> {{ volunteer.phone2 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div>{{ volunteer.curr_address }}</div>
+              <div class="text-muted small">{{ volunteer.curr_district }}</div>
+            </td>
+            <td>
+              {% if volunteer.is_approved %}
+              <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Approved</span>
+              {% else %}
+              <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending Approval</span>
+              {% endif %}
+              
+              <div class="mt-1">
+                {% if volunteer.is_active %}
+                <span class="badge bg-light text-success border border-success">Active</span>
+                {% else %}
+                <span class="badge bg-light text-secondary border border-secondary">Inactive</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="text-end pe-4">
+              <div class="d-flex justify-content-end gap-1">
+                {% if not volunteer.is_approved %}
+                <form action="{{ url_for('admin.approve_volunteer', id=volunteer.id) }}" method="POST" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-success" title="Approve">
+                    <i class="fas fa-check"></i> Approve
+                  </button>
+                </form>
+                {% endif %}
+                
+                <form action="{{ url_for('admin.toggle_volunteer_active', id=volunteer.id) }}" method="POST" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Toggle Active">
+                    <i class="fas fa-power-off"></i>
+                  </button>
+                </form>
+                
+                <form action="{{ url_for('admin.delete_volunteer', id=volunteer.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this volunteer registration?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="fas fa-user-md fa-2x mb-2 d-block"></i>No volunteers found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<div class="mt-4">
+  {{ render_pagination(pagination, 'admin.volunteers', search=search) }}
+</div>
+{% endif %}
+{% endblock %}

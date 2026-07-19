@@ -43,6 +43,10 @@ class User(UserMixin, db.Model):
     def get_id(self):
         return f"user_{self.id}"
     
+    def has_permission(self, permission):
+        from app.rbac import has_permission as check_permission
+        return check_permission(self, permission)
+
     def __repr__(self):
         return f'<User {self.username} [{self.role}]>'
 
@@ -84,12 +88,15 @@ class BloodBank(db.Model):
     status = db.Column(db.String(20), default='active', index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Tenant Registry Fields
+    tenant_id = db.Column(db.String(50), unique=True, index=True)
+    db_name = db.Column(db.String(100), unique=True)
+    schema_version = db.Column(db.String(50))
+    tenant_status = db.Column(db.String(20), default='Provisioning') # Provisioning, Active, Suspended, Deprovisioned
 
-    inventory_items = db.relationship('BloodInventory', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
-    reservations = db.relationship('BloodReservation', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
-    transfers_out = db.relationship('BloodTransfer', foreign_keys='BloodTransfer.source_bank_id', backref='source_bank', lazy=True, cascade='all, delete-orphan')
-    transfers_in = db.relationship('BloodTransfer', foreign_keys='BloodTransfer.destination_bank_id', backref='destination_bank', lazy=True, cascade='all, delete-orphan')
-    alerts = db.relationship('LowStockAlert', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
+    # Note: Tenant models (BloodInventory, etc.) are in separate databases, so we cannot use cross-db relationships.
+    # We remove the relationships to BloodInventory, BloodReservation, BloodTransfer, LowStockAlert here.
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -140,19 +147,103 @@ class BloodBank(db.Model):
         return f'<BloodBank {self.resolved_display_name}>'
 
 
-class BloodInventory(db.Model):
-    __tablename__ = 'blood_inventory'
+# ─────────────────────────────────────────────
+# BLOOD BANK ACCOUNTS & AUTH
+# ─────────────────────────────────────────────
+class BloodBankAccount(UserMixin, db.Model):
+    __tablename__ = 'blood_bank_accounts'
 
     id = db.Column(db.Integer, primary_key=True)
     blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    login_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    temp_password = db.Column(db.String(100), nullable=True)
+    
+    password_change_required = db.Column(db.Boolean, default=True)
+    account_status = db.Column(db.String(20), default='pending') # pending, active, suspended
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login_at = db.Column(db.DateTime)
+    password_changed_at = db.Column(db.DateTime)
+    
+    is_locked = db.Column(db.Boolean, default=False)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime)
+
+    blood_bank = db.relationship('BloodBank', backref=db.backref('account', uselist=False))
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        from werkzeug.security import check_password_hash
+        return check_password_hash(self.password_hash, password)
+
+
+class BloodBankPasswordHistory(db.Model):
+    __tablename__ = 'blood_bank_password_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('blood_bank_accounts.id'), nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    account = db.relationship('BloodBankAccount', backref=db.backref('password_history', lazy=True, cascade='all, delete-orphan'))
+
+
+class BloodBankLoginHistory(db.Model):
+    __tablename__ = 'blood_bank_login_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('blood_bank_accounts.id'), nullable=False, index=True)
+    login_time = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(50))
+    user_agent = db.Column(db.String(255))
+    status = db.Column(db.String(20)) # success, failed, locked
+    
+    account = db.relationship('BloodBankAccount', backref=db.backref('login_history', lazy=True, cascade='all, delete-orphan'))
+
+
+class PublicBloodBankCache(db.Model):
+    __tablename__ = 'public_blood_bank_cache'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, unique=True, index=True)
+    
+    # Pre-calculated aggregates of available units
+    a_pos = db.Column(db.Integer, default=0)
+    a_neg = db.Column(db.Integer, default=0)
+    b_pos = db.Column(db.Integer, default=0)
+    b_neg = db.Column(db.Integer, default=0)
+    ab_pos = db.Column(db.Integer, default=0)
+    ab_neg = db.Column(db.Integer, default=0)
+    o_pos = db.Column(db.Integer, default=0)
+    o_neg = db.Column(db.Integer, default=0)
+    
+    last_synced_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    blood_bank = db.relationship('BloodBank', backref=db.backref('inventory_cache', uselist=False))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodInventory(db.Model):
+    __tablename__ = 'blood_inventory'
+    __bind_key__ = 'tenant'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
     blood_group = db.Column(db.String(5), nullable=False, index=True)
     component = db.Column(db.String(50), nullable=False, default='Whole Blood')
     units_available = db.Column(db.Integer, default=0)
     units_reserved = db.Column(db.Integer, default=0)
     minimum_stock = db.Column(db.Integer, default=4)
     maximum_stock = db.Column(db.Integer, default=20)
+    
+    # Deprecated in Phase 3 (Moved to BloodBag)
     expiry_date = db.Column(db.String(20))
     qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
+    
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     movements = db.relationship('BloodInventoryMovement', backref='inventory', lazy=True, cascade='all, delete-orphan')
@@ -182,6 +273,7 @@ class BloodInventory(db.Model):
 
 class BloodInventoryMovement(db.Model):
     __tablename__ = 'blood_inventory_movements'
+    __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('blood_inventory.id'), nullable=False, index=True)
@@ -203,11 +295,63 @@ class BloodInventoryMovement(db.Model):
         super().__init__(**kwargs)
 
 
-class BloodReservation(db.Model):
-    __tablename__ = 'blood_reservations'
+class BloodBag(db.Model):
+    __tablename__ = 'blood_bags'
+    __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
-    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    bag_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
+    donor_id = db.Column(db.Integer, nullable=True, index=True) # Logical FK to Main DB Donor
+    blood_group = db.Column(db.String(5), nullable=False, index=True)
+    component = db.Column(db.String(50), nullable=False, default='Whole Blood')
+    volume_ml = db.Column(db.Integer, nullable=True)
+    collection_date = db.Column(db.DateTime, default=datetime.utcnow)
+    expiry_date = db.Column(db.DateTime, nullable=True, index=True)
+    status = db.Column(db.String(20), default='testing', index=True) # testing, available, reserved, transferred, discarded, used
+    qr_code = db.Column(db.String(100), unique=True, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Note: Donor is in Main DB, BloodBag is in Tenant DB. Cross-DB joins are not supported by SQLAlchemy.
+    # We remove the donor db.relationship.
+    lab_tests = db.relationship('LabTestResult', backref='blood_bag', lazy=True, cascade='all, delete-orphan')
+    transactions = db.relationship('BloodInventoryTransaction', backref='blood_bag', lazy=True, cascade='all, delete-orphan')
+
+
+class LabTestResult(db.Model):
+    __tablename__ = 'lab_test_results'
+    __bind_key__ = 'tenant'
+
+    id = db.Column(db.Integer, primary_key=True)
+    bag_id = db.Column(db.Integer, db.ForeignKey('blood_bags.id'), nullable=False, index=True)
+    test_name = db.Column(db.String(100), nullable=False) # HIV, Hep B, Hep C, Syphilis, Malaria
+    result = db.Column(db.String(20), default='pending') # positive, negative, pending
+    tested_at = db.Column(db.DateTime, nullable=True)
+    tested_by = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class BloodInventoryTransaction(db.Model):
+    __tablename__ = 'blood_inventory_transactions'
+    __bind_key__ = 'tenant'
+
+    id = db.Column(db.Integer, primary_key=True)
+    bag_id = db.Column(db.Integer, db.ForeignKey('blood_bags.id'), nullable=True, index=True)
+    blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
+    transaction_type = db.Column(db.String(30), nullable=False, index=True) # collection, transfer_in, transfer_out, discard, issue
+    reason = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+
+class BloodReservation(db.Model):
+    __tablename__ = 'blood_reservations'
+    __bind_key__ = 'tenant'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
     hospital_name = db.Column(db.String(200), nullable=False)
     patient_name = db.Column(db.String(150), nullable=False)
     blood_group = db.Column(db.String(5), nullable=False, index=True)
@@ -215,6 +359,7 @@ class BloodReservation(db.Model):
     units = db.Column(db.Integer, default=1)
     priority = db.Column(db.String(20), default='normal')
     status = db.Column(db.String(20), default='pending', index=True)
+    hospital_paper_file = db.Column(db.String(255), nullable=True)
     qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
     requested_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -239,10 +384,11 @@ class BloodReservation(db.Model):
 
 class BloodTransfer(db.Model):
     __tablename__ = 'blood_transfers'
+    __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
-    source_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
-    destination_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    source_bank_id = db.Column(db.Integer, nullable=False, index=True)
+    destination_bank_id = db.Column(db.Integer, nullable=False, index=True)
     blood_group = db.Column(db.String(5), nullable=False, index=True)
     component = db.Column(db.String(50), nullable=False, default='Whole Blood')
     units = db.Column(db.Integer, default=1)
@@ -270,9 +416,10 @@ class BloodTransfer(db.Model):
 
 class LowStockAlert(db.Model):
     __tablename__ = 'low_stock_alerts'
+    __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
-    blood_bank_id = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    blood_bank_id = db.Column(db.Integer, nullable=False, index=True)
     blood_group = db.Column(db.String(5), nullable=False, index=True)
     component = db.Column(db.String(50), nullable=False, default='Whole Blood')
     severity = db.Column(db.String(20), default='warning', index=True)
@@ -298,12 +445,13 @@ class Notification(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=True, index=True)
-    blood_request_id = db.Column(db.Integer, db.ForeignKey('blood_requests.id'), nullable=True, index=True)
+    blood_request_id = db.Column(db.Integer, nullable=True, index=True) # Logical FK to Tenant DB BloodRequest
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
     category = db.Column(db.String(30), default='general', index=True)
     channel = db.Column(db.String(20), default='in_app', index=True)
     is_read = db.Column(db.Boolean, default=False, index=True)
+    read_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
     # Relationships
@@ -312,11 +460,14 @@ class Notification(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'donor_id': self.donor_id,
+            'blood_request_id': self.blood_request_id,
             'title': self.title,
             'message': self.message,
             'category': self.category,
             'channel': self.channel,
             'is_read': self.is_read,
+            'read_at': self.read_at.isoformat() if self.read_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -335,6 +486,12 @@ class NotificationDeliveryLog(db.Model):
     attempt_count = db.Column(db.Integer, default=0)
     last_attempt_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Enterprise fields
+    provider_name = db.Column(db.String(50), nullable=True)
+    provider_response_id = db.Column(db.String(100), nullable=True)
+    opened_at = db.Column(db.DateTime, nullable=True)
+    clicked_at = db.Column(db.DateTime, nullable=True)
 
     def to_dict(self):
         return {
@@ -346,6 +503,9 @@ class NotificationDeliveryLog(db.Model):
             'attempt_count': self.attempt_count,
             'last_attempt_at': self.last_attempt_at.isoformat() if self.last_attempt_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'provider_name': self.provider_name,
+            'opened_at': self.opened_at.isoformat() if self.opened_at else None,
+            'clicked_at': self.clicked_at.isoformat() if self.clicked_at else None,
         }
 
     def __init__(self, **kwargs):
@@ -360,6 +520,14 @@ class DonorNotificationPreference(db.Model):
     email_alerts = db.Column(db.Boolean, default=True)
     sms_alerts = db.Column(db.Boolean, default=True)
     in_app_alerts = db.Column(db.Boolean, default=True)
+    
+    # Enterprise fields
+    web_push_alerts = db.Column(db.Boolean, default=True)
+    mobile_push_alerts = db.Column(db.Boolean, default=True)
+    quiet_hours_start = db.Column(db.Time, nullable=True)
+    quiet_hours_end = db.Column(db.Time, nullable=True)
+    dnd_mode = db.Column(db.Boolean, default=False)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -369,6 +537,9 @@ class DonorNotificationPreference(db.Model):
             'email_alerts': self.email_alerts,
             'sms_alerts': self.sms_alerts,
             'in_app_alerts': self.in_app_alerts,
+            'web_push_alerts': self.web_push_alerts,
+            'mobile_push_alerts': self.mobile_push_alerts,
+            'dnd_mode': self.dnd_mode,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
@@ -528,6 +699,23 @@ class Donor(UserMixin, db.Model):
         else:
             return ('available', None)
     
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'donor_id': self.donor_id,
+            'full_name': self.full_name,
+            'blood_group': self.blood_group,
+            'age': self.age,
+            'weight': self.weight,
+            'curr_district': self.curr_district,
+            'curr_local_level': self.curr_local_level,
+            'availability_status': self.availability_status,
+            'available_after_date': self.available_after_date.strftime('%Y-%m-%d') if self.available_after_date else None,
+            'last_donation_date': self.last_donation_date.strftime('%Y-%m-%d') if self.last_donation_date else None,
+            'availability_display': self.availability_display,
+            'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%S') if self.created_at else None,
+        }
+
     def recalculate_and_save(self):
         """Recalculate availability and update summary fields in-place."""
         status, after_date = self.calculate_availability()
@@ -664,6 +852,7 @@ class Volunteer(UserMixin, db.Model):
 # ─────────────────────────────────────────────
 class StaffMember(db.Model):
     __tablename__ = 'staff_members'
+    __bind_key__ = 'tenant'
     
     id              = db.Column(db.Integer, primary_key=True)
     full_name       = db.Column(db.String(150), nullable=False)
@@ -751,12 +940,14 @@ class BloodRequest(db.Model):
     is_emergency    = db.Column(db.Boolean, default=False)
     
     # Ownership
-    creator_id      = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=True) # Optional, if logged in
+    creator_id      = db.Column(db.Integer, nullable=True) # Logical FK to Main DB Donor (Optional, if logged in)
     
     # Tracking
     created_at      = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     fulfilled_date  = db.Column(db.DateTime)
+    
+    pin             = db.Column(db.String(4), nullable=True)
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -773,6 +964,21 @@ class BloodRequest(db.Model):
             'managed_from_other_source': 'info'
         }
         return badges.get(self.status, 'secondary')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_id': self.request_id,
+            'patient_name': self.patient_name,
+            'blood_group': self.blood_group,
+            'units_needed': self.units_needed,
+            'hospital': self.hospital,
+            'district': self.district,
+            'local_level': self.local_level,
+            'is_emergency': self.is_emergency,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
     
     def __repr__(self):
         return f'<BloodRequest {self.request_id}: {self.blood_group}>'
@@ -934,5 +1140,56 @@ class Contact(db.Model):
     message     = db.Column(db.Text, nullable=False)
     is_read     = db.Column(db.Boolean, default=False, index=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscriptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=False, index=True)
+    platform = db.Column(db.String(20), nullable=False) # 'web', 'android', 'ios'
+    token = db.Column(db.Text, nullable=False, unique=True)
+    auth_key = db.Column(db.String(255), nullable=True) # For Web Push (VAPID)
+    p256dh_key = db.Column(db.String(255), nullable=True) # For Web Push (VAPID)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class NotificationQueue(db.Model):
+    __tablename__ = 'notification_queue'
+
+    id = db.Column(db.Integer, primary_key=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey('notifications.id'), nullable=False, index=True)
+    channel = db.Column(db.String(20), nullable=False)
+    payload = db.Column(db.Text, nullable=True) # JSON payload string
+    priority = db.Column(db.Integer, default=3) # 1=Emergency, 2=High, 3=Standard
+    status = db.Column(db.String(20), default='queued', index=True) # queued, processing, completed, failed, dlq
+    retry_count = db.Column(db.Integer, default=0)
+    max_retries = db.Column(db.Integer, default=3)
+    next_attempt_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    error_log = db.Column(db.Text, nullable=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class DonorResponse(db.Model):
+    __tablename__ = 'donor_responses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    blood_request_id = db.Column(db.String(50), nullable=False, index=True) # Logical FK to Tenant DB BloodRequest
+    donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=False, index=True)
+    response_type = db.Column(db.String(20), nullable=False) # 'available', 'maybe', 'unavailable', 'already_donated'
+    message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

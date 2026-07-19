@@ -7,9 +7,10 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import (
     User, Donor, BloodRequest, News, Notice,
-    Advertisement, Contact, SiteVisitor, SuccessStory, StaffMember, Partner, BloodBank, BloodInventory, BloodInventoryMovement, BloodReservation, BloodTransfer, LowStockAlert, Notification, AuditLog
+    Advertisement, Contact, SiteVisitor, SuccessStory, StaffMember, Partner, BloodBank, BloodInventory, BloodInventoryMovement, BloodReservation, BloodTransfer, LowStockAlert, Notification, AuditLog, Volunteer, NotificationDeliveryLog
 )
 from app.utils import generate_qr_code
+from app.services.auth_service import AuthService
 from app.forms import (
     AdminLoginForm, DonorRegistrationForm, DonorEditForm,
     NewsForm, NoticeForm, AdvertisementForm, AdminUserForm,
@@ -62,23 +63,27 @@ def superadmin_required(f):
     return decorated
 
 
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        @login_required
-        def decorated(*args, **kwargs):
-            # Check if user has User model instance or custom role attribute
-            role = getattr(current_user, 'role', None)
-            if role == 'superadmin' or role in roles:
-                return f(*args, **kwargs)
-            flash('🚫 Access Denied: You do not have the required permissions.', 'danger')
-            return redirect(url_for('admin.dashboard'))
-        return decorated
-    return decorator
+from app.rbac import permission_required
+
+
+def _resolve_bank_tenant(bank):
+    """
+    If the blood bank has been provisioned with a tenant database,
+    resolve its tenant context so that queries against tenant-scoped
+    models (BloodInventory, etc.) hit the correct DB file.
+    Safe to call on un-provisioned banks (no-op).
+    """
+    if bank.tenant_id and bank.db_name and bank.tenant_status == 'Active':
+        try:
+            from app.services.tenant_service import TenantResolutionService
+            TenantResolutionService.resolve_tenant(bank.tenant_id)
+        except Exception:
+            pass  # fall back to main DB
 
 
 def build_blood_bank_dashboard_summary(bank_id):
     bank = BloodBank.query.get_or_404(bank_id)
+    _resolve_bank_tenant(bank)
     inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank.id).all()
     low_stock_items = [item for item in inventory_items if item.available_units < item.minimum_stock]
     pending_transfers = BloodTransfer.query.filter_by(destination_bank_id=bank.id, status='pending').count()
@@ -133,6 +138,7 @@ def log_audit_event(action, entity_id, details, actor='system'):
 
 def build_blood_inventory_report(bank_id):
     bank = BloodBank.query.get_or_404(bank_id)
+    _resolve_bank_tenant(bank)
     inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank.id).all()
     low_stock_count = sum(1 for item in inventory_items if item.available_units < item.minimum_stock)
     expiring_soon_count = 0
@@ -213,14 +219,33 @@ def dashboard():
     # Core stats
     total_donors    = Donor.query.count()
     avail_donors    = Donor.query.filter_by(availability_status='available').count()
+    recently_donated_donors = Donor.query.filter_by(availability_status='recently_donated').count()
+    unavailable_donors = Donor.query.filter_by(availability_status='unavailable').count()
+    
     total_requests  = BloodRequest.query.count()
     active_requests = BloodRequest.query.filter_by(status='active').count()
     fulfilled       = BloodRequest.query.filter_by(status='fulfilled').count()
+    
     total_news      = News.query.filter_by(is_published=True).count()
     total_notices   = Notice.query.filter_by(is_active=True).count()
     unread_contacts = Contact.query.filter_by(is_read=False).count()
-    total_stories   = SuccessStory.query.count()  # ड्यासबोर्डमा सफलताका कथाहरूको गणना थपियो
+    total_stories   = SuccessStory.query.count()
+    pending_success_stories = SuccessStory.query.filter_by(status='pending').count()
     
+    total_partners  = Partner.query.count()
+    total_staff     = StaffMember.query.count()
+    total_advertisements = Advertisement.query.count()
+    
+    volunteer_doctors = Volunteer.query.filter_by(designation='Doctor').count()
+    volunteer_nurses  = Volunteer.query.filter_by(designation='Nurse').count()
+    volunteer_has     = Volunteer.query.filter_by(designation='HA').count()
+    
+    total_blood_banks = BloodBank.query.count()
+    pending_events    = News.query.filter(News.category.in_(['event', 'program'])).filter(News.scheduled_date > datetime.utcnow()).count()
+    
+    notifications_sent = NotificationDeliveryLog.query.filter_by(status='sent').count()
+    notifications_failed = NotificationDeliveryLog.query.filter_by(status='failed').count()
+
     # Visitor stats
     today       = datetime.utcnow().date()
     today_visitors = SiteVisitor.query.filter_by(visit_date=today).count()
@@ -259,13 +284,26 @@ def dashboard():
     return render_template('admin/dashboard.html',
         total_donors=total_donors,
         avail_donors=avail_donors,
+        recently_donated_donors=recently_donated_donors,
+        unavailable_donors=unavailable_donors,
         total_requests=total_requests,
         active_requests=active_requests,
         fulfilled=fulfilled,
         total_news=total_news,
         total_notices=total_notices,
         unread_contacts=unread_contacts,
-        total_stories=total_stories,  # टेम्प्लेटमा डेटा पास गरियो
+        total_stories=total_stories,
+        pending_success_stories=pending_success_stories,
+        total_partners=total_partners,
+        total_staff=total_staff,
+        total_advertisements=total_advertisements,
+        volunteer_doctors=volunteer_doctors,
+        volunteer_nurses=volunteer_nurses,
+        volunteer_has=volunteer_has,
+        total_blood_banks=total_blood_banks,
+        pending_events=pending_events,
+        notifications_sent=notifications_sent,
+        notifications_failed=notifications_failed,
         today_visitors=today_visitors,
         week_visitors=week_visitors,
         total_visitors=total_visitors,
@@ -285,9 +323,10 @@ def dashboard():
 
 
 @admin_bp.route('/blood-banks/<int:bank_id>/inventory', methods=['GET', 'POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_blood_banks')
 def blood_bank_inventory(bank_id):
     bank = BloodBank.query.get_or_404(bank_id)
+    _resolve_bank_tenant(bank)
     if request.method == 'POST':
         inventory = BloodInventory(
             blood_bank_id=bank.id,
@@ -339,9 +378,10 @@ def blood_bank_inventory(bank_id):
 
 
 @admin_bp.route('/blood-banks/<int:bank_id>/transfers', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_blood_banks')
 def blood_bank_transfers(bank_id):
     bank = BloodBank.query.get_or_404(bank_id)
+    _resolve_bank_tenant(bank)
     transfer = BloodTransfer(
         source_bank_id=bank.id,
         destination_bank_id=int(request.form.get('destination_bank_id') or 0),
@@ -361,7 +401,7 @@ def blood_bank_transfers(bank_id):
 #   DONOR MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/donors')
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def donors():
     page        = request.args.get('page', 1, type=int)
     search      = request.args.get('q', '')
@@ -404,7 +444,7 @@ def donors():
 
 
 @admin_bp.route('/donors/add', methods=['GET', 'POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def add_donor():
     form = DonorRegistrationForm()
     
@@ -439,24 +479,37 @@ def add_donor():
 
 
 @admin_bp.route('/donors/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def edit_donor(id):
     donor = Donor.query.get_or_404(id)
-    form  = DonorEditForm(obj=donor)
-    form.donor_id.data = donor.id
     
-    if form.validate_on_submit():
-        form.populate_obj(donor)
-        donor.updated_at = datetime.utcnow()
-        db.session.commit()
-        flash('✅ Donor updated successfully!', 'success')
-        return redirect(url_for('admin.donors'))
+    if request.method == 'GET':
+        form = DonorEditForm(obj=donor)
+    else:
+        form = DonorEditForm()
+    form.record_id.data = donor.id
+    
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            original_email = donor.email
+            form.populate_obj(donor)
+            # Preserve email if template doesn't have the field
+            if not form.email.data:
+                donor.email = original_email
+            donor.updated_at = datetime.utcnow()
+            db.session.commit()
+            flash('✅ Donor updated successfully!', 'success')
+            return redirect(url_for('admin.donors'))
+        else:
+            for field_name, errors in form.errors.items():
+                for error in errors:
+                    flash(f'⚠️ {field_name}: {error}', 'danger')
     
     return render_template('admin/donor_form.html', form=form, donor=donor, action='Edit')
 
 
 @admin_bp.route('/donors/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def delete_donor(id):
     donor = Donor.query.get_or_404(id)
     db.session.delete(donor)
@@ -466,7 +519,7 @@ def delete_donor(id):
 
 
 @admin_bp.route('/donors/<int:id>/toggle-status', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def toggle_donor_status(id):
     donor = Donor.query.get_or_404(id)
     donor.availability_status = 'unavailable' if donor.availability_status == 'available' else 'available'
@@ -474,7 +527,7 @@ def toggle_donor_status(id):
     return jsonify({'status': donor.availability_status})
 
 @admin_bp.route('/donors/<int:donor_id>/history/<int:history_id>/delete', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_donors')
 def delete_donor_history(donor_id, history_id):
     from app.models import DonorDonationHistory
     donor = Donor.query.get_or_404(donor_id)
@@ -499,7 +552,7 @@ def delete_donor_history(donor_id, history_id):
 #   BLOOD BANKS MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/blood-banks')
-@role_required('admin', 'moderator')
+@permission_required('manage_blood_banks')
 def blood_banks():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('q', '')
@@ -512,7 +565,7 @@ def blood_banks():
     return render_template('admin/blood_banks.html', pagination=pagination, search=search)
 
 @admin_bp.route('/blood-banks/create', methods=['GET', 'POST'])
-@role_required('admin')
+@permission_required('manage_blood_banks')
 def create_blood_bank():
     from app.forms import BloodBankForm
     form = BloodBankForm()
@@ -529,8 +582,7 @@ def create_blood_bank():
             city=form.city.data,
             contact_number=form.contact_number.data,
             alternate_contact_number=form.alternate_contact_number.data,
-            latitude=form.latitude.data,
-            longitude=form.longitude.data,
+            maps_url=form.maps_url.data,
             is_emergency_panel=form.is_emergency_panel.data,
             is_grouped_entry=form.is_grouped_entry.data,
             is_active=form.is_active.data,
@@ -538,9 +590,6 @@ def create_blood_bank():
             status='active' if form.is_active.data else 'inactive'
         )
         
-        if bank.latitude and bank.longitude:
-            bank.maps_url = f"https://www.google.com/maps/search/?api=1&query={bank.latitude},{bank.longitude}"
-            
         db.session.add(bank)
         db.session.commit()
         flash('Blood Bank created successfully!', 'success')
@@ -549,7 +598,7 @@ def create_blood_bank():
     return render_template('admin/blood_bank_form.html', form=form, action='Create')
 
 @admin_bp.route('/blood-banks/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_blood_banks')
 def edit_blood_bank(id):
     from app.forms import BloodBankForm
     bank = BloodBank.query.get_or_404(id)
@@ -558,8 +607,6 @@ def edit_blood_bank(id):
     if form.validate_on_submit():
         form.populate_obj(bank)
         bank.status = 'active' if form.is_active.data else 'inactive'
-        if bank.latitude and bank.longitude:
-            bank.maps_url = f"https://www.google.com/maps/search/?api=1&query={bank.latitude},{bank.longitude}"
             
         db.session.commit()
         flash('Blood Bank updated successfully!', 'success')
@@ -568,19 +615,168 @@ def edit_blood_bank(id):
     return render_template('admin/blood_bank_form.html', form=form, action='Edit', bank=bank)
 
 @admin_bp.route('/blood-banks/<int:id>/delete', methods=['POST'])
-@role_required('admin')
+@permission_required('manage_blood_banks')
 def delete_blood_bank(id):
     bank = BloodBank.query.get_or_404(id)
+    
+    # Delete related account (cascades to password_history and login_history)
+    if bank.account:
+        db.session.delete(bank.account)
+    
+    # Delete public cache entry
+    from app.models import PublicBloodBankCache
+    PublicBloodBankCache.query.filter_by(blood_bank_id=id).delete()
+    
     db.session.delete(bank)
     db.session.commit()
-    flash('Blood Bank deleted successfully.', 'warning')
+    flash('Blood Bank and all related data deleted successfully.', 'warning')
     return redirect(url_for('admin.blood_banks'))
+
+@admin_bp.route('/blood-banks/<int:id>/generate-account', methods=['POST'])
+@permission_required('manage_users')
+def generate_blood_bank_account(id):
+    bank = BloodBank.query.get_or_404(id)
+    
+    if hasattr(bank, 'account') and bank.account:
+        flash('Account already exists for this blood bank.', 'warning')
+        return redirect(url_for('admin.blood_banks'))
+        
+    try:
+        province_code = bank.province[:3].upper() if bank.province else 'UNK'
+        district_code = bank.district[:3].upper() if bank.district else 'UNK'
+        
+        account, raw_password = AuthService.create_blood_bank_account(bank.id, province_code, district_code)
+        
+        # Provision the tenant database immediately
+        from app.services.tenant_service import TenantProvisioningService
+        TenantProvisioningService.provision_tenant(bank.id)
+        
+        log_audit_event('CREATE_BLOOD_BANK_ACCOUNT', bank.id, f'Created account for {bank.name}', actor=current_user.username)
+        
+        # Enqueue Email Notification
+        if bank.email:
+            from app.models import Notification, NotificationQueue
+            import json
+            notif = Notification(
+                title='Blood Bank Account Created',
+                message=f'Your portal login ID is: {account.login_id}\nYour temporary password is: {raw_password}\nPlease change it upon first login.',
+                category='system',
+                channel='email'
+            )
+            db.session.add(notif)
+            db.session.flush() # get notif.id
+            queue_item = NotificationQueue(
+                notification_id=notif.id,
+                channel='email',
+                payload=json.dumps({'to': bank.email, 'subject': 'Your Nepal Blood Donors Account'})
+            )
+            db.session.add(queue_item)
+            db.session.commit()
+            flash(f'Account created and notification queued for {bank.email}', 'success')
+        
+        # Redirect to a dedicated credentials display page
+        return render_template('admin/blood_bank_credentials.html',
+                               bank=bank, account=account, raw_password=raw_password)
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error generating account: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin.blood_banks'))
+
+@admin_bp.route('/blood-banks/<int:id>/account')
+@login_required
+@superadmin_required
+def view_blood_bank_account(id):
+    bank = BloodBank.query.get_or_404(id)
+    if not bank.account:
+        flash('No account exists for this blood bank.', 'warning')
+        return redirect(url_for('admin.blood_banks'))
+    return render_template('admin/blood_bank_account_detail.html', bank=bank, account=bank.account)
+
+@admin_bp.route('/blood-banks/<int:id>/account/toggle-lock', methods=['POST'])
+@login_required
+@superadmin_required
+def toggle_blood_bank_account_lock(id):
+    bank = BloodBank.query.get_or_404(id)
+    if not bank.account:
+        flash('No account exists for this blood bank.', 'warning')
+        return redirect(url_for('admin.blood_banks'))
+    
+    action = request.form.get('action', 'lock')
+    if action == 'unlock':
+        bank.account.is_locked = False
+        bank.account.failed_login_attempts = 0
+        bank.account.locked_until = None
+        flash(f'Account for {bank.resolved_display_name} has been unlocked.', 'success')
+        log_audit_event('UNLOCK_BLOOD_BANK_ACCOUNT', bank.id, f'Unlocked account {bank.account.login_id}', actor=current_user.username)
+    else:
+        bank.account.is_locked = True
+        flash(f'Account for {bank.resolved_display_name} has been locked.', 'warning')
+        log_audit_event('LOCK_BLOOD_BANK_ACCOUNT', bank.id, f'Locked account {bank.account.login_id}', actor=current_user.username)
+    
+    db.session.commit()
+    return redirect(url_for('admin.view_blood_bank_account', id=bank.id))
+
+@admin_bp.route('/blood-banks/<int:id>/account/reset-password', methods=['POST'])
+@login_required
+@superadmin_required
+def reset_blood_bank_password(id):
+    bank = BloodBank.query.get_or_404(id)
+    if not bank.account:
+        flash('No account exists for this blood bank.', 'warning')
+        return redirect(url_for('admin.blood_banks'))
+    
+    from app.models import BloodBankPasswordHistory
+    raw_password = AuthService.generate_secure_password()
+    bank.account.set_password(raw_password)
+    bank.account.temp_password = raw_password
+    bank.account.password_change_required = True
+    
+    history = BloodBankPasswordHistory(
+        # pyrefly: ignore [unexpected-keyword]
+        account_id=bank.account.id,
+        # pyrefly: ignore [unexpected-keyword]
+        password_hash=bank.account.password_hash,
+        # pyrefly: ignore [unexpected-keyword]
+        created_at=datetime.utcnow()
+    )
+    db.session.add(history)
+    db.session.commit()
+    
+    log_audit_event('RESET_BLOOD_BANK_PASSWORD', bank.id, f'Password reset for {bank.account.login_id}', actor=current_user.username)
+    
+    # Enqueue Email Notification
+    if bank.email:
+        from app.models import Notification, NotificationQueue
+        import json
+        notif = Notification(
+            title='Blood Bank Password Reset',
+            message=f'Your portal password has been reset.\nYour new temporary password is: {raw_password}\nPlease change it upon login.',
+            category='system',
+            channel='email'
+        )
+        db.session.add(notif)
+        db.session.flush() # get notif.id
+        queue_item = NotificationQueue(
+            notification_id=notif.id,
+            channel='email',
+            payload=json.dumps({'to': bank.email, 'subject': 'Nepal Blood Donors - Password Reset'})
+        )
+        db.session.add(queue_item)
+        flash(f'Password reset and notification queued for {bank.email}', 'success')
+        
+    db.session.commit()
+    
+    # Show the new credentials page
+    return render_template('admin/blood_bank_credentials.html',
+                           bank=bank, account=bank.account, raw_password=raw_password)
+
 
 # ════════════════════════════════════════════
 #   BLOOD REQUEST MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/requests')
-@role_required('admin', 'moderator')
+@permission_required('manage_requests')
 def blood_requests():
     page        = request.args.get('page', 1, type=int)
     status      = request.args.get('status', '')
@@ -617,7 +813,7 @@ def blood_requests():
 
 
 @admin_bp.route('/requests/<int:id>/status/<string:new_status>', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_requests')
 def update_request_status(id, new_status):
     req = BloodRequest.query.get_or_404(id)
     if new_status in ('active', 'fulfilled', 'closed'):
@@ -628,7 +824,7 @@ def update_request_status(id, new_status):
 
 
 @admin_bp.route('/requests/<int:id>/verify-paper/<string:action>', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_users')
 def verify_hospital_paper(id, action):
     req = BloodRequest.query.get_or_404(id)
     if action == 'verify':
@@ -642,7 +838,7 @@ def verify_hospital_paper(id, action):
 
 
 @admin_bp.route('/requests/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_requests')
 def delete_request(id):
     req = BloodRequest.query.get_or_404(id)
     db.session.delete(req)
@@ -656,7 +852,7 @@ def delete_request(id):
 # ------------------------------------------------------------------------------
 @admin_bp.route('/delivery_logs')
 @login_required
-@role_required('admin', 'superadmin')
+@permission_required('manage_users')
 def delivery_logs():
     page = request.args.get('page', 1, type=int)
     from app.models import NotificationDeliveryLog
@@ -668,7 +864,7 @@ def delivery_logs():
 #   NEWS MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/news')
-@role_required('admin', 'content_manager')
+@permission_required('manage_news')
 def news():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -678,7 +874,7 @@ def news():
 
 
 @admin_bp.route('/news/add', methods=['GET', 'POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_news')
 def add_news():
     form = NewsForm()
     
@@ -707,7 +903,7 @@ def add_news():
 
 
 @admin_bp.route('/news/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_news')
 def edit_news(id):
     post = News.query.get_or_404(id)
     form = NewsForm(obj=post)
@@ -734,7 +930,7 @@ def edit_news(id):
 
 
 @admin_bp.route('/news/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_news')
 def delete_news(id):
     post = News.query.get_or_404(id)
     delete_file(post.featured_image, 'news')
@@ -748,7 +944,7 @@ def delete_news(id):
 #   NOTICE MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/notices')
-@role_required('admin', 'content_manager')
+@permission_required('manage_notices')
 def notices():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -758,7 +954,7 @@ def notices():
 
 
 @admin_bp.route('/notices/add', methods=['GET', 'POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_notices')
 def add_notice():
     form = NoticeForm()
     
@@ -793,7 +989,7 @@ def add_notice():
 
 
 @admin_bp.route('/notices/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_notices')
 def edit_notice(id):
     notice = Notice.query.get_or_404(id)
     form = NoticeForm(obj=notice)
@@ -821,7 +1017,7 @@ def edit_notice(id):
 
 
 @admin_bp.route('/notices/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_notices')
 def delete_notice(id):
     notice = Notice.query.get_or_404(id)
     delete_file(notice.attachment, 'notices')
@@ -832,7 +1028,7 @@ def delete_notice(id):
 
 
 @admin_bp.route('/notices/<int:id>/toggle', methods=['POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_notices')
 def toggle_notice(id):
     notice = Notice.query.get_or_404(id)
     notice.is_active = not notice.is_active
@@ -844,7 +1040,7 @@ def toggle_notice(id):
 #   ADVERTISEMENT MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/advertisements')
-@role_required('admin', 'content_manager')
+@permission_required('manage_users')
 def advertisements():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -865,7 +1061,7 @@ def advertisements():
 
 
 @admin_bp.route('/advertisements/add', methods=['GET', 'POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_users')
 def add_advertisement():
     form = AdvertisementForm()
     
@@ -904,7 +1100,7 @@ def add_advertisement():
 
 
 @admin_bp.route('/advertisements/<int:id>/toggle', methods=['POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_users')
 def toggle_ad(id):
     ad = Advertisement.query.get_or_404(id)
     ad.is_active = not ad.is_active
@@ -914,7 +1110,7 @@ def toggle_ad(id):
 
 
 @admin_bp.route('/advertisements/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'content_manager')
+@permission_required('manage_users')
 def delete_advertisement(id):
     ad = Advertisement.query.get_or_404(id)
     delete_file(ad.image, 'ads')
@@ -928,7 +1124,7 @@ def delete_advertisement(id):
 #   CONTACTS
 # ════════════════════════════════════════════
 @admin_bp.route('/contacts')
-@role_required('admin', 'moderator')
+@permission_required('moderate_content')
 def contacts():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -938,7 +1134,7 @@ def contacts():
 
 
 @admin_bp.route('/contacts/<int:id>/read', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('moderate_content')
 def mark_contact_read(id):
     msg = Contact.query.get_or_404(id)
     msg.is_read = True
@@ -955,7 +1151,7 @@ def mark_contact_read(id):
 #   SUCCESS STORIES MANAGEMENT (Admin Panel)
 # ════════════════════════════════════════════
 @admin_bp.route('/success-stories')
-@role_required('admin', 'moderator')
+@permission_required('manage_users')
 def success_stories():
     """एडमिन ड्यासबोर्ड भित्र सबै सफलताका कथाहरू सूचीकृत गर्ने मुख्य व्यवस्थापन राउट"""
     page = request.args.get('page', 1, type=int)
@@ -966,7 +1162,7 @@ def success_stories():
 
 
 @admin_bp.route('/success-stories/<int:id>/status/<string:new_status>', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_success_stories')
 def update_story_status(id, new_status):
     """सफलताका कथाहरूको स्थिति (Pending, Approved, Rejected) परिमार्जन गर्ने"""
     story = SuccessStory.query.get_or_404(id)
@@ -979,7 +1175,7 @@ def update_story_status(id, new_status):
     return redirect(url_for('admin.success_stories'))
 
 @admin_bp.route('/success-stories/<int:id>/delete', methods=['POST'])
-@role_required('admin', 'moderator')
+@permission_required('manage_success_stories')
 def delete_success_story(id):
     """एडमिन प्यानल र सर्भर स्टोरेज दुवैबाट कथा सुरक्षित रूपमा डिलिट गर्ने राउट"""
     story = SuccessStory.query.get_or_404(id)
@@ -995,48 +1191,13 @@ def delete_success_story(id):
     return redirect(url_for('admin.success_stories'))
 
 
-# ════════════════════════════════════════════
-#   USER MANAGEMENT (SuperAdmin only)
-# ════════════════════════════════════════════
-@admin_bp.route('/users')
-@superadmin_required
-def users():
-    all_users = User.query.order_by(desc(User.created_at)).all()
-    return render_template('admin/users.html', users=all_users)
-
-
-@admin_bp.route('/users/add', methods=['GET', 'POST'])
-@superadmin_required
-def add_user():
-    form = AdminUserForm()
-    
-    if form.validate_on_submit():
-        if User.query.filter_by(username=form.username.data).first():
-            flash('Username already exists.', 'danger')
-        elif User.query.filter_by(email=form.email.data).first():
-            flash('Email already exists.', 'danger')
-        else:
-            user = User(
-                username  = form.username.data.strip(),
-                email     = form.email.data.strip(),
-                full_name = form.full_name.data.strip(),
-                role      = form.role.data,
-                is_active = form.is_active.data,
-            )
-            user.set_password(form.password.data)
-            db.session.add(user)
-            db.session.commit()
-            flash('✅ Admin user created!', 'success')
-            return redirect(url_for('admin.users'))
-    
-    return render_template('admin/user_form.html', form=form, action='Add')
 
 
 # ════════════════════════════════════════════
 #   STAFF MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/staff')
-@role_required('admin')
+@permission_required('manage_staff')
 def staff():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -1046,7 +1207,7 @@ def staff():
 
 
 @admin_bp.route('/staff/add', methods=['GET', 'POST'])
-@role_required('admin')
+@permission_required('manage_staff')
 def add_staff():
     form = StaffMemberForm()
     if form.validate_on_submit():
@@ -1076,7 +1237,7 @@ def add_staff():
 
 
 @admin_bp.route('/staff/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin')
+@permission_required('manage_staff')
 def edit_staff(id):
     member = StaffMember.query.get_or_404(id)
     form = StaffMemberForm(obj=member)
@@ -1106,7 +1267,7 @@ def edit_staff(id):
 
 
 @admin_bp.route('/staff/<int:id>/delete', methods=['POST'])
-@role_required('admin')
+@permission_required('manage_staff')
 def delete_staff(id):
     member = StaffMember.query.get_or_404(id)
     if member.profile_photo:
@@ -1121,7 +1282,7 @@ def delete_staff(id):
 #   PARTNER MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/partners')
-@role_required('admin')
+@permission_required('manage_partners')
 def partners():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -1131,7 +1292,7 @@ def partners():
 
 
 @admin_bp.route('/partners/add', methods=['GET', 'POST'])
-@role_required('admin')
+@permission_required('manage_partners')
 def add_partner():
     form = PartnerForm()
     if form.validate_on_submit():
@@ -1158,7 +1319,7 @@ def add_partner():
 
 
 @admin_bp.route('/partners/<int:id>/edit', methods=['GET', 'POST'])
-@role_required('admin')
+@permission_required('manage_partners')
 def edit_partner(id):
     partner = Partner.query.get_or_404(id)
     form = PartnerForm(obj=partner)
@@ -1185,7 +1346,7 @@ def edit_partner(id):
 
 
 @admin_bp.route('/partners/<int:id>/delete', methods=['POST'])
-@role_required('admin')
+@permission_required('manage_partners')
 def delete_partner(id):
     partner = Partner.query.get_or_404(id)
     if partner.logo_file:
@@ -1200,7 +1361,7 @@ def delete_partner(id):
 #   DATA QUALITY & ML OPS ENGINE
 # ════════════════════════════════════════════
 @admin_bp.route('/data-quality')
-@role_required('admin')
+@permission_required('manage_users')
 def data_quality():
     # Calculate Data Quality Metrics
     total_donors = Donor.query.count()
@@ -1294,3 +1455,175 @@ def data_quality():
         age_dist=age_dist,
         potential_duplicates=potential_duplicates
     )
+@admin_bp.route('/notifications-dashboard')
+@login_required
+def notifications_dashboard():
+    from app.models import NotificationQueue, NotificationDeliveryLog
+    from sqlalchemy import func
+    
+    # Aggregates for Chart.js
+    channel_stats = db.session.query(
+        NotificationDeliveryLog.channel,
+        func.count(NotificationDeliveryLog.id).label('total'),
+        func.sum(db.case((NotificationDeliveryLog.status == 'sent', 1), else_=0)).label('success'),
+        func.sum(db.case((NotificationDeliveryLog.status == 'failed', 1), else_=0)).label('failed')
+    ).group_by(NotificationDeliveryLog.channel).all()
+    
+    queue_stats = db.session.query(
+        NotificationQueue.status, func.count(NotificationQueue.id)
+    ).group_by(NotificationQueue.status).all()
+    
+    recent_logs = NotificationDeliveryLog.query.order_by(NotificationDeliveryLog.created_at.desc()).limit(50).all()
+    
+    return render_template(
+        'admin/notifications_dashboard.html',
+        channel_stats=channel_stats,
+        queue_stats=queue_stats,
+        recent_logs=recent_logs
+    )
+
+# ════════════════════════════════════════════
+#   ADMIN USERS MANAGEMENT
+# ════════════════════════════════════════════
+@admin_bp.route('/users')
+@permission_required('manage_users')
+def users():
+    page = request.args.get('page', 1, type=int)
+    pagination = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=20)
+    return render_template('admin/users.html', pagination=pagination)
+
+@admin_bp.route('/users/add', methods=['GET', 'POST'])
+@permission_required('manage_users')
+def add_user():
+    from app.forms import AdminUserForm
+    form = AdminUserForm()
+    
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            full_name=form.full_name.data,
+            role=form.role.data,
+            is_active=form.is_active.data
+        )
+        password = form.password.data if form.password.data else 'admin123'
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Admin user created successfully.', 'success')
+        return redirect(url_for('admin.users'))
+        
+    return render_template('admin/user_form.html', form=form, action='Add')
+
+@admin_bp.route('/users/<int:id>/edit', methods=['GET', 'POST'])
+@permission_required('manage_users')
+def edit_user(id):
+    from app.forms import AdminUserForm
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash("You cannot edit your own role here. Use profile settings.", "warning")
+        return redirect(url_for('admin.users'))
+        
+    form = AdminUserForm(obj=user)
+    
+    if form.validate_on_submit():
+        form.populate_obj(user)
+        if form.password.data:
+            user.set_password(form.password.data)
+        db.session.commit()
+        flash('Admin user updated successfully!', 'success')
+        return redirect(url_for('admin.users'))
+        
+    return render_template('admin/user_form.html', form=form, action='Edit', user=user)
+
+@admin_bp.route('/users/<int:id>/delete', methods=['POST'])
+@permission_required('manage_users')
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash("You cannot delete yourself.", "danger")
+        return redirect(url_for('admin.users'))
+        
+    db.session.delete(user)
+    db.session.commit()
+    flash('Admin user deleted successfully.', 'warning')
+    return redirect(url_for('admin.users'))
+
+# ════════════════════════════════════════════
+#   VOLUNTEER APPROVALS MANAGEMENT
+# ════════════════════════════════════════════
+@admin_bp.route('/volunteers')
+@permission_required('manage_volunteer_approvals')
+def volunteers():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '').strip()
+    
+    query = Volunteer.query
+    if search:
+        query = query.filter(
+            or_(
+                Volunteer.full_name.like(f'%{search}%'),
+                Volunteer.email.like(f'%{search}%'),
+                Volunteer.phone1.like(f'%{search}%')
+            )
+        )
+    
+    pagination = paginate_query(
+        query.order_by(desc(Volunteer.created_at)), page, 15
+    )
+    return render_template('admin/volunteers.html', pagination=pagination, search=search)
+
+@admin_bp.route('/volunteers/<int:id>/approve', methods=['POST'])
+@permission_required('manage_volunteer_approvals')
+def approve_volunteer(id):
+    volunteer = Volunteer.query.get_or_404(id)
+    volunteer.is_approved = True
+    db.session.commit()
+    flash(f'Volunteer {volunteer.full_name} has been approved!', 'success')
+    return redirect(url_for('admin.volunteers'))
+
+@admin_bp.route('/volunteers/<int:id>/toggle-active', methods=['POST'])
+@permission_required('manage_volunteer_approvals')
+def toggle_volunteer_active(id):
+    volunteer = Volunteer.query.get_or_404(id)
+    volunteer.is_active = not volunteer.is_active
+    db.session.commit()
+    status = 'activated' if volunteer.is_active else 'deactivated'
+    flash(f'Volunteer {volunteer.full_name} has been {status}!', 'info')
+    return redirect(url_for('admin.volunteers'))
+
+@admin_bp.route('/volunteers/<int:id>/delete', methods=['POST'])
+@permission_required('manage_volunteer_approvals')
+def delete_volunteer(id):
+    volunteer = Volunteer.query.get_or_404(id)
+    db.session.delete(volunteer)
+    db.session.commit()
+    flash(f'Volunteer {volunteer.full_name} deleted successfully.', 'warning')
+    return redirect(url_for('admin.volunteers'))
+
+
+@admin_bp.context_processor
+def inject_admin_globals():
+    from app.rbac import has_permission as check_permission
+    if current_user.is_authenticated:
+        from app.models import Donor, BloodRequest, Contact, Volunteer
+        try:
+            donor_count = Donor.query.count()
+            active_req_count = BloodRequest.query.filter_by(status='active').count()
+            unread_count = Contact.query.filter_by(is_read=False).count()
+            pending_volunteers = Volunteer.query.filter_by(is_approved=False).count()
+            return dict(
+                donor_count=donor_count,
+                active_req_count=active_req_count,
+                unread_count=unread_count,
+                pending_volunteers_count=pending_volunteers,
+                has_permission=lambda perm: check_permission(current_user, perm)
+            )
+        except Exception:
+            pass
+    return dict(
+        has_permission=lambda perm: False
+    )
+
+
+

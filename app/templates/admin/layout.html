@@ -65,52 +65,86 @@
         <i class="fas fa-chart-line"></i> Dashboard
       </a>
 
+      {% if has_permission('manage_donors') or has_permission('manage_requests') or has_permission('manage_blood_banks') or has_permission('manage_volunteer_approvals') %}
       <div class="nav-section-label">Blood Management</div>
+      {% if has_permission('manage_donors') %}
       <a href="{{ url_for('admin.donors') }}" class="nav-item {{ 'active' if 'donor' in request.endpoint }}">
         <i class="fas fa-users"></i> Donors
         <span class="ms-auto badge bg-danger">{{ donor_count or '' }}</span>
       </a>
+      {% endif %}
+      {% if has_permission('manage_requests') %}
       <a href="{{ url_for('admin.blood_requests') }}" class="nav-item {{ 'active' if 'request' in request.endpoint }}">
         <i class="fas fa-tint"></i> Blood Requests
         <span class="ms-auto badge bg-warning text-dark">{{ active_req_count or '' }}</span>
       </a>
+      {% endif %}
+      {% if has_permission('manage_blood_banks') %}
       <a href="{{ url_for('admin.blood_banks') }}" class="nav-item {{ 'active' if 'blood_banks' in request.endpoint }}">
         <i class="fas fa-hospital"></i> Blood Banks
       </a>
+      {% endif %}
+      {% if has_permission('manage_volunteer_approvals') %}
+      <a href="{{ url_for('admin.volunteers') }}" class="nav-item {{ 'active' if 'volunteer' in request.endpoint }}">
+        <i class="fas fa-user-md"></i> Volunteers
+        {% if pending_volunteers_count %}
+        <span class="ms-auto badge bg-info">{{ pending_volunteers_count }}</span>
+        {% endif %}
+      </a>
+      {% endif %}
+      {% endif %}
 
       <div class="nav-section-label">Content</div>
+      {% if has_permission('manage_news') %}
       <a href="{{ url_for('admin.news') }}" class="nav-item {{ 'active' if 'news' in request.endpoint }}">
         <i class="fas fa-newspaper"></i> News & Events
       </a>
+      {% endif %}
+      {% if has_permission('manage_notices') %}
       <a href="{{ url_for('admin.notices') }}" class="nav-item {{ 'active' if 'notice' in request.endpoint }}">
         <i class="fas fa-bell"></i> Notices
       </a>
+      {% endif %}
+      {% if has_permission('manage_ads') %}
       <a href="{{ url_for('admin.advertisements') }}" class="nav-item {{ 'active' if 'advertisement' in request.endpoint }}">
         <i class="fas fa-ad"></i> Advertisements
       </a>
+      {% endif %}
+      {% if has_permission('manage_success_stories') %}
       <a href="{{ url_for('admin.success_stories') }}" class="nav-item {{ 'active' if 'success_stories' in request.endpoint }}">
         <i class="fas fa-heart text-danger"></i> Success Stories
       </a>
+      {% endif %}
+      {% if has_permission('manage_staff') %}
       <a href="{{ url_for('admin.staff') }}" class="nav-item {{ 'active' if 'staff' in request.endpoint }}">
         <i class="fas fa-user-tie"></i> Staff Members
       </a>
+      {% endif %}
+      {% if has_permission('manage_partners') %}
       <a href="{{ url_for('admin.partners') }}" class="nav-item {{ 'active' if 'partner' in request.endpoint }}">
         <i class="fas fa-handshake"></i> Partners
       </a>
+      {% endif %}
+      {% if has_permission('manage_users') %}
       <a href="{{ url_for('admin.data_quality') }}" class="nav-item {{ 'active' if 'data_quality' in request.endpoint }}">
         <i class="fas fa-broom"></i> Data Quality
       </a>
+      {% endif %}
+      {% if has_permission('view_analytics') %}
       <a href="{{ url_for('admin.delivery_logs') }}" class="nav-item {{ 'active' if 'delivery_logs' in request.endpoint }}">
         <i class="fas fa-paper-plane"></i> Delivery Logs
       </a>
+      {% endif %}
+      {% if has_permission('moderate_content') %}
       <a href="{{ url_for('admin.contacts') }}" class="nav-item {{ 'active' if 'contact' in request.endpoint }}">
         <i class="fas fa-envelope"></i> Messages
         {% if unread_count %}
         <span class="ms-auto badge bg-danger">{{ unread_count }}</span>
         {% endif %}
       </a>
+      {% endif %}
 
-      {% if current_user.is_superadmin %}
+      {% if has_permission('manage_users') %}
       <div class="nav-section-label">System</div>
       <a href="{{ url_for('admin.users') }}" class="nav-item {{ 'active' if 'user' in request.endpoint }}">
         <i class="fas fa-user-shield"></i> Admin Users

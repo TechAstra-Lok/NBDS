@@ -60,13 +60,10 @@
           </div>
           
           <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              {{ form.latitude.label(class="form-label fw-semibold") }}
-              {{ form.latitude(class="form-control", placeholder="e.g. 27.7018") }}
-            </div>
-            <div class="col-md-6">
-              {{ form.longitude.label(class="form-label fw-semibold") }}
-              {{ form.longitude(class="form-control", placeholder="e.g. 85.3184") }}
+            <div class="col-md-12">
+              {{ form.maps_url.label(class="form-label fw-semibold") }}
+              {{ form.maps_url(class="form-control", placeholder="e.g. https://maps.google.com/...", type="url") }}
+              <div class="form-text">Paste a Google Maps link or Plus Code for the exact location.</div>
             </div>
           </div>
 

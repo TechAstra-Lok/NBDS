@@ -21,6 +21,9 @@ class Config:
     
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or _default_database_uri()
+    SQLALCHEMY_BINDS = {
+        'tenant': 'sqlite:///:memory:' # Placeholder for dynamic tenant binding
+    }
     
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(hours=12)

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Preferences - Nepali Blood Donors{% endblock %}
+
+{% block content %}
+<div class="container-xl py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="fw-bold mb-0 text-dark"><i class="fas fa-bell text-danger me-2"></i> Notification Preferences</h3>
+        <a href="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-1"></i> Back to Profile
+        </a>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom py-3">
+          <h5 class="mb-0 fw-semibold">Alert Settings</h5>
+          <p class="text-muted small mb-0 mt-1">Choose how you want to be notified about blood requests and updates.</p>
+        </div>
+        <div class="card-body p-4 p-md-5">
+          <form method="POST" action="{{ url_for('notifications.preferences') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <div class="mb-4">
+              <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">Channels</h6>
+              
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="email_alerts" name="email_alerts" {% if pref.email_alerts %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="email_alerts">Email Alerts</label>
+                <div class="text-muted small">Receive blood requests and updates via email.</div>
+              </div>
+
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="sms_alerts" name="sms_alerts" {% if pref.sms_alerts %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="sms_alerts">SMS Alerts</label>
+                <div class="text-muted small">Receive text messages for emergency blood requests.</div>
+              </div>
+
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="in_app_alerts" name="in_app_alerts" {% if pref.in_app_alerts %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="in_app_alerts">In-App Notifications</label>
+                <div class="text-muted small">Show notification bell alerts when you are logged in.</div>
+              </div>
+
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="web_push_alerts" name="web_push_alerts" {% if pref.web_push_alerts %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="web_push_alerts">Browser Push Notifications</label>
+                <div class="text-muted small">Receive popup alerts on your desktop or mobile browser.</div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h6 class="fw-bold text-dark mb-3 border-bottom pb-2">Do Not Disturb (DND)</h6>
+              
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="dnd_mode" name="dnd_mode" {% if pref.dnd_mode %}checked{% endif %}>
+                <label class="form-check-label fw-semibold text-danger" for="dnd_mode">Enable Do Not Disturb</label>
+                <div class="text-muted small">Mute all notifications temporarily (including emergencies).</div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-md-12"><label class="form-label fw-semibold small">Quiet Hours (Daily)</label></div>
+                <div class="col-md-6">
+                  <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-moon text-secondary"></i></span>
+                    <input type="time" class="form-control" name="quiet_hours_start" value="{{ pref.quiet_hours_start.strftime('%H:%M') if pref.quiet_hours_start else '' }}" placeholder="Start time">
+                  </div>
+                  <div class="form-text">Start time (e.g., 22:00)</div>
+                </div>
+                <div class="col-md-6">
+                  <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-sun text-warning"></i></span>
+                    <input type="time" class="form-control" name="quiet_hours_end" value="{{ pref.quiet_hours_end.strftime('%H:%M') if pref.quiet_hours_end else '' }}" placeholder="End time">
+                  </div>
+                  <div class="form-text">End time (e.g., 07:00)</div>
+                </div>
+                <div class="col-12 text-muted small mt-2">
+                  <i class="fas fa-info-circle me-1"></i> During quiet hours, you will only receive emergency alerts via email/SMS. Standard requests will be sent to the in-app bell only.
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+              <a href="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}" class="btn btn-light fw-semibold px-4">Cancel</a>
+              <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm">Save Preferences</button>
+            </div>
+            
+          </form>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Enterprise Notification Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark mb-0"><i class="fas fa-satellite-dish text-primary me-2"></i> Notification Dashboard</h3>
+    </div>
+
+    <!-- Stats row -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4 text-center">
+                    <h6 class="text-muted fw-bold mb-3">Queue Status</h6>
+                    <div class="d-flex justify-content-center gap-4">
+                        {% for st in queue_stats %}
+                        <div class="text-center">
+                            <h3 class="mb-0 fw-bold {% if st[0] == 'failed' or st[0] == 'dlq' %}text-danger{% elif st[0] == 'completed' %}text-success{% else %}text-primary{% endif %}">{{ st[1] }}</h3>
+                            <small class="text-muted text-uppercase fw-semibold" style="font-size:0.7rem;">{{ st[0] }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">Queue is empty</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-9 col-md-12">
+            <div class="card border-0 shadow-sm rounded-4 bg-white h-100">
+                <div class="card-body p-4">
+                    <h6 class="text-muted fw-bold mb-3">Delivery by Channel</h6>
+                    <div style="height: 120px;">
+                        <canvas id="channelChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Logs -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-dark">Recent Delivery Logs</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small fw-semibold">
+                        <tr>
+                            <th class="ps-4">Time</th>
+                            <th>Channel</th>
+                            <th>Provider</th>
+                            <th>Status</th>
+                            <th>Attempts</th>
+                            <th>Response ID / Error</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for log in recent_logs %}
+                        <tr>
+                            <td class="ps-4">{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge bg-secondary rounded-pill bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ log.channel }}</span>
+                            </td>
+                            <td>{{ log.provider_name or 'N/A' }}</td>
+                            <td>
+                                {% if log.status == 'sent' %}
+                                <span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i> Sent</span>
+                                {% else %}
+                                <span class="text-danger fw-bold"><i class="fas fa-times-circle me-1"></i> Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.attempt_count }}</td>
+                            <td>
+                                {% if log.error_message %}
+                                <span class="text-danger d-inline-block text-truncate" style="max-width:250px;" title="{{ log.error_message }}">{{ log.error_message }}</span>
+                                {% else %}
+                                <span class="text-muted">{{ log.provider_response_id or '' }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No recent delivery logs.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="channel-stats-data" type="application/json">
+{{ channel_stats | tojson | safe }}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('channelChart').getContext('2d');
+    
+    // Prepare data
+    const channelStats = JSON.parse(document.getElementById('channel-stats-data').textContent);
+    
+    const labels = channelStats.map(stat => stat[0] ? stat[0].charAt(0).toUpperCase() + stat[0].slice(1) : '');
+    const successData = channelStats.map(stat => stat[2] || 0);
+    const failedData = channelStats.map(stat => stat[3] || 0);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Success',
+                    data: successData,
+                    backgroundColor: '#10B981',
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Failed',
+                    data: failedData,
+                    backgroundColor: '#EF4444',
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+            },
+            scales: {
+                x: { stacked: true, beginAtZero: true, grid: { display: false } },
+                y: { stacked: true, grid: { display: false } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

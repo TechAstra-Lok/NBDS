@@ -32,74 +32,88 @@ def update_donor_availability(app):
 
 def alert_matching_donors(app, request_id):
     """
-    Intelligent Donor Alert System logic.
-    Finds available donors matching the requested blood group in the same district.
+    Enterprise Donor Alert System.
+    Uses the new NotificationService for intelligent matching + multi-channel queuing.
+    Falls back to the legacy dispatcher for backward compatibility.
     """
     with app.app_context():
         from app import db
-        from app.models import BloodRequest, Donor
-        from app.services.notifications import NotificationDispatcher
-        
-        req = BloodRequest.query.get(request_id)
-        if not req or req.status != 'active':
-            return
-            
-        # Match logic: Same blood group, available, same district, active account.
-        matches = Donor.query.filter(
-            Donor.blood_group == req.blood_group,
-            Donor.availability_status == 'available',
-            Donor.is_active == True,
-            Donor.curr_district == req.district
-        ).all()
-        
-        logger.info(f"Alert System: Found {len(matches)} matching donors for Blood Request {req.request_id} in {req.district}.")
-        
-        if not matches:
-            return
-            
-        dispatcher = NotificationDispatcher()
-        title = f"URGENT: {req.blood_group} Blood Required at {req.hospital}"
-        
-        # Build comprehensive message body
-        urgency_str = "EMERGENCY" if req.is_emergency else "NORMAL"
-        message = (
-            f"Dear Donor,\n\n"
-            f"An urgent request for {req.blood_group} blood has been posted near you.\n\n"
-            f"Patient: {req.patient_name}\n"
-            f"Hospital: {req.hospital}\n"
-            f"Location: {req.local_level or ''}, {req.district}\n"
-            f"Urgency: {urgency_str}\n"
-            f"Contact Person: {req.contact_person}\n"
-            f"Contact Number: {req.contact_number}\n\n"
-        )
-        if req.request_message:
-            message += f"Message: {req.request_message}\n\n"
-            
-        message += f"If you are available to donate, please contact the number above.\nThank you for saving a life!"
-        
-        dispatched_count = 0
-        for donor in matches:
-            if dispatcher.dispatch(donor, title, message, category='alert', request_id=req.id):
-                dispatched_count += 1
-                
-        if dispatched_count > 0:
-            db.session.commit()
-            logger.info(f"Successfully dispatched alerts to {dispatched_count} donors.")
+        from app.models import BloodRequest
+        try:
+            from app.services.notification_service import NotificationService
+            req = BloodRequest.query.get(request_id)
+            if not req or req.status != 'active':
+                return
+            service = NotificationService()
+            queued = service.dispatch_for_request(req)
+            logger.info("Enterprise alert system queued %d donor notifications for request %s.", queued, req.request_id)
+        except Exception as e:
+            logger.error("Enterprise notification dispatch failed, falling back to legacy: %s", e)
+            # --- Legacy fallback ---
+            try:
+                from app.models import Donor
+                from app.services.notifications import NotificationDispatcher
+                req = BloodRequest.query.get(request_id)
+                if not req:
+                    return
+                matches = Donor.query.filter(
+                    Donor.blood_group == req.blood_group,
+                    Donor.availability_status == 'Available',
+                    Donor.is_active == True,
+                ).all()
+                dispatcher = NotificationDispatcher()
+                title = f"URGENT: {req.blood_group} Blood Required at {req.hospital}"
+                message = (
+                    f"Patient {req.patient_name} needs {req.blood_group} blood at "
+                    f"{req.hospital}, {req.district}. "
+                    f"Contact: {req.contact_person} ({req.contact_number})."
+                )
+                count = sum(
+                    1 for d in matches
+                    if dispatcher.dispatch(d, title, message, category='alert', request_id=req.id)
+                )
+                if count:
+                    db.session.commit()
+                logger.info("Legacy fallback dispatched %d alerts.", count)
+            except Exception as e2:
+                logger.error("Legacy fallback also failed: %s", e2)
+
+
+def process_notification_queue(app):
+    """Process pending notification queue items (called by APScheduler every 2 minutes)."""
+    with app.app_context():
+        try:
+            from app.services.notification_service import NotificationService
+            NotificationService.process_queue(batch_size=30)
+            logger.debug("Notification queue processing cycle complete.")
+        except Exception as e:
+            logger.error("Notification queue processing error: %s", e)
 
 
 def schedule_jobs(app, scheduler):
     """
     Configures and starts all APScheduler background jobs.
     """
-    # Job 1: Run every day at midnight (or periodically) to update donor statuses
+    # Job 1: Update donor availability statuses daily
     scheduler.add_job(
         id='update_donor_availability_job',
         func=update_donor_availability,
         args=[app],
         trigger='interval',
         hours=24,
-        next_run_time=datetime.now(), # Run immediately once on startup, then every 24h
-        replace_existing=True
+        next_run_time=datetime.now(),
+        replace_existing=True,
     )
-    
+
+    # Job 2: Process notification queue every 2 minutes
+    scheduler.add_job(
+        id='process_notification_queue_job',
+        func=process_notification_queue,
+        args=[app],
+        trigger='interval',
+        minutes=2,
+        next_run_time=datetime.now(),
+        replace_existing=True,
+    )
+
     logger.info("APScheduler jobs configured successfully.")

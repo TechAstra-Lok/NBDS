@@ -51,6 +51,34 @@
           {% endif %}
         </div>
       </div>
+
+      <!-- Staff Members -->
+      <div class="card shadow-sm border-0 mt-4">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3"><i class="fas fa-users me-2 text-danger"></i>Staff Members</h5>
+          {% if staff_members %}
+          <div class="row g-3">
+            {% for member in staff_members %}
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light">
+                <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}"
+                  class="rounded-circle me-3" style="width:50px;height:50px;object-fit:cover;">
+                <div>
+                  <h6 class="mb-0 fw-bold">{{ member.full_name }}</h6>
+                  <span class="text-muted small">{{ member.designation }}</span>
+                  {% if member.contact_number %}
+                  <div class="small mt-1"><i class="fas fa-phone fa-sm text-muted me-1"></i>{{ member.contact_number }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">No staff information available.</p>
+          {% endif %}
+        </div>
+      </div>
     </div>
     <div class="col-lg-4">
       <div class="card shadow-sm border-0">

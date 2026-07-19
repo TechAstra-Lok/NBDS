@@ -3,48 +3,73 @@
 {% block page_title %}{{ action }} Admin User{% endblock %}
 
 {% block content %}
-<div class="card border-0 shadow-sm rounded-4">
-  <div class="card-body">
-    <form method="POST">
-      {{ form.hidden_tag() }}
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">{{ form.username.label.text }}</label>
-          {{ form.username(class_='form-control') }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ form.email.label.text }}</label>
-          {{ form.email(class_='form-control') }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ form.full_name.label.text }}</label>
-          {{ form.full_name(class_='form-control') }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ form.role.label.text }}</label>
-          {{ form.role(class_='form-select') }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ form.password.label.text }}</label>
-          {{ form.password(class_='form-control') }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">{{ form.confirm_pw.label.text }}</label>
-          {{ form.confirm_pw(class_='form-control') }}
-        </div>
-        <div class="col-md-6">
-          <div class="form-check mt-4">
-            {{ form.is_active(class_='form-check-input') }}
-            <label class="form-check-label">{{ form.is_active.label.text }}</label>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-white pt-4 pb-3 border-0">
+        <h4 class="mb-0 fw-bold">{{ action }} System User</h4>
+        <p class="text-muted small mb-0">Assign system capabilities using pre-defined roles.</p>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" class="needs-validation" novalidate>
+          {{ form.hidden_tag() }}
+          
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.username.label.text }}</label>
+              {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+              {% for error in form.username.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.email.label.text }}</label>
+              {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+              {% for error in form.email.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.full_name.label.text }}</label>
+              {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else "")) }}
+              {% for error in form.full_name.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.role.label.text }}</label>
+              {{ form.role(class="form-select" + (" is-invalid" if form.role.errors else "")) }}
+              {% for error in form.role.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.password.label.text }}</label>
+              {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Leave blank to keep same / use admin123") }}
+              {% for error in form.password.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.confirm_pw.label.text }}</label>
+              {{ form.confirm_pw(class="form-control" + (" is-invalid" if form.confirm_pw.errors else "")) }}
+              {% for error in form.confirm_pw.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            
+            <div class="col-12">
+              <div class="form-check mt-2">
+                {{ form.is_active(class="form-check-input") }}
+                <label class="form-check-label fw-semibold" for="is_active">{{ form.is_active.label.text }}</label>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
-        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Back to Users</a>
-        {{ form.submit(class_='btn btn-danger') }}
+          <div class="mt-4 d-flex justify-content-between gap-2 flex-wrap">
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i> Back to Users
+            </a>
+            <button type="submit" class="btn btn-danger fw-semibold">
+              <i class="fas fa-save me-1"></i> {{ action }} User
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 </div>
 {% endblock %}
