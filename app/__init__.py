@@ -52,9 +52,9 @@ def create_app(config_name=None):
         
     # Logging Configuration
     if not app.debug and not app.testing:
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+        os.makedirs('logs', exist_ok=True)
         file_handler = RotatingFileHandler('logs/nepali_blood_donors.log', maxBytes=10240000, backupCount=10)
+
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))

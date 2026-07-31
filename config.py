@@ -9,9 +9,25 @@ INSTANCE_DIR = os.path.join(BASE_DIR, 'instance')
 os.makedirs(INSTANCE_DIR, exist_ok=True)
 
 
-def _default_database_uri():
-    instance_db = os.path.join(INSTANCE_DIR, 'nepali_blood.db')
-    return f"sqlite:///{instance_db}"
+def get_database_uri():
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        instance_db = os.path.join(INSTANCE_DIR, 'nepali_blood.db')
+        return f"sqlite:///{instance_db}"
+    
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        
+    if db_url.startswith("sqlite:///"):
+        sqlite_path = db_url.replace("sqlite:///", "")
+        if sqlite_path and sqlite_path != ":memory:":
+            abs_path = os.path.abspath(sqlite_path)
+            parent_dir = os.path.dirname(abs_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+            return f"sqlite:///{abs_path}"
+
+    return db_url
 
 
 class Config:
@@ -20,10 +36,11 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or _default_database_uri()
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_BINDS = {
         'tenant': 'sqlite:///:memory:' # Placeholder for dynamic tenant binding
     }
+
     
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
