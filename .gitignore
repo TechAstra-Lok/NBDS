@@ -28,3 +28,4 @@ htmlcov/
 .env.*
 *.sqlite
 app/static/uploads/
+*.json
