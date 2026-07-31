@@ -68,7 +68,7 @@ class InventoryService:
         for inv in inventories:
             col = group_col_map.get(inv.blood_group)
             if col:
-                totals[col] += (inv.units_available or 0)
+                totals[col] += (inv.available_units or 0)
 
         # Upsert into the Main DB cache table
         cache = PublicBloodBankCache.query.filter_by(blood_bank_id=blood_bank_id).first()
@@ -92,15 +92,25 @@ class InventoryService:
     @staticmethod
     def register_bag(bag_id, blood_bank_id, blood_group, component, volume_ml, collection_date, expiry_date, donor_id=None, qr_code=None):
         bag = BloodBag(
+            # pyrefly: ignore [unexpected-keyword]
             bag_id=bag_id,
+            # pyrefly: ignore [unexpected-keyword]
             blood_bank_id=blood_bank_id,
+            # pyrefly: ignore [unexpected-keyword]
             donor_id=donor_id,
+            # pyrefly: ignore [unexpected-keyword]
             blood_group=blood_group,
+            # pyrefly: ignore [unexpected-keyword]
             component=component,
+            # pyrefly: ignore [unexpected-keyword]
             volume_ml=volume_ml,
+            # pyrefly: ignore [unexpected-keyword]
             collection_date=collection_date,
+            # pyrefly: ignore [unexpected-keyword]
             expiry_date=expiry_date,
+            # pyrefly: ignore [unexpected-keyword]
             status='testing',
+            # pyrefly: ignore [unexpected-keyword]
             qr_code=qr_code
         )
         db.session.add(bag)
@@ -108,9 +118,13 @@ class InventoryService:
         
         # Log transaction
         tx = BloodInventoryTransaction(
+            # pyrefly: ignore [unexpected-keyword]
             bag_id=bag.id,
+            # pyrefly: ignore [unexpected-keyword]
             blood_bank_id=blood_bank_id,
+            # pyrefly: ignore [unexpected-keyword]
             transaction_type='collection',
+            # pyrefly: ignore [unexpected-keyword]
             reason='New donation collected'
         )
         db.session.add(tx)
@@ -125,10 +139,15 @@ class InventoryService:
             raise ValueError("Blood bag not found.")
             
         test = LabTestResult(
+            # pyrefly: ignore [unexpected-keyword]
             bag_id=bag.id,
+            # pyrefly: ignore [unexpected-keyword]
             test_name=test_name,
+            # pyrefly: ignore [unexpected-keyword]
             result=result,
+            # pyrefly: ignore [unexpected-keyword]
             tested_at=datetime.utcnow(),
+            # pyrefly: ignore [unexpected-keyword]
             tested_by=tested_by
         )
         db.session.add(test)
@@ -145,9 +164,13 @@ class InventoryService:
         if has_positive:
             bag.status = 'discarded'
             tx = BloodInventoryTransaction(
+                # pyrefly: ignore [unexpected-keyword]
                 bag_id=bag.id,
+                # pyrefly: ignore [unexpected-keyword]
                 blood_bank_id=bag.blood_bank_id,
+                # pyrefly: ignore [unexpected-keyword]
                 transaction_type='discard',
+                # pyrefly: ignore [unexpected-keyword]
                 reason='Positive lab test result'
             )
             db.session.add(tx)

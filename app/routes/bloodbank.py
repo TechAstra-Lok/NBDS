@@ -279,25 +279,23 @@ def update_reservation_status(id):
     inventory = BloodInventory.query.filter_by(blood_bank_id=account.blood_bank_id, blood_group=reservation.blood_group, component=reservation.component).first()
     
     if new_status == 'approved' and reservation.status == 'pending':
-        if not inventory or inventory.units_available < reservation.units:
+        if not inventory or inventory.available_units < reservation.units:
             flash(f'Not enough available units of {reservation.blood_group} {reservation.component} to approve.', 'danger')
             return redirect(url_for('bloodbank.reservations'))
         
-        # Reserve the units
-        inventory.units_available -= reservation.units
+        # Mark units as reserved (subtract from available via units_reserved)
         inventory.units_reserved += reservation.units
         
     elif new_status == 'cancelled' and reservation.status == 'approved':
         if inventory:
             # Free up the reserved units
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
-            inventory.units_available += reservation.units
             
     elif new_status == 'fulfilled' and reservation.status == 'approved':
         if inventory:
-            # Consume the reserved units
+            # Consume the reserved units — physically remove from stock
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
-            # Log the movement? The user can do that manually, or we can just decrement. Since we're keeping it simple for now, we just drop the reserved units.
+            inventory.units_available = max(0, inventory.units_available - reservation.units)
             
     reservation.status = new_status
     db.session.commit()

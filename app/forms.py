@@ -71,7 +71,7 @@ def validate_nepal_mobile(form, field):
 
 # ─── Authentication Forms ─────────────────────
 class DonorLoginForm(FlaskForm):
-    phone1   = StringField('Mobile Number *', validators=[DataRequired(), validate_nepal_mobile])
+    login_id = StringField('Mobile Number or Email *', validators=[DataRequired()])
     pin      = PasswordField('4-Digit PIN *', validators=[DataRequired(), Length(min=4, max=4)])
     remember = BooleanField('Remember Me')
     submit   = SubmitField('Login as Donor')

@@ -18,10 +18,10 @@
                     {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
-                        {{ form.phone1.label(class="form-label fw-bold small") }}
-                        {{ form.phone1(class="form-control form-control-lg", placeholder="e.g. 98XXXXXXXX") }}
-                        {% if form.phone1.errors %}
-                            <div class="invalid-feedback d-block">{{ form.phone1.errors[0] }}</div>
+                        {{ form.login_id.label(class="form-label fw-bold small") }}
+                        {{ form.login_id(class="form-control form-control-lg", placeholder="Mobile Number or Email") }}
+                        {% if form.login_id.errors %}
+                            <div class="invalid-feedback d-block">{{ form.login_id.errors[0] }}</div>
                         {% endif %}
                     </div>
                     

@@ -456,6 +456,17 @@ def reserve_blood(bank_id):
             flash('All required fields, including the Hospital Request Paper, must be provided.', 'danger')
             return redirect(url_for('public.reserve_blood', bank_id=blood_bank.id))
 
+        if blood_bank.tenant_id:
+            try:
+                from app.services.tenant_service import TenantResolutionService
+                TenantResolutionService.resolve_tenant(blood_bank.tenant_id)
+            except Exception:
+                flash('This blood bank is currently inactive and cannot accept reservations.', 'danger')
+                return redirect(url_for('public.blood_bank_detail', bank_id=blood_bank.id))
+        else:
+            flash('This blood bank is currently not provisioned to accept reservations.', 'danger')
+            return redirect(url_for('public.blood_bank_detail', bank_id=blood_bank.id))
+
         reservation = BloodReservation(
             blood_bank_id=blood_bank.id,
             hospital_name=hospital_name,
@@ -828,14 +839,25 @@ def donor_login():
         
     form = DonorLoginForm()
     if form.validate_on_submit():
-        donor = Donor.query.filter_by(phone1=form.phone1.data.strip()).first()
+        login_val = form.login_id.data.strip()
+        
+        # Check if login_val is phone or email
+        # To normalize phone, reuse the normalize logic if it looks like a phone
+        normalized_phone = login_val
+        if login_val.isdigit() or (login_val.startswith('+') and login_val[1:].isdigit()):
+            from app.forms import _normalize_nepal_mobile
+            normalized_phone = _normalize_nepal_mobile(login_val)
+        
+        from sqlalchemy import or_
+        donor = Donor.query.filter(or_(Donor.phone1 == normalized_phone, Donor.email == login_val)).first()
+        
         if donor and check_password_hash(donor.pin_hash, form.pin.data):
             login_user(donor, remember=form.remember.data)
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
         else:
-            flash('Login Unsuccessful. Please check mobile number and PIN.', 'danger')
+            flash('Login Unsuccessful. Please check your mobile number / email and PIN.', 'danger')
             
     return render_template('auth/donor_login.html', form=form)
 
