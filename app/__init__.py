@@ -192,8 +192,8 @@ def _seed_admin(app):
     from werkzeug.security import generate_password_hash
     from app.seed_blood_banks import seed_blood_banks
     
-    admin_username = os.environ.get('ADMIN_USERNAME')
-    admin_password = os.environ.get('ADMIN_PASSWORD')
+    admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'Admin@1234')
     
     if admin_username and admin_password:
         if not User.query.filter_by(username=admin_username).first():
@@ -202,6 +202,7 @@ def _seed_admin(app):
                 email=os.environ.get('ADMIN_EMAIL', 'admin@nepaliblooddonors.org'),
                 full_name=os.environ.get('ADMIN_FULL_NAME', 'Super Admin'),
                 role='superadmin',
+                is_active=True,
                 password_hash=generate_password_hash(admin_password)
             )
             db.session.add(admin)
