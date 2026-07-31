@@ -196,7 +196,8 @@ def _seed_admin(app):
     admin_password = os.environ.get('ADMIN_PASSWORD', 'Admin@1234')
     
     if admin_username and admin_password:
-        if not User.query.filter_by(username=admin_username).first():
+        user = User.query.filter_by(username=admin_username).first()
+        if not user:
             admin = User(
                 username=admin_username,
                 email=os.environ.get('ADMIN_EMAIL', 'admin@nepaliblooddonors.org'),
@@ -208,6 +209,11 @@ def _seed_admin(app):
             db.session.add(admin)
             db.session.commit()
             print(f"[OK] Admin created: {admin_username}")
+        else:
+            user.is_active = True
+            user.password_hash = generate_password_hash(admin_password)
+            db.session.commit()
+            print(f"[OK] Admin password updated: {admin_username}")
 
     if not BloodBank.query.first():
         inserted_count = seed_blood_banks()
