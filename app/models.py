@@ -102,6 +102,9 @@ class BloodBank(db.Model):
         super().__init__(**kwargs)
         if not self.uuid:
             self.uuid = str(uuid.uuid4())
+        if not self.display_name and self.name:
+            self.display_name = self.name
+
 
     @property
     def resolved_display_name(self):
@@ -229,7 +232,7 @@ class PublicBloodBankCache(db.Model):
 
 class BloodInventory(db.Model):
     __tablename__ = 'blood_inventory'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
@@ -273,7 +276,7 @@ class BloodInventory(db.Model):
 
 class BloodInventoryMovement(db.Model):
     __tablename__ = 'blood_inventory_movements'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('blood_inventory.id'), nullable=False, index=True)
@@ -297,7 +300,7 @@ class BloodInventoryMovement(db.Model):
 
 class BloodBag(db.Model):
     __tablename__ = 'blood_bags'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     bag_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
@@ -321,7 +324,7 @@ class BloodBag(db.Model):
 
 class LabTestResult(db.Model):
     __tablename__ = 'lab_test_results'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     bag_id = db.Column(db.Integer, db.ForeignKey('blood_bags.id'), nullable=False, index=True)
@@ -334,7 +337,7 @@ class LabTestResult(db.Model):
 
 class BloodInventoryTransaction(db.Model):
     __tablename__ = 'blood_inventory_transactions'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     bag_id = db.Column(db.Integer, db.ForeignKey('blood_bags.id'), nullable=True, index=True)
@@ -348,7 +351,7 @@ class BloodInventoryTransaction(db.Model):
 
 class BloodReservation(db.Model):
     __tablename__ = 'blood_reservations'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
@@ -384,7 +387,7 @@ class BloodReservation(db.Model):
 
 class BloodTransfer(db.Model):
     __tablename__ = 'blood_transfers'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     source_bank_id = db.Column(db.Integer, nullable=False, index=True)
@@ -416,7 +419,7 @@ class BloodTransfer(db.Model):
 
 class LowStockAlert(db.Model):
     __tablename__ = 'low_stock_alerts'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
 
     id = db.Column(db.Integer, primary_key=True)
     blood_bank_id = db.Column(db.Integer, nullable=False, index=True)
@@ -852,7 +855,7 @@ class Volunteer(UserMixin, db.Model):
 # ─────────────────────────────────────────────
 class StaffMember(db.Model):
     __tablename__ = 'staff_members'
-    __bind_key__ = 'tenant'
+    # __bind_key__ = 'tenant'
     
     id              = db.Column(db.Integer, primary_key=True)
     full_name       = db.Column(db.String(150), nullable=False)

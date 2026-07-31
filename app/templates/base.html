@@ -61,10 +61,11 @@
     rel="stylesheet" />
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
-  
+
   <!-- Nepali Date Picker CSS -->
-  <link href="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/css/nepali.datepicker.v5.0.6.min.css" rel="stylesheet" type="text/css"/>
-  
+  <link href="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/css/nepali.datepicker.v5.0.6.min.css"
+    rel="stylesheet" type="text/css" />
+
   {% block extra_css %}{% endblock %}
 </head>
 
@@ -182,102 +183,120 @@
           </li>
         </ul>
 
-          <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="Search">
-            <i class="fas fa-search"></i>
-          </a>
-          <a href="{{ url_for('public.blood_request_form') }}"
-            class="btn btn-white text-danger btn-sm fw-bold shadow-sm" style="background:#fff;">
-            <i class="fas fa-circle-plus me-1"></i>
-            <span class="d-none d-xl-inline">Request Blood</span>
-            <span class="d-xl-none">Request</span>
-          </a>
-          
-          {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
-          <!-- Notification Bell -->
-          <div class="dropdown me-1" id="notifBellDropdown">
-            <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
-              data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
-              <i class="fas fa-bell"></i>
-              <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
-                id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
-            </button>
-            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
-              <!-- Notification Header -->
-              <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
-                style="background:linear-gradient(135deg,#DC2626,#991B1B);">
-                <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
-                <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
-                  title="Mark all as read" style="font-size:0.75rem;">
-                  <i class="fas fa-check-double me-1"></i>All Read
-                </button>
-              </div>
-              <!-- Notification List -->
-              <div id="notifList" style="max-height:360px;overflow-y:auto;">
-                <div class="text-center text-muted py-4">
-                  <i class="fas fa-spinner fa-spin me-1"></i> Loading...
-                </div>
-              </div>
-              <!-- Footer -->
-              <div class="border-top text-center py-2" style="background:#f9fafb;">
-                <a href="{{ url_for('notifications.preferences') }}" class="text-danger text-decoration-none small fw-semibold">
-                  <i class="fas fa-cog me-1"></i>Notification Preferences
-                </a>
+        <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="Search">
+          <i class="fas fa-search"></i>
+        </a>
+        <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white text-danger btn-sm fw-bold shadow-sm"
+          style="background:#fff;">
+          <i class="fas fa-circle-plus me-1"></i>
+          <span class="d-none d-xl-inline">Request Blood</span>
+          <span class="d-xl-none">Request</span>
+        </a>
+
+        {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
+        <!-- Notification Bell -->
+        <div class="dropdown me-1" id="notifBellDropdown">
+          <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
+            <i class="fas fa-bell"></i>
+            <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
+              id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
+            style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
+            <!-- Notification Header -->
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+              style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+              <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
+              <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
+                title="Mark all as read" style="font-size:0.75rem;">
+                <i class="fas fa-check-double me-1"></i>All Read
+              </button>
+            </div>
+            <!-- Notification List -->
+            <div id="notifList" style="max-height:360px;overflow-y:auto;">
+              <div class="text-center text-muted py-4">
+                <i class="fas fa-spinner fa-spin me-1"></i> Loading...
               </div>
             </div>
+            <!-- Footer -->
+            <div class="border-top text-center py-2" style="background:#f9fafb;">
+              <a href="{{ url_for('notifications.preferences') }}"
+                class="text-danger text-decoration-none small fw-semibold">
+                <i class="fas fa-cog me-1"></i>Notification Preferences
+              </a>
+            </div>
           </div>
-          {% endif %}
-
-          {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
-          <div class="dropdown">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle me-1"></i>
-              {% if session.get('bloodbank_account_id') %}
-                Blood Bank Panel
-              {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
-                Donor Panel
-              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-                Volunteer Panel
-              {% else %}
-                Admin Panel
-              {% endif %}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-              {% if session.get('bloodbank_account_id') %}
-                <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-              {% else %}
-                {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
-                  <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
-                {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-                  <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
-                {% else %}
-                  <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
-                {% endif %}
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-              {% endif %}
-            </ul>
-          </div>
-          {% else %}
-          <div class="dropdown">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-sign-in-alt me-1"></i> Login
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-              <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
-            </ul>
-          </div>
-          {% endif %}
-          <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
-            <i class="fas fa-moon fa-sm" id="themeIcon"></i>
-          </button>
         </div>
+        {% endif %}
+
+        {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-user-circle me-1"></i>
+            {% if session.get('bloodbank_account_id') %}
+            Blood Bank Panel
+            {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
+            Donor Panel
+            {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+            Volunteer Panel
+            {% else %}
+            Admin Panel
+            {% endif %}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+            {% if session.get('bloodbank_account_id') %}
+            <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i
+                  class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i
+                  class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            {% else %}
+            {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+            <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i
+                  class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
+            {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+            <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i
+                  class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
+            {% else %}
+            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i
+                  class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
+            {% endif %}
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i
+                  class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            {% endif %}
+          </ul>
+        </div>
+        {% else %}
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-sign-in-alt me-1"></i> Login
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+            <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i
+                  class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i
+                  class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i
+                  class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i
+                  class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
+          </ul>
+        </div>
+        {% endif %}
+        <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
+          <i class="fas fa-moon fa-sm" id="themeIcon"></i>
+        </button>
       </div>
+    </div>
     </div>
   </nav>
 
@@ -400,8 +419,8 @@
             <small class="text-muted px-2 pt-1" style="font-size:0.65rem;">Sponsored</small>
             <a href="{{ url_for('public.ad_click', ad_id=ad.id) }}" target="_blank" rel="noopener sponsored"
               data-ad-id="{{ ad.id }}" class="d-block">
-              <img loading="lazy" src="{{ ad.image_url }}" alt="{{ ad.title }}" class="w-100" style="height:150px;object-fit:cover;"
-                onerror="this.src='/static/images/ad-placeholder.svg'">
+              <img loading="lazy" src="{{ ad.image_url }}" alt="{{ ad.title }}" class="w-100"
+                style="height:150px;object-fit:cover;" onerror="this.src='/static/images/ad-placeholder.svg'">
             </a>
             {% if ad.description %}
             <div class="px-3 py-2">
@@ -584,9 +603,9 @@
       <div class="container-xl">
         <div class="row align-items-center">
           <div class="col-md-6 text-center text-md-start">
-            <small style="color:#64748b;">
+            <small style="color:#e00c0c;">
               &copy; {{ current_year }} {{ site_name }}. All rights reserved.
-              Made with <i class="fas fa-heart text-danger"></i> in Nepal.
+              <B>Founded By Lokesh Prasai in Nepal.</B>
             </small>
           </div>
           <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
@@ -635,11 +654,12 @@
   </script>
 
   <!-- Nepali Date Picker JS -->
-  <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
+  <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js"
+    type="text/javascript"></script>
 
   {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const bellBtn = document.getElementById('notifBellBtn');
       const badge = document.getElementById('notifBadge');
       const notifList = document.getElementById('notifList');
@@ -689,20 +709,20 @@
       if (bellBtn) {
         updateUnreadCount();
         setInterval(updateUnreadCount, 60000); // Poll every minute
-        
+
         bellBtn.addEventListener('show.bs.dropdown', function () {
           loadNotifications();
         });
       }
 
-      notifList.addEventListener('click', function(e) {
+      notifList.addEventListener('click', function (e) {
         if (e.target.classList.contains('mark-read-btn')) {
           e.preventDefault();
           const id = e.target.getAttribute('data-id');
           fetch(`/notifications/api/mark-read/${id}`, { method: 'POST' })
             .then(r => r.json())
             .then(data => {
-              if(data.success) {
+              if (data.success) {
                 e.target.closest('.border-bottom').classList.remove('bg-light');
                 e.target.closest('.border-bottom').classList.add('bg-white');
                 e.target.remove();
@@ -713,13 +733,13 @@
       });
 
       if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', function(e) {
+        markAllReadBtn.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           fetch('/notifications/api/mark-all-read', { method: 'POST' })
             .then(r => r.json())
             .then(data => {
-              if(data.success) {
+              if (data.success) {
                 loadNotifications();
                 updateUnreadCount();
               }

@@ -38,8 +38,9 @@ class Config:
     # Database
     SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_BINDS = {
-        'tenant': 'sqlite:///:memory:' # Placeholder for dynamic tenant binding
+        'tenant': get_database_uri()
     }
+
 
     
     # Session
@@ -105,7 +106,11 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_BINDS = {
+        'tenant': 'sqlite:///:memory:'
+    }
     WTF_CSRF_ENABLED = False
+
 
 
 config = {
