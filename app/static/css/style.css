@@ -372,4 +372,8 @@ a.hover-lift { cursor: pointer; }
 [data-bs-theme="dark"] .table th { background:#334155; color:#94A3B8; }
 [data-bs-theme="dark"] .table td { border-color:#334155; }
 [data-bs-theme="dark"] .table-hover tbody tr:hover { background:rgba(220,38,38,0.05); }
-[data-bs-theme="dark"] .alert
+[data-bs-theme="dark"] .alert { background:#1e293b; border-color:#334155; color:#F1F5F9; }
+[data-bs-theme="dark"] .alert-danger { background:rgba(220,38,38,0.15); border-color:#DC2626; color:#fca5a5; }
+[data-bs-theme="dark"] .alert-success { background:rgba(22,163,74,0.15); border-color:#16a34a; color:#86efac; }
+[data-bs-theme="dark"] .alert-warning { background:rgba(217,119,6,0.15); border-color:#d97706; color:#fcd34d; }
+[data-bs-theme="dark"] .alert-info    { background:rgba(14,165,233,0.15); border-color:#0ea5e9; color:#7dd3fc; }

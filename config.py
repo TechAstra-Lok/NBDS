@@ -56,7 +56,7 @@ class Config:
     SITE_TAGLINE = "Donate Blood, Save Lives"
     CONTACT_EMAIL = "info@nepaliblooddonors.org"
     CONTACT_PHONE = "+977 9816003020"
-    CONTACT_ADDRESS = "Kathmandu, Nepal"
+    CONTACT_ADDRESS = "Jhapa, Nepal"
     
     # Scheduler
     SCHEDULER_API_ENABLED = True
