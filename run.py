@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nepali Blood Donors Society - Application Entry Point
+रक्तदान र रक्तदाता - Application Entry Point
 Run: python run.py
 """
 

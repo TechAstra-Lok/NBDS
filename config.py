@@ -52,10 +52,10 @@ class Config:
     GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID', '')
     
     # Site Info
-    SITE_NAME = "Nepali Blood Donors Society"
+    SITE_NAME = "रक्तदान र रक्तदाता"
     SITE_TAGLINE = "Donate Blood, Save Lives"
     CONTACT_EMAIL = "info@nepaliblooddonors.org"
-    CONTACT_PHONE = "+977-1-4XXXXXX"
+    CONTACT_PHONE = "+977 9816003020"
     CONTACT_ADDRESS = "Kathmandu, Nepal"
     
     # Scheduler

@@ -41,7 +41,7 @@ def _build_html_body(donor, title, message, payload):
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
   <!-- Header -->
   <tr><td style="background:linear-gradient(135deg,#DC2626,#991B1B);padding:28px 32px;text-align:center;">
-    <h1 style="color:#fff;margin:0;font-size:22px;">🩸 Nepali Blood Donors Society</h1>
+    <h1 style="color:#fff;margin:0;font-size:22px;">🩸 रक्तदान र रक्तदाता</h1>
     <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:14px;">Blood Request Alert</p>
   </td></tr>
   <!-- Urgency Badge -->
@@ -78,7 +78,7 @@ def _build_html_body(donor, title, message, payload):
   <!-- Footer -->
   <tr><td style="background:#F9FAFB;padding:20px 32px;text-align:center;border-top:1px solid #E5E7EB;">
     <p style="color:#9CA3AF;font-size:12px;margin:0;">
-      You received this email because you are a registered blood donor on the Nepali Blood Donors Society platform.<br>
+      You received this email because you are a registered blood donor on the रक्तदान र रक्तदाता platform.<br>
       To manage your notification preferences, visit your <a href="#" style="color:#DC2626;">donor dashboard</a>.
     </p>
   </td></tr>

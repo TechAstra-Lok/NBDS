@@ -61,7 +61,7 @@ def create_app(config_name=None):
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
-        app.logger.info('Nepali Blood Donors startup')
+        app.logger.info('रक्तदान र रक्तदाता startup')
     
     # एक्सटेन्सनहरू एप्लिकेसनसँग जोड्ने (Initialize extensions)
     db.init_app(app)
@@ -85,11 +85,14 @@ def create_app(config_name=None):
         # मोडेलहरू इम्पोर्ट गर्ने (डाटाबेस माइग्रेसनको लागि अनिवार्य)
         from app import models  # noqa: F401
         
-        # We use Alembic for migrations, so db.create_all() is removed.
+        db.create_all()
         _ensure_legacy_schema_columns(app)
         
         # सिड एडमिन अकाउन्ट बनाउने
-        _seed_admin(app)
+        try:
+            _seed_admin(app)
+        except Exception:
+            pass
         
         # ब्लुप्रिन्टहरू (Blueprints) इम्पोर्ट र रजिस्टर गर्ने (Circular Import नहुने सुरक्षित तरिका)
         from app.routes.public import public_bp
@@ -146,6 +149,7 @@ def _ensure_legacy_schema_columns(app):
             PublicBloodBankCache,
         )
 
+        db.create_all()
         inspector = inspect(db.engine)
         existing_tables = set(inspector.get_table_names())
         model_tables = [

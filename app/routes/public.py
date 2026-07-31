@@ -100,7 +100,7 @@ def is_text_safe(title, content):
         
         client = openai.OpenAI(api_key=api_key)
         prompt = f"""
-        You are a moderation assistant for a Nepali Blood Donors community website.
+        You are a moderation assistant for the 'रक्तदान र रक्तदाता' community website.
         Evaluate the following success story submission for spam, profanity, extreme violence, or completely irrelevant content.
         If it is a legitimate blood donation success story, or a general positive message, approve it.
         Respond strictly in JSON format: {{"is_safe": true/false, "reason": "brief explanation"}}
