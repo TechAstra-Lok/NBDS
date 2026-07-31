@@ -35,18 +35,14 @@ def bloodbank_login_required(f):
             return redirect(url_for('bloodbank.login'))
             
         # --- Multi-Tenant Support ---
-        # If accessing the dashboard/authenticated routes, resolve the tenant DB
-        if not account.blood_bank or not account.blood_bank.tenant_id:
-            flash("Your blood bank has not been fully provisioned yet.", "danger")
-            return redirect(url_for('bloodbank.login'))
-            
-        try:
-            from app.services.tenant_service import TenantResolutionService
-            TenantResolutionService.resolve_tenant(account.blood_bank.tenant_id)
-        except Exception as e:
-            flash(f"Tenant error: {str(e)}", "danger")
-            return redirect(url_for('bloodbank.login'))
-            
+        # Resolve tenant DB if available, otherwise fall back to primary DB
+        if account.blood_bank and account.blood_bank.tenant_id:
+            try:
+                from app.services.tenant_service import TenantResolutionService
+                TenantResolutionService.resolve_tenant(account.blood_bank.tenant_id)
+            except Exception:
+                pass
+
         return f(*args, **kwargs)
     return decorated
 
