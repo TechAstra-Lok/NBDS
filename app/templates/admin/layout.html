@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light" id="htmlRoot">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="robots" content="noindex, nofollow"/>
-  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}" />
   <title>{% block title %}Admin Panel{% endblock %} — NBD Admin</title>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}" />
   {% block extra_css %}{% endblock %}
 </head>
+
 <body class="admin-body">
 
   <!-- SIDEBAR -->
@@ -20,7 +23,7 @@
     <div class="sidebar-brand">
       <div class="d-flex align-items-center gap-2">
         <div class="brand-icon-sm bg-danger rounded-2 d-flex align-items-center justify-content-center"
-             style="width:36px;height:36px;flex-shrink:0;">
+          style="width:36px;height:36px;flex-shrink:0;">
           <i class="fas fa-droplet text-white"></i>
         </div>
         <div>
@@ -36,16 +39,17 @@
     <!-- User Info -->
     <div class="sidebar-user px-3 py-2 border-bottom border-secondary mb-2">
       <div class="d-flex align-items-center gap-2">
-        <div class="user-avatar bg-danger rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-             style="width:38px;height:38px;font-size:1rem;flex-shrink:0;">
+        <div
+          class="user-avatar bg-danger rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+          style="width:38px;height:38px;font-size:1rem;flex-shrink:0;">
           {% if current_user.is_authenticated %}
-            {{ current_user.full_name[0].upper() if current_user.full_name else current_user.username[0].upper() }}
+          {{ current_user.full_name[0].upper() if current_user.full_name else current_user.username[0].upper() }}
           {% else %}?{% endif %}
         </div>
         <div style="min-width:0;">
           <div class="text-white fw-semibold small text-truncate">
             {% if current_user.is_authenticated %}
-              {{ current_user.full_name or current_user.username }}
+            {{ current_user.full_name or current_user.username }}
             {% else %}Guest{% endif %}
           </div>
           <div class="text-white-50" style="font-size:0.7rem;">
@@ -61,11 +65,13 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main</div>
-      <a href="{{ url_for('admin.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.dashboard' }}">
+      <a href="{{ url_for('admin.dashboard') }}"
+        class="nav-item {{ 'active' if request.endpoint == 'admin.dashboard' }}">
         <i class="fas fa-chart-line"></i> Dashboard
       </a>
 
-      {% if has_permission('manage_donors') or has_permission('manage_requests') or has_permission('manage_blood_banks') or has_permission('manage_volunteer_approvals') %}
+      {% if has_permission('manage_donors') or has_permission('manage_requests') or has_permission('manage_blood_banks')
+      or has_permission('manage_volunteer_approvals') %}
       <div class="nav-section-label">Blood Management</div>
       {% if has_permission('manage_donors') %}
       <a href="{{ url_for('admin.donors') }}" class="nav-item {{ 'active' if 'donor' in request.endpoint }}">
@@ -106,12 +112,14 @@
       </a>
       {% endif %}
       {% if has_permission('manage_ads') %}
-      <a href="{{ url_for('admin.advertisements') }}" class="nav-item {{ 'active' if 'advertisement' in request.endpoint }}">
+      <a href="{{ url_for('admin.advertisements') }}"
+        class="nav-item {{ 'active' if 'advertisement' in request.endpoint }}">
         <i class="fas fa-ad"></i> Advertisements
       </a>
       {% endif %}
       {% if has_permission('manage_success_stories') %}
-      <a href="{{ url_for('admin.success_stories') }}" class="nav-item {{ 'active' if 'success_stories' in request.endpoint }}">
+      <a href="{{ url_for('admin.success_stories') }}"
+        class="nav-item {{ 'active' if 'success_stories' in request.endpoint }}">
         <i class="fas fa-heart text-danger"></i> Success Stories
       </a>
       {% endif %}
@@ -126,12 +134,14 @@
       </a>
       {% endif %}
       {% if has_permission('manage_users') %}
-      <a href="{{ url_for('admin.data_quality') }}" class="nav-item {{ 'active' if 'data_quality' in request.endpoint }}">
+      <a href="{{ url_for('admin.data_quality') }}"
+        class="nav-item {{ 'active' if 'data_quality' in request.endpoint }}">
         <i class="fas fa-broom"></i> Data Quality
       </a>
       {% endif %}
       {% if has_permission('view_analytics') %}
-      <a href="{{ url_for('admin.delivery_logs') }}" class="nav-item {{ 'active' if 'delivery_logs' in request.endpoint }}">
+      <a href="{{ url_for('admin.delivery_logs') }}"
+        class="nav-item {{ 'active' if 'delivery_logs' in request.endpoint }}">
         <i class="fas fa-paper-plane"></i> Delivery Logs
       </a>
       {% endif %}
@@ -144,7 +154,7 @@
       </a>
       {% endif %}
 
-      {% if has_permission('manage_users') %}
+      {% if current_user.is_superadmin %}
       <div class="nav-section-label">System</div>
       <a href="{{ url_for('admin.users') }}" class="nav-item {{ 'active' if 'user' in request.endpoint }}">
         <i class="fas fa-user-shield"></i> Admin Users
@@ -173,7 +183,8 @@
       </button>
       <div class="d-flex align-items-center gap-2 flex-grow-1">
         <h5 class="topbar-title mb-0">{% block page_title %}Dashboard{% endblock %}</h5>
-        <span class="text-muted small d-none d-md-block">/ {{ request.endpoint.split('.')[-1].replace('_', ' ').title() }}</span>
+        <span class="text-muted small d-none d-md-block">/ {{ request.endpoint.split('.')[-1].replace('_', ' ').title()
+          }}</span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <!-- Quick Actions -->
@@ -182,10 +193,14 @@
             <i class="fas fa-plus me-1"></i> <span class="d-none d-md-inline">Quick Add</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="dropdown-item" href="{{ url_for('admin.add_donor') }}"><i class="fas fa-user-plus me-2 text-danger"></i>Add Donor</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin.add_news') }}"><i class="fas fa-newspaper me-2 text-primary"></i>Add News</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin.add_notice') }}"><i class="fas fa-bell me-2 text-warning"></i>Add Notice</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin.add_advertisement') }}"><i class="fas fa-ad me-2 text-success"></i>Add Ad</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.add_donor') }}"><i
+                  class="fas fa-user-plus me-2 text-danger"></i>Add Donor</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.add_news') }}"><i
+                  class="fas fa-newspaper me-2 text-primary"></i>Add News</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.add_notice') }}"><i
+                  class="fas fa-bell me-2 text-warning"></i>Add Notice</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin.add_advertisement') }}"><i
+                  class="fas fa-ad me-2 text-success"></i>Add Ad</a></li>
           </ul>
         </div>
         <button class="btn btn-sm btn-outline-secondary" id="adminThemeToggle" title="Toggle Theme">
@@ -197,14 +212,16 @@
     <!-- Flash Messages -->
     <div class="px-4 pt-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-          <div class="alert alert-{{ 'danger' if category in ['error','danger'] else category if category in ['success','warning','info'] else 'secondary' }} alert-dismissible fade show shadow-sm" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-          {% endfor %}
-        {% endif %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'danger' if category in ['error','danger'] else category if category in ['success','warning','info'] else 'secondary' }} alert-dismissible fade show shadow-sm"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
       {% endwith %}
     </div>
 
@@ -219,4 +236,5 @@
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
   {% block extra_js %}{% endblock %}
 </body>
+
 </html>

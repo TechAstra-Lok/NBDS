@@ -8,7 +8,7 @@ ROLE_PERMISSIONS = {
         'manage_donors', 'manage_requests', 'manage_news', 'manage_notices', 
         'manage_events', 'manage_success_stories', 'moderate_content', 
         'manage_staff', 'manage_partners', 'manage_ads', 'view_analytics', 
-        'manage_users', 'manage_blood_banks'
+        'manage_blood_banks'
     ],
     'moderator': [
         'manage_donors', 'manage_requests', 'moderate_content', 'view_analytics'

@@ -1987,17 +1987,17 @@ def notifications_dashboard():
     )
 
 # ════════════════════════════════════════════
-#   ADMIN USERS MANAGEMENT
+#   ADMIN USERS MANAGEMENT (SUPERADMIN ONLY)
 # ════════════════════════════════════════════
 @admin_bp.route('/users')
-@permission_required('manage_users')
+@superadmin_required
 def users():
     page = request.args.get('page', 1, type=int)
     pagination = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=20)
     return render_template('admin/users.html', pagination=pagination)
 
 @admin_bp.route('/users/add', methods=['GET', 'POST'])
-@permission_required('manage_users')
+@superadmin_required
 def add_user():
     from app.forms import AdminUserForm
     form = AdminUserForm()
@@ -2020,7 +2020,7 @@ def add_user():
     return render_template('admin/user_form.html', form=form, action='Add')
 
 @admin_bp.route('/users/<int:id>/edit', methods=['GET', 'POST'])
-@permission_required('manage_users')
+@superadmin_required
 def edit_user(id):
     from app.forms import AdminUserForm
     user = User.query.get_or_404(id)
@@ -2041,7 +2041,7 @@ def edit_user(id):
     return render_template('admin/user_form.html', form=form, action='Edit', user=user)
 
 @admin_bp.route('/users/<int:id>/delete', methods=['POST'])
-@permission_required('manage_users')
+@superadmin_required
 def delete_user(id):
     user = User.query.get_or_404(id)
     if user.id == current_user.id:
