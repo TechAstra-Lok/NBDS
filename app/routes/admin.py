@@ -567,7 +567,15 @@ def import_donors_csv():
         
     try:
         stream = io.StringIO(file.stream.read().decode('utf-8-sig', errors='replace'))
-        csv_reader = csv.DictReader(stream)
+        
+        # Auto-detect delimiter (handles CSV, TSV, semicolon, pipe, etc.)
+        sample = stream.read(8192)
+        stream.seek(0)
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=',\t;|')
+            csv_reader = csv.DictReader(stream, dialect=dialect)
+        except csv.Error:
+            csv_reader = csv.DictReader(stream)  # fallback to comma
         
         imported_count = 0
         skipped_count = 0
@@ -691,17 +699,53 @@ def import_donors_csv():
                 phone1 = f"0000000{idx:04d}"
             
             # Validate blood group if provided; default to 'O+' if empty
+            VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
             if blood_group_raw:
-                bg_clean = blood_group_raw.upper().replace(' ', '').replace('VE', '').replace('POSITIVE', '+').replace('NEGATIVE', '-')
-                # Handle verbose formats like "A Positive", "B Negative"
-                for prefix in ['A', 'B', 'AB', 'O']:
-                    if bg_clean.startswith(prefix) and len(bg_clean) > len(prefix):
-                        sign_part = bg_clean[len(prefix):]
-                        if sign_part in ['+', '-']:
-                            bg_clean = prefix + sign_part
-                            break
-                if bg_clean not in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']:
-                    bg_clean = 'O+'  # Default instead of skipping
+                raw_str = blood_group_raw.strip().upper()
+                candidates = []
+                if '(' in raw_str:
+                    parts = raw_str.split('(')
+                    before_p = parts[0].strip()
+                    after_p = parts[1].replace(')', '').strip() if len(parts) > 1 else ''
+                    if before_p:
+                        candidates.append(before_p)
+                    if after_p:
+                        candidates.append(after_p)
+                else:
+                    candidates.append(raw_str)
+                
+                BG_NAME_MAP = {
+                    'AB POSITIVE': 'AB+', 'AB NEGATIVE': 'AB-',
+                    'AB+VE': 'AB+', 'AB-VE': 'AB-',
+                    'A POSITIVE': 'A+', 'A NEGATIVE': 'A-',
+                    'A+VE': 'A+', 'A-VE': 'A-',
+                    'B POSITIVE': 'B+', 'B NEGATIVE': 'B-',
+                    'B+VE': 'B+', 'B-VE': 'B-',
+                    'O POSITIVE': 'O+', 'O NEGATIVE': 'O-',
+                    'O+VE': 'O+', 'O-VE': 'O-',
+                    'A POS': 'A+', 'A NEG': 'A-',
+                    'B POS': 'B+', 'B NEG': 'B-',
+                    'AB POS': 'AB+', 'AB NEG': 'AB-',
+                    'O POS': 'O+', 'O NEG': 'O-',
+                }
+                
+                bg_clean = None
+                for cand in candidates:
+                    if cand in VALID_BLOOD_GROUPS:
+                        bg_clean = cand
+                        break
+                    if cand in BG_NAME_MAP:
+                        bg_clean = BG_NAME_MAP[cand]
+                        break
+                    cand_no_space = cand.replace(' ', '')
+                    if cand_no_space.endswith('VE') and len(cand_no_space) > 2:
+                        cand_no_space = cand_no_space[:-2]
+                    if cand_no_space in VALID_BLOOD_GROUPS:
+                        bg_clean = cand_no_space
+                        break
+                
+                if not bg_clean:
+                    bg_clean = 'O+'
             else:
                 bg_clean = 'O+'
             
@@ -835,7 +879,12 @@ def import_donors_csv():
         
         msg = f"✅ Successfully imported {imported_count} donors."
         if skipped_count > 0:
-            msg += f" {skipped_count} rows were skipped (duplicates or invalid data)."
+            msg += f" {skipped_count} rows were skipped."
+            if skipped_reasons:
+                detail = "; ".join(skipped_reasons[:5])
+                if len(skipped_reasons) > 5:
+                    detail += f" ... and {len(skipped_reasons) - 5} more"
+                msg += f" Reasons: {detail}"
         flash(msg, 'success' if imported_count > 0 else 'warning')
         
     except Exception as e:
