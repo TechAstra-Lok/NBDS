@@ -523,19 +523,22 @@ def sample_donors_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        'full_name', 'email', 'phone1', 'phone2', 'blood_group', 'age',
-        'gender', 'weight', 'donor_type', 'curr_province', 'curr_district',
-        'curr_local_level', 'curr_ward', 'curr_tole', 'last_donation_date'
+        'Full Name', 'Current Age', 'Current Weight', 'Permanent Address',
+        'Current Address', 'Phone number 1', 'Phone number 2', 'Blood Group',
+        'Previous Blood Donation Date (if any)', 'Previous Blood Donation Location',
+        'Type of Donor', 'Social Medial Profile Link(e.g Facebook, Instagram)'
     ])
     writer.writerow([
-        'Ram Bahadur Shrestha', 'ram.shrestha@example.com', '9841234567', '9801234567',
-        'O+', '28', 'male', '65', 'regular', 'Bagmati', 'Kathmandu',
-        'Kathmandu Metropolitan', '10', 'Baneshwor', '2025-10-15'
+        'Ram Bahadur Shrestha', '28', '65', 'Kavre',
+        'Kathmandu', '9841234567', '9801234567', 'O+',
+        '2025-10-15', 'Bir Hospital',
+        'regular', 'https://facebook.com/ram'
     ])
     writer.writerow([
-        'Sita Kumari Thapa', 'sita.thapa@example.com', '9841987654', '',
-        'A+', '24', 'female', '55', 'emergency', 'Gandaki', 'Kaski',
-        'Pokhara Metropolitan', '5', 'Lakeside', ''
+        'Sita Kumari Thapa', '24', '55', 'Kaski',
+        'Pokhara', '9841987654', '', 'A+',
+        '', '',
+        'emergency', 'https://instagram.com/sita'
     ])
     output.seek(0)
     return Response(
@@ -574,9 +577,9 @@ def import_donors_csv():
         for idx, row in enumerate(csv_reader, start=2):
             row_data = {k.strip().lower(): (v.strip() if v else '') for k, v in row.items() if k}
             
-            full_name = row_data.get('full_name') or row_data.get('name') or row_data.get('donor_name')
-            phone1 = row_data.get('phone1') or row_data.get('phone') or row_data.get('mobile') or row_data.get('contact')
-            blood_group = row_data.get('blood_group') or row_data.get('bloodgroup') or row_data.get('bg')
+            full_name = row_data.get('full name') or row_data.get('full_name') or row_data.get('name') or row_data.get('donor_name')
+            phone1 = row_data.get('phone number 1') or row_data.get('phone1') or row_data.get('phone') or row_data.get('mobile') or row_data.get('contact')
+            blood_group = row_data.get('blood group') or row_data.get('blood_group') or row_data.get('bloodgroup') or row_data.get('bg')
             
             if not full_name or not phone1 or not blood_group:
                 skipped_count += 1
@@ -593,17 +596,19 @@ def import_donors_csv():
                 continue
                 
             try:
-                age = int(row_data.get('age', 25))
+                age_val = row_data.get('current age') or row_data.get('age')
+                age = int(age_val) if age_val else 25
             except ValueError:
                 age = 25
                 
             try:
-                weight = float(row_data.get('weight', 60.0)) if row_data.get('weight') else 60.0
+                weight_val = row_data.get('current weight') or row_data.get('weight')
+                weight = float(weight_val) if weight_val else 60.0
             except ValueError:
                 weight = 60.0
                 
             last_donation_date = None
-            ld_str = row_data.get('last_donation_date') or row_data.get('last_donation')
+            ld_str = row_data.get('previous blood donation date (if any)') or row_data.get('last_donation_date') or row_data.get('last_donation')
             if ld_str:
                 for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d'):
                     try:
@@ -612,19 +617,28 @@ def import_donors_csv():
                     except ValueError:
                         pass
                         
+            curr_addr = row_data.get('current address') or ''
+            perm_addr = row_data.get('permanent address') or ''
+            
             curr_province = row_data.get('curr_province') or row_data.get('province') or 'Bagmati'
-            curr_district = row_data.get('curr_district') or row_data.get('district') or 'Kathmandu'
-            curr_local_level = row_data.get('curr_local_level') or row_data.get('local_level') or row_data.get('city') or 'Kathmandu'
+            curr_district = row_data.get('curr_district') or row_data.get('district') or (curr_addr if curr_addr else 'Kathmandu')
+            curr_local_level = row_data.get('curr_local_level') or row_data.get('local_level') or row_data.get('city') or (curr_addr if curr_addr else 'Kathmandu')
             curr_ward = row_data.get('curr_ward') or row_data.get('ward') or ''
             curr_tole = row_data.get('curr_tole') or row_data.get('tole') or ''
-            donor_type = row_data.get('donor_type') or 'regular'
+            
+            perm_province = row_data.get('perm_province') or curr_province
+            perm_district = row_data.get('perm_district') or (perm_addr if perm_addr else curr_district)
+            perm_local_level = row_data.get('perm_local_level') or (perm_addr if perm_addr else curr_local_level)
+
+            donor_type = row_data.get('type of donor') or row_data.get('donor_type') or 'regular'
             gender = row_data.get('gender') or 'male'
+            social_link = row_data.get('social medial profile link(e.g facebook, instagram)') or row_data.get('social_link') or ''
             
             donor = Donor(
                 full_name=full_name,
                 email=email,
                 phone1=phone1,
-                phone2=row_data.get('phone2', ''),
+                phone2=row_data.get('phone number 2') or row_data.get('phone2') or '',
                 pin_hash=default_pin_hash,
                 age=age,
                 weight=weight,
@@ -636,10 +650,11 @@ def import_donors_csv():
                 curr_local_level=curr_local_level,
                 curr_ward=curr_ward,
                 curr_tole=curr_tole,
-                perm_province=row_data.get('perm_province', curr_province),
-                perm_district=row_data.get('perm_district', curr_district),
-                perm_local_level=row_data.get('perm_local_level', curr_local_level),
+                perm_province=perm_province,
+                perm_district=perm_district,
+                perm_local_level=perm_local_level,
                 last_donation_date=last_donation_date,
+                social_link=social_link,
                 is_active=True,
                 is_public=True
             )
