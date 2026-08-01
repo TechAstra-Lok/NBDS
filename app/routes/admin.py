@@ -634,7 +634,13 @@ def import_donors_csv():
             'last donation': 'last_donation_date', 'last_donation': 'last_donation_date',
             'previous blood donation date (if any)': 'last_donation_date',
             'previous blood donation date': 'last_donation_date',
+            'previous blood donated date(last time)': 'last_donation_date',
+            'previous blood donated date': 'last_donation_date',
             'donation date': 'last_donation_date', 'last donated': 'last_donation_date',
+            # Donation Times
+            'donation_times': 'donation_times', 'donation times': 'donation_times',
+            'previous blood donated times(e.g 1, 2 , ... if not write \'0\')': 'donation_times',
+            'previous blood donated times': 'donation_times',
             # Current Address fields
             'current province': 'curr_province', 'curr_province': 'curr_province',
             'province': 'curr_province', 'current_province': 'curr_province',
@@ -795,8 +801,18 @@ def import_donors_csv():
                     
                     # Donor type
                     donor_type = row_data.get('donor_type', '').strip().lower()
-                    if donor_type not in ['regular', 'emergency', 'platelet', 'rare', 'volunteer', 'other']:
+                    if 'occ' in donor_type or 'reg' in donor_type or 'norm' in donor_type:
                         donor_type = 'regular'
+                    elif 'vol' in donor_type:
+                        donor_type = 'volunteer'
+                    elif 'emerg' in donor_type or 'urg' in donor_type:
+                        donor_type = 'emergency'
+                    elif 'plat' in donor_type or 'sdp' in donor_type:
+                        donor_type = 'platelet'
+                    elif 'rare' in donor_type:
+                        donor_type = 'rare'
+                    elif donor_type not in ['regular', 'emergency', 'platelet', 'rare', 'volunteer', 'other']:
+                        donor_type = donor_type[:30] if donor_type else 'regular'
                     
                     # Availability status
                     avail_status = row_data.get('availability_status', '').strip().lower()
@@ -807,24 +823,49 @@ def import_donors_csv():
                     last_donation_date = None
                     ld_str = row_data.get('last_donation_date', '').strip()
                     if ld_str:
-                        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
-                                    '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y'):
+                        # Split to remove time if only date is needed, but strptime with time is better
+                        ld_clean = ld_str.split(' ')[0] if ' ' in ld_str and not ':' in ld_str else ld_str
+                        for fmt in ('%m/%d/%Y %H:%M:%S', '%m/%d/%Y %H:%M', '%m/%d/%Y', '%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d',
+                                    '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
                             try:
-                                last_donation_date = datetime.strptime(ld_str, fmt).date()
+                                last_donation_date = datetime.strptime(ld_clean, fmt).date()
                                 break
                             except ValueError:
                                 pass
                     
                     # Address fields
                     curr_addr_fallback = row_data.get('current_address', '').strip()
-                    curr_province = row_data.get('curr_province', '').strip() or 'Bagmati'
+                    
+                    def _infer_province(addr_text):
+                        if not addr_text: return 'Bagmati'
+                        text = addr_text.lower()
+                        prov_map = {
+                            'Koshi': ['jhapa', 'morang', 'sunsari', 'dhankuta', 'birtamode', 'arjundhara', 'damak', 'dharan', 'biratnagar'],
+                            'Madhesh': ['saptari', 'siraha', 'dhanusha', 'janakpur', 'birgunj'],
+                            'Bagmati': ['kathmandu', 'lalitpur', 'bhaktapur', 'chitwan'],
+                            'Gandaki': ['kaski', 'pokhara', 'gorkha'],
+                            'Lumbini': ['rupandehi', 'butwal', 'dang'],
+                            'Karnali': ['surkhet', 'birendranagar'],
+                            'Sudurpashchim': ['kailali', 'dhangadhi']
+                        }
+                        for p, kws in prov_map.items():
+                            if any(k in text for k in kws): return p
+                        return 'Bagmati'
+
+                    curr_province = row_data.get('curr_province', '').strip()
+                    if not curr_province:
+                        curr_province = _infer_province(curr_addr_fallback)
+                        
                     curr_district = row_data.get('curr_district', '').strip() or curr_addr_fallback or 'Kathmandu'
                     curr_local_level = row_data.get('curr_local_level', '').strip() or curr_addr_fallback or 'Kathmandu'
                     curr_ward = row_data.get('curr_ward', '').strip()
                     curr_tole = row_data.get('curr_tole', '').strip()
                     
                     perm_addr_fallback = row_data.get('permanent_address', '').strip()
-                    perm_province = row_data.get('perm_province', '').strip() or curr_province
+                    perm_province = row_data.get('perm_province', '').strip()
+                    if not perm_province:
+                        perm_province = _infer_province(perm_addr_fallback) if perm_addr_fallback else curr_province
+                        
                     perm_district = row_data.get('perm_district', '').strip() or perm_addr_fallback or curr_district
                     perm_local_level = row_data.get('perm_local_level', '').strip() or perm_addr_fallback or curr_local_level
                     perm_ward = row_data.get('perm_ward', '').strip()
@@ -832,6 +873,14 @@ def import_donors_csv():
                     
                     social_link = row_data.get('social_link', '').strip()
                     phone2 = row_data.get('phone2', '').strip()
+                    
+                    donation_times = 0
+                    dt_str = row_data.get('donation_times', '').strip()
+                    if dt_str:
+                        import re
+                        match = re.search(r'\d+', dt_str)
+                        if match:
+                            donation_times = int(match.group())
                     
                     created_at_dt = None
                     reg_str = row_data.get('registered_date', '').strip()
@@ -867,6 +916,7 @@ def import_donors_csv():
                             if perm_ward: existing.perm_ward = perm_ward
                             if perm_tole: existing.perm_tole = perm_tole
                             if last_donation_date: existing.last_donation_date = last_donation_date
+                            if donation_times: existing.donation_times = donation_times
                             if social_link: existing.social_link = social_link
                             
                             existing.recalculate_and_save()
@@ -899,6 +949,7 @@ def import_donors_csv():
                             perm_ward=perm_ward,
                             perm_tole=perm_tole,
                             last_donation_date=last_donation_date,
+                            donation_times=donation_times,
                             social_link=social_link,
                             is_active=True,
                             is_public=True
