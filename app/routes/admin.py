@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 from urllib.parse import urljoin, urlparse
 from flask import (
     Blueprint, render_template, request, redirect,
@@ -551,7 +552,7 @@ def sample_donors_csv():
 @admin_bp.route('/donors/import-csv', methods=['POST'])
 @permission_required('manage_donors')
 def import_donors_csv():
-    """Bulk import blood donors from a CSV file."""
+    """Bulk import blood donors from a CSV file with duplicate handling (skip or override)."""
     if 'csv_file' not in request.files:
         flash('No file part uploaded.', 'danger')
         return redirect(url_for('admin.donors'))
@@ -565,8 +566,11 @@ def import_donors_csv():
         flash('Invalid file format. Please upload a .csv file.', 'danger')
         return redirect(url_for('admin.donors'))
         
+    duplicate_action = request.form.get('duplicate_action', 'skip').strip().lower()
+    
     try:
-        stream = io.StringIO(file.stream.read().decode('utf-8-sig', errors='replace'))
+        raw_bytes = file.stream.read()
+        stream = io.StringIO(raw_bytes.decode('utf-8-sig', errors='replace'))
         
         # Auto-detect delimiter (handles CSV, TSV, semicolon, pipe, etc.)
         sample = stream.read(8192)
@@ -578,14 +582,20 @@ def import_donors_csv():
             csv_reader = csv.DictReader(stream)  # fallback to comma
         
         imported_count = 0
+        updated_count = 0
         skipped_count = 0
         skipped_reasons = []
         
+        # DEBUG: Log detected headers and delimiter for troubleshooting
+        import logging
+        _log = logging.getLogger('csv_import')
+        detected_delim = repr(dialect.delimiter) if 'dialect' in dir() else 'comma(default)'
+        raw_headers = csv_reader.fieldnames or []
+        _log.warning(f"CSV IMPORT DEBUG: delimiter={detected_delim}, headers={raw_headers}")
+        _log.warning(f"CSV IMPORT DEBUG: raw_bytes first 500 chars: {repr(raw_bytes[:500])}")
+        
         default_pin_hash = generate_password_hash('1234')
         
-        # ── Comprehensive alias map ──
-        # Maps many possible CSV header variations to a canonical internal field name.
-        # Keys are lowercase; matching is done after lowercasing + stripping the CSV header.
         FIELD_ALIASES = {
             # Full Name
             'full name': 'full_name', 'full_name': 'full_name', 'name': 'full_name',
@@ -607,8 +617,7 @@ def import_donors_csv():
             'bloodgroup': 'blood_group', 'bg': 'blood_group', 'blood type': 'blood_group',
             'blood_type': 'blood_group', 'bloodtype': 'blood_group',
             # Age
-            'age': 'age', 'current age': 'age', 'current_age': 'age',
-            'donor age': 'age',
+            'age': 'age', 'current age': 'age', 'current_age': 'age', 'donor age': 'age',
             # Gender
             'gender': 'gender', 'sex': 'gender',
             # Weight
@@ -656,15 +665,14 @@ def import_donors_csv():
             'social link': 'social_link', 'social_link': 'social_link',
             'social media': 'social_link', 'facebook': 'social_link', 'instagram': 'social_link',
             'social profile': 'social_link', 'social media link': 'social_link',
-            # Registered Date (informational, not used for donor creation)
+            # Registered Date
             'registered date': 'registered_date', 'registered_date': 'registered_date',
             'registration date': 'registered_date', 'created at': 'registered_date',
-            # Donor ID (informational, ignored — system generates its own)
+            # Donor ID
             'donor id': '_donor_id', 'donor_id': '_donor_id', 'id': '_donor_id',
         }
         
         def _normalize_row(raw_row):
-            """Map any CSV header format to canonical field names using alias table."""
             normalized = {}
             for raw_key, value in raw_row.items():
                 if not raw_key:
@@ -674,218 +682,263 @@ def import_donors_csv():
                 if canonical and canonical not in normalized:
                     normalized[canonical] = value.strip() if value else ''
                 elif not canonical and clean_key not in normalized:
-                    # Keep unmapped fields under their cleaned key for fallback
                     normalized[clean_key] = value.strip() if value else ''
             return normalized
-        
-        for idx, row in enumerate(csv_reader, start=2):
-            row_data = _normalize_row(row)
-            
-            # ── Extract fields with flexible defaults ──
-            full_name = row_data.get('full_name', '').strip()
-            
-            # Only truly skip if there's no name at all (completely empty row)
-            if not full_name:
-                skipped_count += 1
-                skipped_reasons.append(f"Row {idx}: missing Full Name")
-                continue
-            
-            phone1 = row_data.get('phone1', '').strip()
-            blood_group_raw = row_data.get('blood_group', '').strip()
-            email = row_data.get('email', '').strip()
-            
-            # Generate a phone number if missing — use a placeholder with row index
-            if not phone1:
-                phone1 = f"0000000{idx:04d}"
-            
-            # Validate blood group if provided; default to 'O+' if empty
-            VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-            if blood_group_raw:
-                raw_str = blood_group_raw.strip().upper()
-                candidates = []
-                if '(' in raw_str:
-                    parts = raw_str.split('(')
-                    before_p = parts[0].strip()
-                    after_p = parts[1].replace(')', '').strip() if len(parts) > 1 else ''
-                    if before_p:
-                        candidates.append(before_p)
-                    if after_p:
-                        candidates.append(after_p)
-                else:
-                    candidates.append(raw_str)
-                
-                BG_NAME_MAP = {
-                    'AB POSITIVE': 'AB+', 'AB NEGATIVE': 'AB-',
-                    'AB+VE': 'AB+', 'AB-VE': 'AB-',
-                    'A POSITIVE': 'A+', 'A NEGATIVE': 'A-',
-                    'A+VE': 'A+', 'A-VE': 'A-',
-                    'B POSITIVE': 'B+', 'B NEGATIVE': 'B-',
-                    'B+VE': 'B+', 'B-VE': 'B-',
-                    'O POSITIVE': 'O+', 'O NEGATIVE': 'O-',
-                    'O+VE': 'O+', 'O-VE': 'O-',
-                    'A POS': 'A+', 'A NEG': 'A-',
-                    'B POS': 'B+', 'B NEG': 'B-',
-                    'AB POS': 'AB+', 'AB NEG': 'AB-',
-                    'O POS': 'O+', 'O NEG': 'O-',
-                }
-                
-                bg_clean = None
-                for cand in candidates:
-                    if cand in VALID_BLOOD_GROUPS:
-                        bg_clean = cand
-                        break
-                    if cand in BG_NAME_MAP:
-                        bg_clean = BG_NAME_MAP[cand]
-                        break
-                    cand_no_space = cand.replace(' ', '')
-                    if cand_no_space.endswith('VE') and len(cand_no_space) > 2:
-                        cand_no_space = cand_no_space[:-2]
-                    if cand_no_space in VALID_BLOOD_GROUPS:
-                        bg_clean = cand_no_space
-                        break
-                
-                if not bg_clean:
-                    bg_clean = 'O+'
+
+        VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+        BG_NAME_MAP = {
+            'AB POSITIVE': 'AB+', 'AB NEGATIVE': 'AB-',
+            'AB+VE': 'AB+', 'AB-VE': 'AB-',
+            'A POSITIVE': 'A+', 'A NEGATIVE': 'A-',
+            'A+VE': 'A+', 'A-VE': 'A-',
+            'B POSITIVE': 'B+', 'B NEGATIVE': 'B-',
+            'B+VE': 'B+', 'B-VE': 'B-',
+            'O POSITIVE': 'O+', 'O NEGATIVE': 'O-',
+            'O+VE': 'O+', 'O-VE': 'O-',
+            'A POS': 'A+', 'A NEG': 'A-',
+            'B POS': 'B+', 'B NEG': 'B-',
+            'AB POS': 'AB+', 'AB NEG': 'AB-',
+            'O POS': 'O+', 'O NEG': 'O-',
+        }
+
+        def _parse_blood_group(raw_val):
+            if not raw_val:
+                return 'O+'
+            raw_str = raw_val.strip().upper()
+            candidates = []
+            if '(' in raw_str:
+                parts = raw_str.split('(')
+                before_p = parts[0].strip()
+                after_p = parts[1].replace(')', '').strip() if len(parts) > 1 else ''
+                if before_p: candidates.append(before_p)
+                if after_p: candidates.append(after_p)
             else:
-                bg_clean = 'O+'
+                candidates.append(raw_str)
             
-            # Generate email if not provided
-            if not email:
-                email = f"donor_{phone1}@nepaliblooddonors.org"
-            
-            # Check for duplicates by phone or email — skip only true duplicates
-            existing = Donor.query.filter(
-                (Donor.phone1 == phone1) | (Donor.email == email)
-            ).first()
-            if existing:
+            for cand in candidates:
+                if cand in VALID_BLOOD_GROUPS:
+                    return cand
+                if cand in BG_NAME_MAP:
+                    return BG_NAME_MAP[cand]
+                cand_no_space = cand.replace(' ', '')
+                if cand_no_space.endswith('VE') and len(cand_no_space) > 2:
+                    cand_no_space = cand_no_space[:-2]
+                if cand_no_space in VALID_BLOOD_GROUPS:
+                    return cand_no_space
+            return 'O+'
+
+        for idx, row in enumerate(csv_reader, start=2):
+            try:
+                with db.session.begin_nested():
+                    row_data = _normalize_row(row)
+                    
+                    full_name = row_data.get('full_name', '').strip()
+                    if not full_name:
+                        # Fallback search in raw row values for non-empty text string
+                        for k, v in row.items():
+                            if v and isinstance(v, str) and len(v.strip()) > 1 and not v.strip().replace('.','',1).isdigit():
+                                full_name = v.strip()
+                                break
+                    
+                    if not full_name:
+                        skipped_count += 1
+                        skipped_reasons.append(f"Row {idx}: missing Full Name")
+                        continue
+                    
+                    phone1 = row_data.get('phone1', '').strip()
+                    email = row_data.get('email', '').strip()
+                    blood_group_raw = row_data.get('blood_group', '').strip()
+                    
+                    # DEBUG: Log first 3 rows for troubleshooting
+                    if idx <= 4:
+                        _log.warning(f"CSV ROW {idx} DEBUG: blood_group_raw={repr(blood_group_raw)}, keys={list(row_data.keys())}")
+                        _log.warning(f"CSV ROW {idx} RAW: {dict(row)}")
+                    
+                    # Ensure phone1 is present or generate unique placeholder
+                    if not phone1:
+                        generated_p = f"9000{idx:06d}"
+                        phone1 = generated_p
+                    
+                    # Ensure email is present or generate unique placeholder
+                    if not email:
+                        email = f"donor_{phone1}@nepaliblooddonors.org"
+                    
+                    bg_clean = _parse_blood_group(blood_group_raw)
+                    
+                    # DEBUG: Log parsed blood group for first 3 rows
+                    if idx <= 4:
+                        _log.warning(f"CSV ROW {idx} PARSED: bg_clean={repr(bg_clean)}")
+                    
+                    # Check existing donor by phone or email
+                    existing = Donor.query.filter(
+                        (Donor.phone1 == phone1) | (Donor.email == email)
+                    ).first()
+
+                    # Age
+                    try:
+                        age_val = row_data.get('age', '').strip()
+                        age = int(float(age_val)) if age_val else 25
+                    except (ValueError, TypeError):
+                        age = 25
+                    
+                    # Weight
+                    try:
+                        weight_val = row_data.get('weight', '').strip()
+                        weight = float(weight_val) if weight_val else 60.0
+                    except (ValueError, TypeError):
+                        weight = 60.0
+                    
+                    # Gender
+                    gender = row_data.get('gender', '').strip().lower()
+                    if gender not in ['male', 'female', 'other', 'prefer_not_to_say']:
+                        gender = 'male'
+                    
+                    # Donor type
+                    donor_type = row_data.get('donor_type', '').strip().lower()
+                    if donor_type not in ['regular', 'emergency', 'platelet', 'rare', 'volunteer', 'other']:
+                        donor_type = 'regular'
+                    
+                    # Availability status
+                    avail_status = row_data.get('availability_status', '').strip().lower()
+                    if avail_status not in ['available', 'recently_donated', 'unavailable']:
+                        avail_status = 'available'
+                    
+                    # Last donation date
+                    last_donation_date = None
+                    ld_str = row_data.get('last_donation_date', '').strip()
+                    if ld_str:
+                        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
+                                    '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y'):
+                            try:
+                                last_donation_date = datetime.strptime(ld_str, fmt).date()
+                                break
+                            except ValueError:
+                                pass
+                    
+                    # Address fields
+                    curr_addr_fallback = row_data.get('current_address', '').strip()
+                    curr_province = row_data.get('curr_province', '').strip() or 'Bagmati'
+                    curr_district = row_data.get('curr_district', '').strip() or curr_addr_fallback or 'Kathmandu'
+                    curr_local_level = row_data.get('curr_local_level', '').strip() or curr_addr_fallback or 'Kathmandu'
+                    curr_ward = row_data.get('curr_ward', '').strip()
+                    curr_tole = row_data.get('curr_tole', '').strip()
+                    
+                    perm_addr_fallback = row_data.get('permanent_address', '').strip()
+                    perm_province = row_data.get('perm_province', '').strip() or curr_province
+                    perm_district = row_data.get('perm_district', '').strip() or perm_addr_fallback or curr_district
+                    perm_local_level = row_data.get('perm_local_level', '').strip() or perm_addr_fallback or curr_local_level
+                    perm_ward = row_data.get('perm_ward', '').strip()
+                    perm_tole = row_data.get('perm_tole', '').strip()
+                    
+                    social_link = row_data.get('social_link', '').strip()
+                    phone2 = row_data.get('phone2', '').strip()
+                    
+                    created_at_dt = None
+                    reg_str = row_data.get('registered_date', '').strip()
+                    if reg_str:
+                        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
+                                    '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y',
+                                    '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
+                            try:
+                                created_at_dt = datetime.strptime(reg_str, fmt)
+                                break
+                            except ValueError:
+                                pass
+
+                    if existing:
+                        if duplicate_action in ['override', 'update']:
+                            # Update existing donor record
+                            existing.full_name = full_name
+                            if phone2: existing.phone2 = phone2
+                            if age: existing.age = age
+                            if weight: existing.weight = weight
+                            if bg_clean: existing.blood_group = bg_clean
+                            if gender: existing.gender = gender
+                            if donor_type: existing.donor_type = donor_type
+                            if avail_status: existing.availability_status = avail_status
+                            if curr_province: existing.curr_province = curr_province
+                            if curr_district: existing.curr_district = curr_district
+                            if curr_local_level: existing.curr_local_level = curr_local_level
+                            if curr_ward: existing.curr_ward = curr_ward
+                            if curr_tole: existing.curr_tole = curr_tole
+                            if perm_province: existing.perm_province = perm_province
+                            if perm_district: existing.perm_district = perm_district
+                            if perm_local_level: existing.perm_local_level = perm_local_level
+                            if perm_ward: existing.perm_ward = perm_ward
+                            if perm_tole: existing.perm_tole = perm_tole
+                            if last_donation_date: existing.last_donation_date = last_donation_date
+                            if social_link: existing.social_link = social_link
+                            
+                            existing.recalculate_and_save()
+                            updated_count += 1
+                        else:
+                            skipped_count += 1
+                            skipped_reasons.append(f"Row {idx}: duplicate ({full_name})")
+                    else:
+                        # Create new donor record
+                        donor = Donor(
+                            full_name=full_name,
+                            email=email,
+                            phone1=phone1,
+                            phone2=phone2,
+                            pin_hash=default_pin_hash,
+                            age=age,
+                            weight=weight,
+                            blood_group=bg_clean,
+                            gender=gender,
+                            donor_type=donor_type,
+                            availability_status=avail_status,
+                            curr_province=curr_province,
+                            curr_district=curr_district,
+                            curr_local_level=curr_local_level,
+                            curr_ward=curr_ward,
+                            curr_tole=curr_tole,
+                            perm_province=perm_province,
+                            perm_district=perm_district,
+                            perm_local_level=perm_local_level,
+                            perm_ward=perm_ward,
+                            perm_tole=perm_tole,
+                            last_donation_date=last_donation_date,
+                            social_link=social_link,
+                            is_active=True,
+                            is_public=True
+                        )
+                        if created_at_dt:
+                            donor.created_at = created_at_dt
+                        donor.recalculate_and_save()
+                        db.session.add(donor)
+                        imported_count += 1
+
+            except Exception as row_err:
                 skipped_count += 1
-                skipped_reasons.append(f"Row {idx}: duplicate (phone={phone1} or email={email})")
-                continue
-            
-            # Age — default 25 if empty/invalid
-            try:
-                age_val = row_data.get('age', '').strip()
-                age = int(float(age_val)) if age_val else 25
-            except (ValueError, TypeError):
-                age = 25
-            
-            # Weight — default 60 if empty/invalid
-            try:
-                weight_val = row_data.get('weight', '').strip()
-                weight = float(weight_val) if weight_val else 60.0
-            except (ValueError, TypeError):
-                weight = 60.0
-            
-            # Gender
-            gender = row_data.get('gender', '').strip().lower()
-            if gender not in ['male', 'female', 'other', 'prefer_not_to_say']:
-                gender = 'male'
-            
-            # Donor type
-            donor_type = row_data.get('donor_type', '').strip().lower()
-            if donor_type not in ['regular', 'emergency', 'platelet', 'rare', 'volunteer', 'other']:
-                donor_type = 'regular'
-            
-            # Availability status
-            avail_status = row_data.get('availability_status', '').strip().lower()
-            if avail_status not in ['available', 'recently_donated', 'unavailable']:
-                avail_status = 'available'
-            
-            # Last donation date — try multiple formats
-            last_donation_date = None
-            ld_str = row_data.get('last_donation_date', '').strip()
-            if ld_str:
-                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
-                            '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y'):
-                    try:
-                        last_donation_date = datetime.strptime(ld_str, fmt).date()
-                        break
-                    except ValueError:
-                        pass
-            
-            # Current address fields — use specific columns if available, else fallback
-            curr_addr_fallback = row_data.get('current_address', '').strip()
-            curr_province = row_data.get('curr_province', '').strip() or 'Bagmati'
-            curr_district = row_data.get('curr_district', '').strip() or curr_addr_fallback or 'Kathmandu'
-            curr_local_level = row_data.get('curr_local_level', '').strip() or curr_addr_fallback or 'Kathmandu'
-            curr_ward = row_data.get('curr_ward', '').strip()
-            curr_tole = row_data.get('curr_tole', '').strip()
-            
-            # Permanent address fields — fallback to current address
-            perm_addr_fallback = row_data.get('permanent_address', '').strip()
-            perm_province = row_data.get('perm_province', '').strip() or curr_province
-            perm_district = row_data.get('perm_district', '').strip() or perm_addr_fallback or curr_district
-            perm_local_level = row_data.get('perm_local_level', '').strip() or perm_addr_fallback or curr_local_level
-            
-            # Social link
-            social_link = row_data.get('social_link', '').strip()
-            
-            # Phone2
-            phone2 = row_data.get('phone2', '').strip()
-            
-            # Registered date (for created_at if available)
-            created_at_dt = None
-            reg_str = row_data.get('registered_date', '').strip()
-            if reg_str:
-                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
-                            '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y',
-                            '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
-                    try:
-                        created_at_dt = datetime.strptime(reg_str, fmt)
-                        break
-                    except ValueError:
-                        pass
-            
-            donor = Donor(
-                full_name=full_name,
-                email=email,
-                phone1=phone1,
-                phone2=phone2,
-                pin_hash=default_pin_hash,
-                age=age,
-                weight=weight,
-                blood_group=bg_clean,
-                gender=gender,
-                donor_type=donor_type,
-                availability_status=avail_status,
-                curr_province=curr_province,
-                curr_district=curr_district,
-                curr_local_level=curr_local_level,
-                curr_ward=curr_ward,
-                curr_tole=curr_tole,
-                perm_province=perm_province,
-                perm_district=perm_district,
-                perm_local_level=perm_local_level,
-                last_donation_date=last_donation_date,
-                social_link=social_link,
-                is_active=True,
-                is_public=True
-            )
-            if created_at_dt:
-                donor.created_at = created_at_dt
-            donor.recalculate_and_save()
-            db.session.add(donor)
-            imported_count += 1
+                skipped_reasons.append(f"Row {idx}: error ({str(row_err)})")
             
         db.session.commit()
         
         audit_log = AuditLog(
             action='BULK_IMPORT_DONORS',
-            details=f'Imported {imported_count} donors from CSV file ({skipped_count} skipped).',
+            details=f'Bulk import completed. Added: {imported_count}, Updated: {updated_count}, Skipped: {skipped_count}.',
             actor=current_user.username if hasattr(current_user, 'username') else 'admin'
         )
         db.session.add(audit_log)
         db.session.commit()
         
-        msg = f"✅ Successfully imported {imported_count} donors."
+        msg_parts = []
+        if imported_count > 0:
+            msg_parts.append(f"✅ Imported {imported_count} new donors")
+        if updated_count > 0:
+            msg_parts.append(f"🔄 Updated {updated_count} existing donors")
         if skipped_count > 0:
-            msg += f" {skipped_count} rows were skipped."
-            if skipped_reasons:
-                detail = "; ".join(skipped_reasons[:5])
-                if len(skipped_reasons) > 5:
-                    detail += f" ... and {len(skipped_reasons) - 5} more"
-                msg += f" Reasons: {detail}"
-        flash(msg, 'success' if imported_count > 0 else 'warning')
+            msg_parts.append(f"⚠️ {skipped_count} rows skipped")
+            
+        msg = ". ".join(msg_parts) if msg_parts else "No donors processed."
+        if skipped_reasons:
+            detail = "; ".join(skipped_reasons[:5])
+            if len(skipped_reasons) > 5:
+                detail += f" ... and {len(skipped_reasons) - 5} more"
+            msg += f" (Reasons: {detail})"
+            
+        flash(msg, 'success' if (imported_count > 0 or updated_count > 0) else 'warning')
         
     except Exception as e:
         db.session.rollback()

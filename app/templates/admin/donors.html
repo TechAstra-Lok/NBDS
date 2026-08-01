@@ -41,6 +41,23 @@
             <label for="csvFile" class="form-label fw-semibold">Select CSV File</label>
             <input class="form-control" type="file" id="csvFile" name="csv_file" accept=".csv" required>
           </div>
+
+          <div class="mb-3 p-3 bg-light rounded-3 border">
+            <label class="form-label fw-bold mb-2 text-dark">If Duplicate Donor Exists (Phone/Email match):</label>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="duplicate_action" id="dupSkip" value="skip" checked>
+              <label class="form-check-label text-secondary small" for="dupSkip">
+                <strong class="text-dark">Skip duplicates</strong> — Skip existing records and keep current data
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="duplicate_action" id="dupOverride" value="override">
+              <label class="form-check-label text-secondary small" for="dupOverride">
+                <strong class="text-dark">Override / Update existing records</strong> — Update existing donor with new CSV data
+              </label>
+            </div>
+          </div>
+
           <div class="mb-2">
             <a href="{{ url_for('admin.sample_donors_csv') }}" class="text-decoration-none small">
               <i class="fas fa-file-csv me-1"></i>Download Sample CSV Template
