@@ -571,80 +571,239 @@ def import_donors_csv():
         
         imported_count = 0
         skipped_count = 0
+        skipped_reasons = []
         
         default_pin_hash = generate_password_hash('1234')
         
+        # ── Comprehensive alias map ──
+        # Maps many possible CSV header variations to a canonical internal field name.
+        # Keys are lowercase; matching is done after lowercasing + stripping the CSV header.
+        FIELD_ALIASES = {
+            # Full Name
+            'full name': 'full_name', 'full_name': 'full_name', 'name': 'full_name',
+            'donor name': 'full_name', 'donor_name': 'full_name', 'fullname': 'full_name',
+            # Email
+            'email': 'email', 'email address': 'email', 'email_address': 'email',
+            'e-mail': 'email', 'emailaddress': 'email',
+            # Primary Phone
+            'primary phone': 'phone1', 'phone1': 'phone1', 'phone number 1': 'phone1',
+            'phone': 'phone1', 'mobile': 'phone1', 'contact': 'phone1',
+            'phone number': 'phone1', 'mobile number': 'phone1', 'contact number': 'phone1',
+            'primary phone number': 'phone1', 'primaryphone': 'phone1',
+            # Secondary Phone
+            'secondary phone': 'phone2', 'phone2': 'phone2', 'phone number 2': 'phone2',
+            'secondary phone number': 'phone2', 'secondaryphone': 'phone2',
+            'alternate phone': 'phone2', 'alt phone': 'phone2',
+            # Blood Group
+            'blood group': 'blood_group', 'blood_group': 'blood_group',
+            'bloodgroup': 'blood_group', 'bg': 'blood_group', 'blood type': 'blood_group',
+            'blood_type': 'blood_group', 'bloodtype': 'blood_group',
+            # Age
+            'age': 'age', 'current age': 'age', 'current_age': 'age',
+            'donor age': 'age',
+            # Gender
+            'gender': 'gender', 'sex': 'gender',
+            # Weight
+            'weight': 'weight', 'weight (kg)': 'weight', 'weight(kg)': 'weight',
+            'current weight': 'weight', 'current_weight': 'weight', 'weight_kg': 'weight',
+            # Donor Type
+            'donor type': 'donor_type', 'donor_type': 'donor_type', 'type': 'donor_type',
+            'type of donor': 'donor_type', 'donortype': 'donor_type',
+            # Availability Status
+            'availability status': 'availability_status', 'availability_status': 'availability_status',
+            'status': 'availability_status', 'availability': 'availability_status',
+            # Last Donation Date
+            'last donation date': 'last_donation_date', 'last_donation_date': 'last_donation_date',
+            'last donation': 'last_donation_date', 'last_donation': 'last_donation_date',
+            'previous blood donation date (if any)': 'last_donation_date',
+            'previous blood donation date': 'last_donation_date',
+            'donation date': 'last_donation_date', 'last donated': 'last_donation_date',
+            # Current Address fields
+            'current province': 'curr_province', 'curr_province': 'curr_province',
+            'province': 'curr_province', 'current_province': 'curr_province',
+            'current district': 'curr_district', 'curr_district': 'curr_district',
+            'district': 'curr_district', 'current_district': 'curr_district',
+            'current local level': 'curr_local_level', 'curr_local_level': 'curr_local_level',
+            'local level': 'curr_local_level', 'current_local_level': 'curr_local_level',
+            'municipality': 'curr_local_level', 'city': 'curr_local_level',
+            'current ward': 'curr_ward', 'curr_ward': 'curr_ward', 'ward': 'curr_ward',
+            'current_ward': 'curr_ward',
+            'current tole': 'curr_tole', 'curr_tole': 'curr_tole', 'tole': 'curr_tole',
+            'current_tole': 'curr_tole',
+            'current address': 'current_address', 'current_address': 'current_address',
+            # Permanent Address fields
+            'permanent province': 'perm_province', 'perm_province': 'perm_province',
+            'permanent_province': 'perm_province',
+            'permanent district': 'perm_district', 'perm_district': 'perm_district',
+            'permanent_district': 'perm_district',
+            'permanent local level': 'perm_local_level', 'perm_local_level': 'perm_local_level',
+            'permanent_local_level': 'perm_local_level',
+            'permanent ward': 'perm_ward', 'perm_ward': 'perm_ward',
+            'permanent_ward': 'perm_ward',
+            'permanent tole': 'perm_tole', 'perm_tole': 'perm_tole',
+            'permanent_tole': 'perm_tole',
+            'permanent address': 'permanent_address', 'permanent_address': 'permanent_address',
+            # Social Link
+            'social medial profile link(e.g facebook, instagram)': 'social_link',
+            'social link': 'social_link', 'social_link': 'social_link',
+            'social media': 'social_link', 'facebook': 'social_link', 'instagram': 'social_link',
+            'social profile': 'social_link', 'social media link': 'social_link',
+            # Registered Date (informational, not used for donor creation)
+            'registered date': 'registered_date', 'registered_date': 'registered_date',
+            'registration date': 'registered_date', 'created at': 'registered_date',
+            # Donor ID (informational, ignored — system generates its own)
+            'donor id': '_donor_id', 'donor_id': '_donor_id', 'id': '_donor_id',
+        }
+        
+        def _normalize_row(raw_row):
+            """Map any CSV header format to canonical field names using alias table."""
+            normalized = {}
+            for raw_key, value in raw_row.items():
+                if not raw_key:
+                    continue
+                clean_key = raw_key.strip().lower()
+                canonical = FIELD_ALIASES.get(clean_key)
+                if canonical and canonical not in normalized:
+                    normalized[canonical] = value.strip() if value else ''
+                elif not canonical and clean_key not in normalized:
+                    # Keep unmapped fields under their cleaned key for fallback
+                    normalized[clean_key] = value.strip() if value else ''
+            return normalized
+        
         for idx, row in enumerate(csv_reader, start=2):
-            row_data = {k.strip().lower(): (v.strip() if v else '') for k, v in row.items() if k}
+            row_data = _normalize_row(row)
             
-            full_name = row_data.get('full name') or row_data.get('full_name') or row_data.get('name') or row_data.get('donor_name')
-            phone1 = row_data.get('phone number 1') or row_data.get('phone1') or row_data.get('phone') or row_data.get('mobile') or row_data.get('contact')
-            blood_group = row_data.get('blood group') or row_data.get('blood_group') or row_data.get('bloodgroup') or row_data.get('bg')
+            # ── Extract fields with flexible defaults ──
+            full_name = row_data.get('full_name', '').strip()
             
-            if not full_name or not phone1 or not blood_group:
+            # Only truly skip if there's no name at all (completely empty row)
+            if not full_name:
                 skipped_count += 1
+                skipped_reasons.append(f"Row {idx}: missing Full Name")
                 continue
-                
-            bg_clean = blood_group.upper().replace(' ', '')
-            if bg_clean not in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']:
+            
+            phone1 = row_data.get('phone1', '').strip()
+            blood_group_raw = row_data.get('blood_group', '').strip()
+            email = row_data.get('email', '').strip()
+            
+            # Generate a phone number if missing — use a placeholder with row index
+            if not phone1:
+                phone1 = f"0000000{idx:04d}"
+            
+            # Validate blood group if provided; default to 'O+' if empty
+            if blood_group_raw:
+                bg_clean = blood_group_raw.upper().replace(' ', '').replace('VE', '').replace('POSITIVE', '+').replace('NEGATIVE', '-')
+                # Handle verbose formats like "A Positive", "B Negative"
+                for prefix in ['A', 'B', 'AB', 'O']:
+                    if bg_clean.startswith(prefix) and len(bg_clean) > len(prefix):
+                        sign_part = bg_clean[len(prefix):]
+                        if sign_part in ['+', '-']:
+                            bg_clean = prefix + sign_part
+                            break
+                if bg_clean not in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']:
+                    bg_clean = 'O+'  # Default instead of skipping
+            else:
+                bg_clean = 'O+'
+            
+            # Generate email if not provided
+            if not email:
+                email = f"donor_{phone1}@nepaliblooddonors.org"
+            
+            # Check for duplicates by phone or email — skip only true duplicates
+            existing = Donor.query.filter(
+                (Donor.phone1 == phone1) | (Donor.email == email)
+            ).first()
+            if existing:
                 skipped_count += 1
+                skipped_reasons.append(f"Row {idx}: duplicate (phone={phone1} or email={email})")
                 continue
-                
-            email = row_data.get('email') or f"donor_{phone1}@nepaliblooddonors.org"
-            if Donor.query.filter((Donor.phone1 == phone1) | (Donor.email == email)).first():
-                skipped_count += 1
-                continue
-                
+            
+            # Age — default 25 if empty/invalid
             try:
-                age_val = row_data.get('current age') or row_data.get('age')
-                age = int(age_val) if age_val else 25
-            except ValueError:
+                age_val = row_data.get('age', '').strip()
+                age = int(float(age_val)) if age_val else 25
+            except (ValueError, TypeError):
                 age = 25
-                
+            
+            # Weight — default 60 if empty/invalid
             try:
-                weight_val = row_data.get('current weight') or row_data.get('weight')
+                weight_val = row_data.get('weight', '').strip()
                 weight = float(weight_val) if weight_val else 60.0
-            except ValueError:
+            except (ValueError, TypeError):
                 weight = 60.0
-                
+            
+            # Gender
+            gender = row_data.get('gender', '').strip().lower()
+            if gender not in ['male', 'female', 'other', 'prefer_not_to_say']:
+                gender = 'male'
+            
+            # Donor type
+            donor_type = row_data.get('donor_type', '').strip().lower()
+            if donor_type not in ['regular', 'emergency', 'platelet', 'rare', 'volunteer', 'other']:
+                donor_type = 'regular'
+            
+            # Availability status
+            avail_status = row_data.get('availability_status', '').strip().lower()
+            if avail_status not in ['available', 'recently_donated', 'unavailable']:
+                avail_status = 'available'
+            
+            # Last donation date — try multiple formats
             last_donation_date = None
-            ld_str = row_data.get('previous blood donation date (if any)') or row_data.get('last_donation_date') or row_data.get('last_donation')
+            ld_str = row_data.get('last_donation_date', '').strip()
             if ld_str:
-                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d'):
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
+                            '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y'):
                     try:
                         last_donation_date = datetime.strptime(ld_str, fmt).date()
                         break
                     except ValueError:
                         pass
-                        
-            curr_addr = row_data.get('current address') or ''
-            perm_addr = row_data.get('permanent address') or ''
             
-            curr_province = row_data.get('curr_province') or row_data.get('province') or 'Bagmati'
-            curr_district = row_data.get('curr_district') or row_data.get('district') or (curr_addr if curr_addr else 'Kathmandu')
-            curr_local_level = row_data.get('curr_local_level') or row_data.get('local_level') or row_data.get('city') or (curr_addr if curr_addr else 'Kathmandu')
-            curr_ward = row_data.get('curr_ward') or row_data.get('ward') or ''
-            curr_tole = row_data.get('curr_tole') or row_data.get('tole') or ''
+            # Current address fields — use specific columns if available, else fallback
+            curr_addr_fallback = row_data.get('current_address', '').strip()
+            curr_province = row_data.get('curr_province', '').strip() or 'Bagmati'
+            curr_district = row_data.get('curr_district', '').strip() or curr_addr_fallback or 'Kathmandu'
+            curr_local_level = row_data.get('curr_local_level', '').strip() or curr_addr_fallback or 'Kathmandu'
+            curr_ward = row_data.get('curr_ward', '').strip()
+            curr_tole = row_data.get('curr_tole', '').strip()
             
-            perm_province = row_data.get('perm_province') or curr_province
-            perm_district = row_data.get('perm_district') or (perm_addr if perm_addr else curr_district)
-            perm_local_level = row_data.get('perm_local_level') or (perm_addr if perm_addr else curr_local_level)
-
-            donor_type = row_data.get('type of donor') or row_data.get('donor_type') or 'regular'
-            gender = row_data.get('gender') or 'male'
-            social_link = row_data.get('social medial profile link(e.g facebook, instagram)') or row_data.get('social_link') or ''
+            # Permanent address fields — fallback to current address
+            perm_addr_fallback = row_data.get('permanent_address', '').strip()
+            perm_province = row_data.get('perm_province', '').strip() or curr_province
+            perm_district = row_data.get('perm_district', '').strip() or perm_addr_fallback or curr_district
+            perm_local_level = row_data.get('perm_local_level', '').strip() or perm_addr_fallback or curr_local_level
+            
+            # Social link
+            social_link = row_data.get('social_link', '').strip()
+            
+            # Phone2
+            phone2 = row_data.get('phone2', '').strip()
+            
+            # Registered date (for created_at if available)
+            created_at_dt = None
+            reg_str = row_data.get('registered_date', '').strip()
+            if reg_str:
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d',
+                            '%d-%m-%Y', '%m-%d-%Y', '%B %d, %Y', '%d %B %Y',
+                            '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
+                    try:
+                        created_at_dt = datetime.strptime(reg_str, fmt)
+                        break
+                    except ValueError:
+                        pass
             
             donor = Donor(
                 full_name=full_name,
                 email=email,
                 phone1=phone1,
-                phone2=row_data.get('phone number 2') or row_data.get('phone2') or '',
+                phone2=phone2,
                 pin_hash=default_pin_hash,
                 age=age,
                 weight=weight,
                 blood_group=bg_clean,
                 gender=gender,
                 donor_type=donor_type,
+                availability_status=avail_status,
                 curr_province=curr_province,
                 curr_district=curr_district,
                 curr_local_level=curr_local_level,
@@ -658,6 +817,8 @@ def import_donors_csv():
                 is_active=True,
                 is_public=True
             )
+            if created_at_dt:
+                donor.created_at = created_at_dt
             donor.recalculate_and_save()
             db.session.add(donor)
             imported_count += 1
