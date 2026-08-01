@@ -169,8 +169,10 @@ Target URL: **`https://raktadata.lokeshprasai.com.np`**
 DATABASE_URL=sqlite:///app/nepali_blood.db
 ```
 
-> ⚠️ **Warning:** Render free tier uses **ephemeral storage**. SQLite data is **lost on each redeploy**.
-> Use Render's free PostgreSQL for persistent data.
+> 🚨 **CRITICAL WARNING — DATA DELETION ON RENDER FREE TIER:** 
+> Render free web services use **ephemeral storage**. This means that **every time the service restarts, sleeps, or redeploys**, the local SQLite database (`nepali_blood.db`) is entirely wiped out and reset. This causes all newly registered donors, requests, and updates to be deleted.
+> 
+> **To fix this and make donor data permanent**, you MUST use an external PostgreSQL database (Render provides a free PostgreSQL database).
 
 ### PostgreSQL (recommended for production)
 

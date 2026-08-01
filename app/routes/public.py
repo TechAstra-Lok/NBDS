@@ -742,8 +742,7 @@ def find_donors():
     district    = request.args.get('district', '')
     local_level = request.args.get('local_level', '')
     donor_type  = request.args.get('donor_type', '')
-    
-    query = Donor.query
+    query = Donor.query.filter_by(is_active=True, is_public=True)
     
     if blood_group:
         query = query.filter_by(blood_group=blood_group)

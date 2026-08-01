@@ -1,7 +1,9 @@
+import csv
+import io
 from urllib.parse import urljoin, urlparse
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, jsonify, session
+    url_for, flash, jsonify, session, Response
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
@@ -441,6 +443,230 @@ def donors():
         selected_status=status,
         selected_type=donor_type,
     )
+
+
+@admin_bp.route('/donors/export-csv')
+@permission_required('manage_donors')
+def export_donors_csv():
+    """Export all or filtered donors as a downloadable CSV file."""
+    search      = request.args.get('q', '')
+    blood_group = request.args.get('bg', '')
+    status      = request.args.get('status', '')
+    donor_type  = request.args.get('type', '')
+    
+    query = Donor.query
+    if search:
+        query = query.filter(or_(
+            Donor.full_name.ilike(f'%{search}%'),
+            Donor.donor_id.ilike(f'%{search}%'),
+            Donor.phone1.ilike(f'%{search}%'),
+            Donor.curr_district.ilike(f'%{search}%'),
+        ))
+    if blood_group:
+        query = query.filter_by(blood_group=blood_group)
+    if status:
+        query = query.filter_by(availability_status=status)
+    if donor_type:
+        query = query.filter_by(donor_type=donor_type)
+        
+    donors_list = query.order_by(desc(Donor.created_at)).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([
+        'Donor ID', 'Full Name', 'Email', 'Primary Phone', 'Secondary Phone',
+        'Blood Group', 'Age', 'Gender', 'Weight (kg)', 'Donor Type',
+        'Availability Status', 'Last Donation Date', 'Current Province',
+        'Current District', 'Current Local Level', 'Current Ward', 'Current Tole',
+        'Permanent Province', 'Permanent District', 'Permanent Local Level',
+        'Registered Date'
+    ])
+    
+    for d in donors_list:
+        writer.writerow([
+            d.donor_id or '',
+            d.full_name or '',
+            d.email or '',
+            d.phone1 or '',
+            d.phone2 or '',
+            d.blood_group or '',
+            d.age or '',
+            d.gender or '',
+            d.weight or '',
+            d.donor_type or 'regular',
+            d.availability_status or 'available',
+            d.last_donation_date.strftime('%Y-%m-%d') if d.last_donation_date else '',
+            d.curr_province or '',
+            d.curr_district or '',
+            d.curr_local_level or '',
+            d.curr_ward or '',
+            d.curr_tole or '',
+            d.perm_province or '',
+            d.perm_district or '',
+            d.perm_local_level or '',
+            d.created_at.strftime('%Y-%m-%d %H:%M:%S') if d.created_at else ''
+        ])
+        
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=nepal_blood_donors_export.csv'}
+    )
+
+
+@admin_bp.route('/donors/sample-csv')
+@permission_required('manage_donors')
+def sample_donors_csv():
+    """Generate and return a sample CSV template for bulk donor upload."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'full_name', 'email', 'phone1', 'phone2', 'blood_group', 'age',
+        'gender', 'weight', 'donor_type', 'curr_province', 'curr_district',
+        'curr_local_level', 'curr_ward', 'curr_tole', 'last_donation_date'
+    ])
+    writer.writerow([
+        'Ram Bahadur Shrestha', 'ram.shrestha@example.com', '9841234567', '9801234567',
+        'O+', '28', 'male', '65', 'regular', 'Bagmati', 'Kathmandu',
+        'Kathmandu Metropolitan', '10', 'Baneshwor', '2025-10-15'
+    ])
+    writer.writerow([
+        'Sita Kumari Thapa', 'sita.thapa@example.com', '9841987654', '',
+        'A+', '24', 'female', '55', 'emergency', 'Gandaki', 'Kaski',
+        'Pokhara Metropolitan', '5', 'Lakeside', ''
+    ])
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=sample_blood_donors_import.csv'}
+    )
+
+
+@admin_bp.route('/donors/import-csv', methods=['POST'])
+@permission_required('manage_donors')
+def import_donors_csv():
+    """Bulk import blood donors from a CSV file."""
+    if 'csv_file' not in request.files:
+        flash('No file part uploaded.', 'danger')
+        return redirect(url_for('admin.donors'))
+        
+    file = request.files['csv_file']
+    if not file or file.filename == '':
+        flash('No CSV file selected for upload.', 'danger')
+        return redirect(url_for('admin.donors'))
+        
+    if not file.filename.lower().endswith('.csv'):
+        flash('Invalid file format. Please upload a .csv file.', 'danger')
+        return redirect(url_for('admin.donors'))
+        
+    try:
+        stream = io.StringIO(file.stream.read().decode('utf-8-sig', errors='replace'))
+        csv_reader = csv.DictReader(stream)
+        
+        imported_count = 0
+        skipped_count = 0
+        
+        default_pin_hash = generate_password_hash('1234')
+        
+        for idx, row in enumerate(csv_reader, start=2):
+            row_data = {k.strip().lower(): (v.strip() if v else '') for k, v in row.items() if k}
+            
+            full_name = row_data.get('full_name') or row_data.get('name') or row_data.get('donor_name')
+            phone1 = row_data.get('phone1') or row_data.get('phone') or row_data.get('mobile') or row_data.get('contact')
+            blood_group = row_data.get('blood_group') or row_data.get('bloodgroup') or row_data.get('bg')
+            
+            if not full_name or not phone1 or not blood_group:
+                skipped_count += 1
+                continue
+                
+            bg_clean = blood_group.upper().replace(' ', '')
+            if bg_clean not in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']:
+                skipped_count += 1
+                continue
+                
+            email = row_data.get('email') or f"donor_{phone1}@nepaliblooddonors.org"
+            if Donor.query.filter((Donor.phone1 == phone1) | (Donor.email == email)).first():
+                skipped_count += 1
+                continue
+                
+            try:
+                age = int(row_data.get('age', 25))
+            except ValueError:
+                age = 25
+                
+            try:
+                weight = float(row_data.get('weight', 60.0)) if row_data.get('weight') else 60.0
+            except ValueError:
+                weight = 60.0
+                
+            last_donation_date = None
+            ld_str = row_data.get('last_donation_date') or row_data.get('last_donation')
+            if ld_str:
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d'):
+                    try:
+                        last_donation_date = datetime.strptime(ld_str, fmt).date()
+                        break
+                    except ValueError:
+                        pass
+                        
+            curr_province = row_data.get('curr_province') or row_data.get('province') or 'Bagmati'
+            curr_district = row_data.get('curr_district') or row_data.get('district') or 'Kathmandu'
+            curr_local_level = row_data.get('curr_local_level') or row_data.get('local_level') or row_data.get('city') or 'Kathmandu'
+            curr_ward = row_data.get('curr_ward') or row_data.get('ward') or ''
+            curr_tole = row_data.get('curr_tole') or row_data.get('tole') or ''
+            donor_type = row_data.get('donor_type') or 'regular'
+            gender = row_data.get('gender') or 'male'
+            
+            donor = Donor(
+                full_name=full_name,
+                email=email,
+                phone1=phone1,
+                phone2=row_data.get('phone2', ''),
+                pin_hash=default_pin_hash,
+                age=age,
+                weight=weight,
+                blood_group=bg_clean,
+                gender=gender,
+                donor_type=donor_type,
+                curr_province=curr_province,
+                curr_district=curr_district,
+                curr_local_level=curr_local_level,
+                curr_ward=curr_ward,
+                curr_tole=curr_tole,
+                perm_province=row_data.get('perm_province', curr_province),
+                perm_district=row_data.get('perm_district', curr_district),
+                perm_local_level=row_data.get('perm_local_level', curr_local_level),
+                last_donation_date=last_donation_date,
+                is_active=True,
+                is_public=True
+            )
+            donor.recalculate_and_save()
+            db.session.add(donor)
+            imported_count += 1
+            
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            action='BULK_IMPORT_DONORS',
+            details=f'Imported {imported_count} donors from CSV file ({skipped_count} skipped).',
+            actor=current_user.username if hasattr(current_user, 'username') else 'admin'
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        msg = f"✅ Successfully imported {imported_count} donors."
+        if skipped_count > 0:
+            msg += f" {skipped_count} rows were skipped (duplicates or invalid data)."
+        flash(msg, 'success' if imported_count > 0 else 'warning')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"❌ Error processing CSV file: {str(e)}", 'danger')
+        
+    return redirect(url_for('admin.donors'))
 
 
 @admin_bp.route('/donors/add', methods=['GET', 'POST'])
