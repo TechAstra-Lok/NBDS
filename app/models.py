@@ -1082,6 +1082,22 @@ class Notice(db.Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    @property
+    def days_left(self):
+        """
+        Calculates remaining days before expiry.
+        Returns None if no expiry_date is set, or integer count of days remaining.
+        """
+        if not self.expiry_date:
+            return None
+        
+        now = datetime.utcnow()
+        if self.expiry_date < now:
+            return 0
+            
+        delta = self.expiry_date - now
+        return delta.days
+
 
 # ─────────────────────────────────────────────
 # ADVERTISEMENT MODEL
