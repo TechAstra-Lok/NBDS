@@ -1038,39 +1038,48 @@ def donor_availability_api(donor_id):
 
 
 
+from datetime import datetime
+from sqlalchemy import or_, desc
+from flask import request, current_app, render_template
+
 # ════════════════════════════════════════════
 #    NEWS & NOTICES
 # ════════════════════════════════════════════
 @public_bp.route('/news')
 def news_list():
     page     = request.args.get('page', 1, type=int)
-    category = request.args.get('category', '')
+    category = request.args.get('category', '').strip().lower()
     
+    # Query News Table
     query = News.query.filter_by(is_published=True)
     if category and category != 'notice':
         query = query.filter_by(category=category)
     
     pagination = paginate_query(
         query.order_by(desc(News.created_at)),
-        page, current_app.config.get('NEWS_PER_PAGE', 9)
+        page, 
+        current_app.config.get('NEWS_PER_PAGE', 9)
     )
     
-    # Fetch active notices so they display on the news listing page
-    now = datetime.now(timezone.utc)
+    # Fetch Active Notices (Naive UTC timestamp prevents SQLAlchemy TypeError)
+    now = datetime.utcnow()
     active_notices = Notice.query.filter(
         Notice.is_active == True,
         or_(Notice.expiry_date == None, Notice.expiry_date >= now)
-    ).order_by(Notice.priority.desc(), desc(Notice.published_date)).all()
+    ).order_by(
+        Notice.priority.desc(), 
+        desc(Notice.published_date)
+    ).all()
     
     categories = ['news', 'event', 'program', 'story']
     
-    return render_template('news.html',
+    return render_template(
+        'news.html',
         pagination=pagination,
         active_notices=active_notices,
         categories=categories,
-        selected_category=category,
+        selected_category=category
     )
-
 # ════════════════════════════════════════════
 #   ABOUT & CONTACT
 # ════════════════════════════════════════════
