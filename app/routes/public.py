@@ -518,7 +518,7 @@ def reserve_blood(bank_id):
 
 
 # ════════════════════════════════════════════
-#   HOMEPAGE
+#    HOMEPAGE
 # ════════════════════════════════════════════
 @public_bp.route('/')
 def index():
@@ -538,9 +538,11 @@ def index():
         desc(News.created_at)
     ).limit(3).all()
     
+    # Updated to timezone-aware UTC check
+    now = datetime.now(timezone.utc)
     latest_notices = Notice.query.filter(
         Notice.is_active == True,
-        or_(Notice.expiry_date == None, Notice.expiry_date >= datetime.utcnow())
+        or_(Notice.expiry_date == None, Notice.expiry_date >= now)
     ).order_by(Notice.priority.desc(), desc(Notice.published_date)).limit(5).all()
     
     stories = News.query.filter_by(
@@ -550,12 +552,13 @@ def index():
     banner_ads = Advertisement.query.filter(
         Advertisement.is_active == True,
         Advertisement.ad_type == 'banner',
-        or_(Advertisement.end_date == None, Advertisement.end_date >= datetime.utcnow())
+        or_(Advertisement.end_date == None, Advertisement.end_date >= now)
     ).all()
     
-    for ad in banner_ads:
-        ad.impressions += 1
-    db.session.commit()
+    if banner_ads:
+        for ad in banner_ads:
+            ad.impressions += 1
+        db.session.commit()
     
     return render_template('index.html',
         active_requests=active_requests,
@@ -569,7 +572,6 @@ def index():
         stories=stories,
         banner_ads=banner_ads,
     )
-
 
 # ════════════════════════════════════════════
 #   BLOOD REQUESTS
@@ -1037,45 +1039,37 @@ def donor_availability_api(donor_id):
 
 
 # ════════════════════════════════════════════
-#   NEWS
+#    NEWS & NOTICES
 # ════════════════════════════════════════════
 @public_bp.route('/news')
 def news_list():
-    page        = request.args.get('page', 1, type=int)
-    category    = request.args.get('category', '')
+    page     = request.args.get('page', 1, type=int)
+    category = request.args.get('category', '')
     
     query = News.query.filter_by(is_published=True)
-    if category:
+    if category and category != 'notice':
         query = query.filter_by(category=category)
     
     pagination = paginate_query(
         query.order_by(desc(News.created_at)),
-        page, current_app.config['NEWS_PER_PAGE']
+        page, current_app.config.get('NEWS_PER_PAGE', 9)
     )
+    
+    # Fetch active notices so they display on the news listing page
+    now = datetime.now(timezone.utc)
+    active_notices = Notice.query.filter(
+        Notice.is_active == True,
+        or_(Notice.expiry_date == None, Notice.expiry_date >= now)
+    ).order_by(Notice.priority.desc(), desc(Notice.published_date)).all()
     
     categories = ['news', 'event', 'program', 'story']
     
     return render_template('news.html',
         pagination=pagination,
+        active_notices=active_notices,
         categories=categories,
         selected_category=category,
     )
-
-
-@public_bp.route('/news/<string:slug>')
-def news_detail(slug):
-    post = News.query.filter_by(slug=slug, is_published=True).first_or_404()
-    post.views += 1
-    db.session.commit()
-    
-    related = News.query.filter(
-        News.category == post.category,
-        News.id != post.id,
-        News.is_published == True
-    ).order_by(desc(News.created_at)).limit(3).all()
-    
-    return render_template('news_detail.html', post=post, related=related)
-
 
 # ════════════════════════════════════════════
 #   ABOUT & CONTACT
