@@ -301,24 +301,41 @@
   </nav>
 
 <!-- ══════════════════════════════════════
-      NOTICE BAR
+      NOTICE BAR (MARQUEE & RESPONSIVE)
 ══════════════════════════════════════ -->
 {% if active_notices %}
-<div class="notice-bar py-2 border-bottom" style="background: linear-gradient(90deg, #fffbeb, #fef3c7);">
+<div class="notice-bar py-2 border-bottom overflow-hidden" style="background: linear-gradient(90deg, #fffbeb, #fef3c7);">
   <div class="container-xl px-3">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <span class="badge bg-warning text-dark flex-shrink-0 fw-bold">
+    <div class="d-flex align-items-center gap-3">
+      
+      <!-- Static Notice Badge -->
+      <span class="badge bg-warning text-dark flex-shrink-0 fw-bold z-1 shadow-sm px-2 py-1">
         <i class="fas fa-bell me-1"></i>Notice
       </span>
-      {% for notice in active_notices[:2] %}
-      <span class="small text-dark">
-        <strong>{{ notice.title[:60] }}{% if notice.title|length > 60 %}...{% endif %}</strong>
-        {% if notice is defined and notice and notice.days_left is defined and notice.days_left is not none and notice.days_left <= 5 %}
-          <span class="badge bg-danger ms-1 py-0">Expires in {{ notice.days_left }}d</span>
-        {% endif %}
-      </span>
-      {% if not loop.last %}<span class="text-muted">|</span>{% endif %}
-      {% endfor %}
+
+      <!-- Marquee Ticker -->
+      <div class="notice-marquee-wrapper overflow-hidden position-relative w-100" style="white-space: nowrap;">
+        <div class="notice-marquee-content d-inline-block">
+          {% for notice in active_notices %}
+          <a href="{{ url_for('public.news_list') }}" 
+             class="notice-item-link text-decoration-none text-dark small me-4 d-inline-flex align-items-center gap-2">
+            
+            <strong class="hover-underline">
+              {{ notice.title[:80] if notice.title else '' }}{% if notice.title and notice.title|length > 80 %}...{% endif %}
+            </strong>
+
+            {% if notice is defined and notice and notice.days_left is defined and notice.days_left is not none and notice.days_left <= 5 %}
+              <span class="badge bg-danger py-0 px-1" style="font-size: 0.68rem;">Expires in {{ notice.days_left }}d</span>
+            {% endif %}
+
+            {% if not loop.last %}
+              <span class="text-muted ms-2 opacity-50">|</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
