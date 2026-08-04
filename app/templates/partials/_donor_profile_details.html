@@ -21,7 +21,7 @@
     <div class="col-sm-6">
         <label class="text-muted small d-block">{{ t.secondary_contact }}</label>
         <span class="fw-semibold text-dark text-break">
-            {% if donor.phone2 %}
+            {% if donor.phone2 and donor.phone2.strip() and donor.phone2.strip() != donor.phone1.strip() %}
             <i class="fas fa-phone text-muted me-1 small"></i>+977-{{ donor.phone2 }}
             {% else %}
             <em class="text-muted small">{{ t.not_provided }}</em>
