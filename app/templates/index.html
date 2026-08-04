@@ -58,31 +58,31 @@
             <div class="blood-drop-icon mb-2">
               <i class="fas fa-droplet text-danger" style="font-size:4rem;"></i>
             </div>
-            <h4 class="fw-bold text-dark">Our Community</h4>
+            <h4 class="fw-bold text-dark">{{ t.our_community }}</h4>
           </div>
           <div class="row g-3">
             <div class="col-6">
               <div class="stat-mini text-center bg-danger-soft rounded-3 p-3">
                 <div class="stat-number text-danger fw-black fs-3" id="totalDonors">{{ total_donors }}</div>
-                <div class="small text-muted">Total Donors</div>
+                <div class="small text-muted">{{ t.total_donors }}</div>
               </div>
             </div>
             <div class="col-6">
               <div class="stat-mini text-center bg-success-soft rounded-3 p-3">
                 <div class="stat-number text-success fw-black fs-3" id="availDonors">{{ avail_donors }}</div>
-                <div class="small text-muted">Available Now</div>
+                <div class="small text-muted">{{ t.available_now }}</div>
               </div>
             </div>
             <div class="col-6">
               <div class="stat-mini text-center bg-warning-soft rounded-3 p-3">
                 <div class="stat-number text-warning fw-black fs-3">{{ total_requests }}</div>
-                <div class="small text-muted">Total Requests</div>
+                <div class="small text-muted">{{ t.total_requests }}</div>
               </div>
             </div>
             <div class="col-6">
               <div class="stat-mini text-center bg-info-soft rounded-3 p-3">
                 <div class="stat-number text-info fw-black fs-3">{{ fulfilled }}</div>
-                <div class="small text-muted">Lives Saved</div>
+                <div class="small text-muted">{{ t.lives_saved }}</div>
               </div>
             </div>
           </div>
@@ -129,13 +129,13 @@
       <section class="stats-strip py-4">
         <div class="row g-3">
           {% set stat_items = [
-          ('fa-users', total_donors, 'Total Donors', 'danger'),
-          ('fa-check-circle', avail_donors, 'Available', 'success'),
-          ('fa-tint', total_requests|default(0), 'Requests', 'warning'),
-          ('fa-heart', fulfilled, 'Fulfilled', 'info'),
+          ('fa-users', total_donors, t.total_donors, 'danger'),
+          ('fa-check-circle', avail_donors, t.available, 'success'),
+          ('fa-tint', total_requests|default(0), t.total_requests, 'warning'),
+          ('fa-heart', fulfilled, t.fulfilled, 'info'),
           ] %}
           {% for icon, val, label, color in stat_items %}
-          <div class="col-6 col-md-3">
+          <div class="col-12 col-sm-6 col-lg-3">
             <div class="stat-card card border-0 shadow-sm rounded-4 text-center h-100 hover-lift">
               <div class="card-body py-3">
                 <div class="stat-icon mb-2 text-{{ color }}">

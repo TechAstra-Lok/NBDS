@@ -680,9 +680,8 @@ class Donor(UserMixin, db.Model):
         Returns (status_string, available_after_date_or_None).
         
         Logic:
-          0–29 days  => 'recently_donated'
-          30–89 days => 'unavailable' + available_after = last_donation + 90 days
-          90+ days   => 'available'
+          < 90 days  => 'recently_donated'
+          >= 90 days => 'available'
           No date    => 'available'
         """
         if not self.last_donation_date:
@@ -692,17 +691,23 @@ class Donor(UserMixin, db.Model):
         days_since = (today - self.last_donation_date).days
         eligible_date = self.last_donation_date + timedelta(days=self.UNAVAILABLE_DAYS)
         
-        if days_since < 0:
-            # Future date (data entry error) – treat as recently donated
+        if days_since < self.UNAVAILABLE_DAYS:
             return ('recently_donated', eligible_date)
-        elif days_since < self.RECENT_DAYS:
-            return ('recently_donated', eligible_date)
-        elif days_since < self.UNAVAILABLE_DAYS:
-            return ('unavailable', eligible_date)
         else:
             return ('available', None)
     
     def to_dict(self):
+        import nepali_datetime
+        
+        def format_bs(dt):
+            if not dt: return None
+            try:
+                if isinstance(dt, datetime): dt = dt.date()
+                bs = nepali_datetime.date.from_datetime_date(dt)
+                return bs.strftime('%Y-%m-%d')
+            except:
+                return dt.strftime('%Y-%m-%d')
+
         return {
             'id': self.id,
             'donor_id': self.donor_id,
@@ -713,8 +718,8 @@ class Donor(UserMixin, db.Model):
             'curr_district': self.curr_district,
             'curr_local_level': self.curr_local_level,
             'availability_status': self.availability_status,
-            'available_after_date': self.available_after_date.strftime('%Y-%m-%d') if self.available_after_date else None,
-            'last_donation_date': self.last_donation_date.strftime('%Y-%m-%d') if self.last_donation_date else None,
+            'available_after_date': format_bs(self.available_after_date),
+            'last_donation_date': format_bs(self.last_donation_date),
             'availability_display': self.availability_display,
             'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%S') if self.created_at else None,
         }
@@ -731,14 +736,27 @@ class Donor(UserMixin, db.Model):
     @property
     def availability_display(self):
         """Human-readable availability status text."""
+        import nepali_datetime
+        
+        def format_bs(dt):
+            if not dt: return ""
+            try:
+                if isinstance(dt, datetime): dt = dt.date()
+                bs = nepali_datetime.date.from_datetime_date(dt)
+                return bs.strftime('%Y-%m-%d')
+            except:
+                return dt.strftime('%Y-%m-%d')
+
         if self.availability_status == 'available':
-            return 'Available'
+            return 'Available to donate'
         elif self.availability_status == 'recently_donated':
+            if self.available_after_date:
+                return f'Recently Donated (Eligible after {format_bs(self.available_after_date)})'
             return 'Recently Donated'
         elif self.availability_status == 'unavailable':
             if self.available_after_date:
-                return f'Available After: {self.available_after_date.strftime("%Y-%m-%d")}'
-            return 'Unavailable'
+                return f'Eligible after {format_bs(self.available_after_date)}'
+            return 'Currently Unavailable'
         return 'Unknown'
     
     @property

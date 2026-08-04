@@ -1,11 +1,11 @@
 <div class="row g-3">
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Age Requirement Range</label>
-        <span class="fw-semibold text-dark">{{ donor.age }} Years Old</span>
+        <label class="text-muted small d-block">{{ t.age_requirement }}</label>
+        <span class="fw-semibold text-dark">{{ donor.age }} {{ t.years_old }}</span>
     </div>
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Weight Metric</label>
-        <span class="fw-semibold text-dark">{{ donor.weight or 'N/A' }} kg</span>
+        <label class="text-muted small d-block">{{ t.weight_metric }}</label>
+        <span class="fw-semibold text-dark">{{ donor.weight or 'N/A' }} {{ t.kg }}</span>
     </div>
 
     <div class="col-12">
@@ -13,18 +13,18 @@
     </div>
 
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Primary Registered Contact</label>
+        <label class="text-muted small d-block">{{ t.primary_contact }}</label>
         <span class="fw-semibold text-dark text-break">
             <i class="fas fa-phone text-muted me-1 small"></i>+977-{{ donor.phone1 }}
         </span>
     </div>
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Secondary Contact</label>
+        <label class="text-muted small d-block">{{ t.secondary_contact }}</label>
         <span class="fw-semibold text-dark text-break">
             {% if donor.phone2 %}
             <i class="fas fa-phone text-muted me-1 small"></i>+977-{{ donor.phone2 }}
             {% else %}
-            <em class="text-muted small">Not provided</em>
+            <em class="text-muted small">{{ t.not_provided }}</em>
             {% endif %}
         </span>
     </div>
@@ -34,20 +34,20 @@
     </div>
 
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Last Donation Date</label>
+        <label class="text-muted small d-block">{{ t.last_donation_date }}</label>
         <span class="fw-semibold text-danger">
-            <i class="fas fa-calendar-day me-1 small"></i>{{ donor.last_donation_date or 'Never Donated / Fresh' }}
+            <i class="fas fa-calendar-day me-1 small"></i>{{ donor.last_donation_date|to_bs if donor.last_donation_date else t.never_donated_fresh }}
         </span>
     </div>
     <div class="col-sm-6">
-        <label class="text-muted small d-block">Social Media Profile</label>
+        <label class="text-muted small d-block">{{ t.social_media_profile }}</label>
         {% if donor.social_link %}
         <a href="{{ donor.social_link }}" target="_blank"
             class="text-primary text-decoration-none small fw-semibold text-break">
-            <i class="fas fa-link me-1"></i>View Handle Profile
+            <i class="fas fa-link me-1"></i>{{ t.view_profile }}
         </a>
         {% else %}
-        <span class="text-muted small">None linked</span>
+        <span class="text-muted small">{{ t.none_linked }}</span>
         {% endif %}
     </div>
 
@@ -57,7 +57,7 @@
 
     <div class="col-sm-6">
         <label class="text-danger small d-block fw-bold mb-1">
-            <i class="fas fa-location-dot me-1"></i>Current Residence Address
+            <i class="fas fa-location-dot me-1"></i>{{ t.current_residence }}
         </label>
         <ul class="list-unstyled ps-0 mb-0 small text-dark">
             <li><strong>Province:</strong> {{ donor.curr_province }}</li>
@@ -76,7 +76,7 @@
 
     <div class="col-sm-6">
         <label class="text-muted small d-block fw-bold mb-1">
-            <i class="fas fa-house me-1"></i>Permanent Origin Address
+            <i class="fas fa-house me-1"></i>{{ t.permanent_address }}
         </label>
         {% if donor.perm_province or donor.perm_district %}
         <ul class="list-unstyled ps-0 mb-0 small text-muted">

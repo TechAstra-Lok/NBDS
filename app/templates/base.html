@@ -129,68 +129,77 @@
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.index' }}"
               href="{{ url_for('public.index') }}">
-              <i class="fas fa-house fa-sm me-1 d-lg-none d-xl-inline"></i>Home
+              <i class="fas fa-house fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.home }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if 'blood_request' in (request.endpoint or '') }}"
               href="{{ url_for('public.blood_request_board') }}">
-              <i class="fas fa-tint fa-sm me-1 d-lg-none d-xl-inline"></i>Blood Requests
+              <i class="fas fa-tint fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.blood_requests }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.find_donors' }}"
               href="{{ url_for('public.find_donors') }}">
-              <i class="fas fa-magnifying-glass fa-sm me-1 d-lg-none d-xl-inline"></i>Find Donors
+              <i class="fas fa-magnifying-glass fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.find_donors }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint in ['public.blood_banks', 'public.blood_bank_detail'] }}"
               href="{{ url_for('public.blood_banks') }}">
-              <i class="fas fa-hospital fa-sm me-1 d-lg-none d-xl-inline"></i>Blood Banks
+              <i class="fas fa-hospital fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.blood_banks }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.become_donor' }}"
               href="{{ url_for('public.become_donor') }}">
-              <i class="fas fa-user-plus fa-sm me-1 d-lg-none d-xl-inline"></i>Become a Donor
+              <i class="fas fa-user-plus fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.become_donor }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if 'news' in (request.endpoint or '') }}"
               href="{{ url_for('public.news_list') }}">
-              <i class="fas fa-newspaper fa-sm me-1 d-lg-none d-xl-inline"></i>News & Notices
+              <i class="fas fa-newspaper fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.news_notices }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.about' }}"
               href="{{ url_for('public.about') }}">
-              <i class="fas fa-circle-info fa-sm me-1 d-lg-none d-xl-inline"></i>About Us
+              <i class="fas fa-circle-info fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.about_us }}
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link px-3 py-2 rounded-2 small fw-500
              {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.contact' }}"
               href="{{ url_for('public.contact') }}">
-              <i class="fas fa-envelope fa-sm me-1 d-lg-none d-xl-inline"></i>Contact
+              <i class="fas fa-envelope fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.contact }}
             </a>
           </li>
         </ul>
+        <div class="dropdown me-2">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-globe me-1"></i>{{ 'नेपाली' if session.get('lang') == 'ne' else 'English' }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="min-width: 120px;">
+            <li><a class="dropdown-item {{ 'active' if session.get('lang') != 'ne' }}" href="{{ url_for('public.set_language', lang='en') }}">English</a></li>
+            <li><a class="dropdown-item {{ 'active' if session.get('lang') == 'ne' }}" href="{{ url_for('public.set_language', lang='ne') }}">नेपाली</a></li>
+          </ul>
+        </div>
 
-        <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="Search">
+        <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="{{ t.search }}">
           <i class="fas fa-search"></i>
         </a>
         <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white text-danger btn-sm fw-bold shadow-sm"
           style="background:#fff;">
           <i class="fas fa-circle-plus me-1"></i>
-          <span class="d-none d-xl-inline">Request Blood</span>
-          <span class="d-xl-none">Request</span>
+          <span class="d-none d-xl-inline">{{ t.request_blood }}</span>
+          <span class="d-xl-none">{{ t.request_blood }}</span>
         </a>
 
         {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}

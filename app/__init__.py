@@ -38,6 +38,15 @@ login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
 migrate = Migrate()
+from flask_babel import Babel, gettext as _
+import nepali_datetime
+import datetime
+
+def get_locale():
+    from flask import session, request
+    return session.get('lang', request.accept_languages.best_match(['en', 'ne']))
+
+babel = Babel()
 scheduler = APScheduler()
 
 
@@ -69,6 +78,28 @@ def create_app(config_name=None):
     login_manager.init_app(app)
     csrf.init_app(app)
     cache.init_app(app)
+    babel.init_app(app, locale_selector=get_locale)
+    
+    @app.template_filter('to_bs')
+    def to_bs_filter(dt):
+        if not dt:
+            return ""
+        if isinstance(dt, datetime.datetime):
+            dt_date = dt.date()
+        elif isinstance(dt, datetime.date):
+            dt_date = dt
+        elif isinstance(dt, str):
+            try:
+                dt_date = datetime.datetime.strptime(dt, '%Y-%m-%d').date()
+            except:
+                return dt
+        else:
+            return str(dt)
+        try:
+            bs_date = nepali_datetime.date.from_datetime_date(dt_date)
+            return bs_date.strftime('%Y-%m-%d')
+        except Exception:
+            return str(dt)
     
     # Initialize and start the APScheduler
     try:
@@ -327,6 +358,28 @@ def _register_context_processors(app):
             active_notices=active_notices,
             sidebar_ads=sidebar_ads,
             current_year=datetime.utcnow().year
+        )
+    
+    @app.context_processor
+    def inject_translations():
+        from flask import session
+        from app.translations import get_translation
+        lang = session.get('lang', 'en')
+        
+        class TranslationDict:
+            """Allows dot-access (t.home) and bracket-access (t['home']) with fallback."""
+            def __init__(self, data):
+                self._data = data
+            def __getattr__(self, key):
+                return self._data.get(key, key)
+            def __getitem__(self, key):
+                return self._data.get(key, key)
+            def get(self, key, default=None):
+                return self._data.get(key, default or key)
+        
+        return dict(
+            t=TranslationDict(get_translation(lang)),
+            current_lang=lang
         )
 
 

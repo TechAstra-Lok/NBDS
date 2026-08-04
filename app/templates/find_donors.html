@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Find Blood Donors — {{ site_name }}{% endblock %}
+{% block title %}{{ t.find_donors }} — {{ site_name }}{% endblock %}
 
 {% block content %}
 <!-- Header -->
 <div class="mb-4">
   <nav aria-label="breadcrumb" class="mb-1">
     <ol class="breadcrumb small mb-0">
-      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">Home</a></li>
-      <li class="breadcrumb-item active">Find Donors</li>
+      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">{{ t.home }}</a></li>
+      <li class="breadcrumb-item active">{{ t.find_donors }}</li>
     </ol>
   </nav>
   <h1 class="h3 fw-bold mb-1">
-    <i class="fas fa-magnifying-glass text-danger me-2"></i>Find Blood Donors
+    <i class="fas fa-magnifying-glass text-danger me-2"></i>{{ t.find_donors }}
   </h1>
   <p class="text-muted small">
     <strong class="text-dark">{{ total_donors }}</strong> donors registered ·
@@ -25,16 +25,16 @@
     <form method="GET" action="{{ url_for('public.find_donors') }}" id="searchForm">
       <div class="row g-3">
         <div class="col-md-3">
-          <label class="form-label small fw-semibold">Blood Group</label>
+          <label class="form-label small fw-semibold">{{ t.blood_group }}</label>
           <select class="form-select" name="blood_group" id="filterBG">
-            <option value="">All Blood Groups</option>
+            <option value="">{{ t.all_blood_groups }}</option>
             {% for bg in blood_groups %}
             <option value="{{ bg }}" {{ 'selected' if selected_bg==bg }}>{{ bg }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label small fw-semibold">District</label>
+          <label class="form-label small fw-semibold">{{ t.district }}</label>
           <input type="text" class="form-control" name="district" id="filterDistrict" list="districtList"
             value="{{ selected_district }}" placeholder="Type to search districts or leave blank for all">
           <datalist id="districtList">
@@ -48,17 +48,17 @@
           <input type="text" class="form-control" name="city" value="{{ selected_city }}" placeholder="e.g. Kathmandu">
         </div>
         <div class="col-md-2">
-          <label class="form-label small fw-semibold">Donor Type</label>
+          <label class="form-label small fw-semibold">{{ t.donor_type }}</label>
           <select class="form-select" name="donor_type">
-            <option value="">All Types</option>
-            {% for t in ['occasional','regular','emergency'] %}
-            <option value="{{ t }}" {{ 'selected' if selected_type==t }}>{{ t|title }}</option>
+            <option value="">{{ t.all_types }}</option>
+            {% for dtype in ['occasional','regular','emergency'] %}
+            <option value="{{ dtype }}" {{ 'selected' if selected_type==dtype }}>{{ dtype|title }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-2 d-flex align-items-end gap-2">
           <button type="submit" class="btn btn-danger flex-grow-1">
-            <i class="fas fa-search me-1"></i>Search
+            <i class="fas fa-search me-1"></i>{{ t.search }}
           </button>
           <a href="{{ url_for('public.find_donors') }}" class="btn btn-outline-secondary">
             <i class="fas fa-rotate-left"></i>
@@ -152,9 +152,9 @@
           <div class="d-flex align-items-center mb-1">
             <i class="fas fa-calendar text-info me-2" style="width:14px;"></i>
             {% if donor.last_donation_date %}
-              Last donated: {{ donor.last_donation_date.strftime('%b %d, %Y') }}
+              {{ t.last_donated }}: {{ donor.last_donation_date | to_bs }}
             {% else %}
-              Last donated: Never
+              {{ t.last_donated }}: {{ t.never }}
             {% endif %}
           </div>
           <div class="d-flex align-items-center">
@@ -168,29 +168,40 @@
         <div class="alert alert-success py-1 px-2 small mb-3 d-flex align-items-center gap-2"
           style="border-radius:8px;">
           <i class="fas fa-check-circle text-success"></i>
-          Eligible to donate now
+          {{ t.eligible_to_donate_now }}
         </div>
         {% else %}
         <div class="alert alert-warning py-1 px-2 small mb-3 d-flex align-items-center gap-2"
           style="border-radius:8px;">
           <i class="fas fa-clock text-warning"></i>
           {% if donor.next_eligible_date %}
-            Eligible after {{ donor.next_eligible_date.strftime('%b %d, %Y') }}
+            {{ t.eligible_after }} {{ donor.next_eligible_date | to_bs }}
           {% else %}
-            Currently Unavailable
+            {{ t.currently_unavailable }}
           {% endif %}
         </div>
         {% endif %}
 
         <!-- Actions -->
-        {% if donor.availability_status == 'available' %}
-        <div class="d-flex gap-2">
-          <a href="tel:{{ donor.phone1 }}" class="btn btn-danger btn-sm flex-grow-1 fw-semibold">
-            <i class="fas fa-phone me-1"></i>{{ donor.phone1 }}
-          </a>
-          <button class="btn btn-outline-secondary btn-sm" onclick="copyText('{{ donor.phone1 }}')" title="Copy">
-            <i class="fas fa-copy"></i>
-          </button>
+        <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-grow-1 gap-1">
+            <a href="tel:{{ donor.phone1 }}" class="btn btn-danger btn-sm flex-grow-1 fw-semibold text-nowrap">
+              <i class="fas fa-phone me-1"></i>{{ donor.phone1 }}
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="copyText('{{ donor.phone1 }}')" title="Copy Primary">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          {% if donor.phone2 %}
+          <div class="d-flex flex-grow-1 gap-1">
+            <a href="tel:{{ donor.phone2 }}" class="btn btn-outline-danger btn-sm flex-grow-1 fw-semibold text-nowrap">
+              <i class="fas fa-phone me-1"></i>{{ donor.phone2 }}
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="copyText('{{ donor.phone2 }}')" title="Copy Secondary">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          {% endif %}
           {% if donor.social_link %}
           <a href="{{ donor.social_link }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"
             title="Social Profile">
@@ -198,11 +209,6 @@
           </a>
           {% endif %}
         </div>
-        {% else %}
-        <div class="btn btn-secondary btn-sm w-100 disabled">
-          <i class="fas fa-ban me-1"></i>Currently Unavailable
-        </div>
-        {% endif %}
       </div>
     </div>
   </div>
