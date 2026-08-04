@@ -128,6 +128,17 @@ def is_text_safe(title, content):
 
 
 # ════════════════════════════════════════════
+#   LANGUAGE SWITCHER
+# ════════════════════════════════════════════
+@public_bp.route('/set-language/<lang>')
+def set_language(lang):
+    from flask import session
+    if lang in ('en', 'ne'):
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('public.index'))
+
+
+# ════════════════════════════════════════════
 #   SUCCESS STORIES PAGE
 # ════════════════════════════════════════════
 @public_bp.route('/success-stories', methods=['GET', 'POST'])
