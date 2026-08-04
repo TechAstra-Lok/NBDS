@@ -1,4 +1,4 @@
-﻿absl-py==2.4.0
+absl-py==2.4.0
 aiofiles==23.2.1
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.3
@@ -221,9 +221,9 @@ python-dotenv==1.0.1
 python-json-logger==3.3.0
 python-multipart==0.0.32
 pytz==2025.2
-pywin32==310
-pywin32-ctypes==0.2.3
-pywinpty==2.0.15
+pywin32==310; sys_platform == 'win32'
+pywin32-ctypes==0.2.3; sys_platform == 'win32'
+pywinpty==2.0.15; sys_platform == 'win32'
 PyYAML==6.0.3
 pyzmq==27.0.0
 redis==8.0.1
