@@ -131,8 +131,14 @@
         <div class="d-flex align-items-center gap-2 mb-2">
           <span class="availability-dot {{ donor.availability_status }}"></span>
           <span class="small fw-semibold
-                {{ 'text-success' if donor.availability_status == 'available' else 'text-muted' }}">
-            {{ donor.availability_status|title }}
+                {{ 'text-success' if donor.availability_status == 'available' else 'text-warning' if donor.availability_status == 'recently_donated' else 'text-muted' }}">
+            {% if donor.availability_status == 'available' %}
+              {{ t.available }}
+            {% elif donor.availability_status == 'recently_donated' %}
+              {{ t.recently_donated }}
+            {% else %}
+              {{ donor.availability_status|title }}
+            {% endif %}
           </span>
           <span class="ms-auto badge bg-light text-dark border" style="font-size:0.68rem;">
             {{ donor.donor_type|title }}
@@ -143,7 +149,7 @@
         <div class="small text-muted mb-3">
           <div class="d-flex align-items-center mb-1">
             <i class="fas fa-location-dot text-danger me-2" style="width:14px;"></i>
-            {{ donor.curr_city }}, {{ donor.curr_district }}
+            {% if donor.curr_local_level %}{{ donor.curr_local_level }}, {% endif %}{{ donor.curr_district }}
           </div>
           <div class="d-flex align-items-center mb-1">
             <i class="fas fa-map-pin text-secondary me-2" style="width:14px;"></i>
@@ -164,18 +170,18 @@
         </div>
 
         <!-- Eligibility Badge -->
-        {% if donor.can_donate_now %}
+        {% if donor.availability_status == 'available' %}
         <div class="alert alert-success py-1 px-2 small mb-3 d-flex align-items-center gap-2"
           style="border-radius:8px;">
           <i class="fas fa-check-circle text-success"></i>
-          {{ t.eligible_to_donate_now }}
+          {{ t.available_to_donate }}
         </div>
         {% else %}
         <div class="alert alert-warning py-1 px-2 small mb-3 d-flex align-items-center gap-2"
           style="border-radius:8px;">
           <i class="fas fa-clock text-warning"></i>
-          {% if donor.next_eligible_date %}
-            {{ t.eligible_after }} {{ donor.next_eligible_date | to_bs }}
+          {% if donor.available_after_date or donor.next_eligible_date %}
+            {{ t.recently_donated }} ({{ t.eligible_after }} {{ (donor.available_after_date or donor.next_eligible_date) | to_bs }})
           {% else %}
             {{ t.currently_unavailable }}
           {% endif %}
