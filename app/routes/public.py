@@ -1140,14 +1140,6 @@ def faq():
 
 
 # ════════════════════════════════════════════
-#   AI HEALTH ASSISTANT
-# ════════════════════════════════════════════
-@public_bp.route('/ai-assistant')
-def ai_assistant():
-    return render_template('ai_assistant.html')
-
-
-# ════════════════════════════════════════════
 #   AD CLICK TRACKING
 # ════════════════════════════════════════════
 @public_bp.route('/ad/click/<int:ad_id>')

@@ -163,14 +163,131 @@ def track_impression(ad_id):
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 404
 
+import os
+import requests
 
-@api_bp.route('/ai-chat', methods=['POST'])
-def ai_chat():
-    data = request.get_json(silent=True) or {}
-    message = data.get('message', '').strip()
-    if not message:
-        return jsonify({'success': False, 'error': 'Please enter a health question.'}), 400
+@api_bp.route('/raktadata-helpher', methods=['POST'])
+def raktadata_helpher():
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'success': False, 'error': 'No message provided'}), 400
+
+    user_message = data['message'].strip()
+    history = data.get('history', [])
+
+    api_key = os.environ.get('GEMINI_API_KEY', '')
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+
+    # Build contents array from history and new message
+    contents = []
+    for msg in history:
+        contents.append({
+            "role": "model" if msg.get('role') == 'ai' else "user",
+            "parts": [{"text": msg.get('content')}]
+        })
     
-    from app.ai_assistant import generate_ai_response
-    response_text = generate_ai_response(message)
-    return jsonify({'success': True, 'reply': response_text})
+    contents.append({
+        "role": "user",
+        "parts": [{"text": user_message}]
+    })
+
+    system_instruction = (
+        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module. "
+        "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, and medical tips. "
+        "You provide suggestions, health tips, and guidance in a professional, empathetic, and strictly medical/health context. "
+        "If a user asks about anything outside of health, medical topics, or blood donation (e.g., programming, history, general knowledge, politics, math), "
+        "you MUST politely decline to answer, state your purpose, and steer the conversation back to health or blood topics. "
+        "Keep your responses concise, well-formatted, and easy to read. You can use markdown."
+    )
+
+    payload = {
+        "systemInstruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 800
+        }
+    }
+
+    try:
+        response = requests.post(
+            url, 
+            json=payload, 
+            headers={'Content-Type': 'application/json'}
+        )
+        response.raise_for_status()
+        
+        response_data = response.json()
+        candidates = response_data.get('candidates', [])
+        
+        if candidates and candidates[0].get('content'):
+            reply_text = candidates[0]['content']['parts'][0]['text']
+            return jsonify({'success': True, 'reply': reply_text})
+        else:
+            return jsonify({'success': False, 'error': 'No response from AI model'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Failed to process request: {str(e)}'}), 500
+
+from flask import Response, stream_with_context
+import json
+
+@api_bp.route('/raktadata-helpher/stream', methods=['POST'])
+def raktadata_helpher_stream():
+    data = request.get_json()
+    if not data or 'message' not in data:
+        return jsonify({'success': False, 'error': 'No message provided'}), 400
+
+    user_message = data['message'].strip()
+    history = data.get('history', [])
+
+    api_key = os.environ.get('GEMINI_API_KEY', '')
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?key={api_key}&alt=sse"
+
+    contents = []
+    for msg in history:
+        contents.append({
+            "role": "model" if msg.get('role') == 'ai' else "user",
+            "parts": [{"text": msg.get('content')}]
+        })
+    
+    contents.append({
+        "role": "user",
+        "parts": [{"text": user_message}]
+    })
+
+    system_instruction = (
+        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module. "
+        "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, and medical tips. "
+        "You provide suggestions, health tips, and guidance in a professional, empathetic, and strictly medical/health context. "
+        "If a user asks about anything outside of health, medical topics, or blood donation (e.g., programming, history, general knowledge, politics, math), "
+        "you MUST politely decline to answer, state your purpose, and steer the conversation back to health or blood topics. "
+        "Keep your responses concise, well-formatted, and easy to read. You can use markdown."
+    )
+
+    payload = {
+        "systemInstruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 800
+        }
+    }
+
+    def generate():
+        try:
+            with requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, stream=True) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if line:
+                        decoded_line = line.decode('utf-8')
+                        yield decoded_line + '\n\n'
+        except Exception as e:
+            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+

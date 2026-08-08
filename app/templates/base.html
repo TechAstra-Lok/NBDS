@@ -805,102 +805,337 @@
   </script>
   {% endif %}
 
-  <!-- ════════════════════════════════════════════
-       FLOATING AI HEALTH ASSISTANT WIDGET
-  ════════════════════════════════════════════ -->
-  <div id="aiWidgetContainer" style="position: fixed; bottom: 25px; right: 25px; z-index: 1080;">
-    <!-- Floating Trigger Button -->
-    <button id="aiWidgetToggle" class="btn btn-danger btn-lg rounded-circle shadow-lg d-flex align-items-center justify-content-center p-0"
-      style="width: 58px; height: 58px; transition: transform 0.3s;" title="Ask AI Health Assistant" onclick="toggleAiWidget()">
-      <i class="fas fa-robot fa-lg text-white"></i>
-      <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
-        <span class="visually-hidden">AI Active</span>
-      </span>
+  <!-- Raktadata Helpher Chat Widget -->
+  <div id="helpher-widget" class="helpher-widget-container">
+    <button id="helpher-toggle" class="helpher-btn shadow-lg" aria-label="Open AI Assistant">
+      <i class="fas fa-user-md"></i>
     </button>
-
-    <!-- Floating Chat Box Popover -->
-    <div id="aiWidgetPopover" class="card border-0 shadow-lg rounded-4 overflow-hidden d-none"
-      style="position: absolute; bottom: 70px; right: 0; width: 350px; max-width: 90vw; height: 480px; max-height: 80vh;">
-      <div class="card-header bg-danger text-white py-2 px-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          <i class="fas fa-user-md"></i>
-          <span class="fw-bold small">Raktadata Health AI</span>
-        </div>
+    
+    <div id="helpher-window" class="helpher-window shadow-xl d-none">
+      <div class="helpher-header">
         <div>
-          <a href="{{ url_for('public.ai_assistant') }}" class="btn btn-sm btn-outline-light py-0 px-2 me-1" title="Expand Full Page">
-            <i class="fas fa-expand"></i>
-          </a>
-          <button type="button" class="btn-close btn-close-white small" onclick="toggleAiWidget()"></button>
+          <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Raktadata Helpher</h5>
+          <small>AI Health Assistant</small>
+        </div>
+        <button id="helpher-close" class="btn btn-sm text-white"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <div id="helpher-messages" class="helpher-messages">
+        <div class="message ai-message">
+          <div class="msg-content">Hello! I am Raktadata Helpher, your ultimate medical AI assistant. I can help answer queries about health, medical tips, and blood donation. How can I assist you today?</div>
         </div>
       </div>
-
-      <div class="card-body p-3 bg-light" id="widgetChatBox" style="height: 350px; overflow-y: auto;">
-        <div class="d-flex align-items-start gap-2 mb-3">
-          <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:30px;height:30px;font-size:0.75rem;">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="bg-white p-2 rounded-3 shadow-sm border text-dark extra-small">
-            <strong>Raktadata Health AI:</strong> Namaste! Ask me any health or blood donation question (eligibility, groups, habits, pre/post tips).
-          </div>
-        </div>
-      </div>
-
-      <div class="card-footer bg-white p-2 border-0">
-        <form id="widgetForm" onsubmit="handleWidgetSubmit(event)" class="d-flex gap-1">
-          <input type="text" id="widgetInput" class="form-control form-control-sm rounded-pill" placeholder="Ask health query..." required autocomplete="off">
-          <button type="submit" id="widgetSendBtn" class="btn btn-danger btn-sm rounded-circle px-2" style="width:34px;height:34px;">
-            <i class="fas fa-paper-plane fa-xs"></i>
-          </button>
+      
+      <div class="helpher-input-area">
+        <form id="helpher-form" class="d-flex w-100">
+          <input type="text" id="helpher-input" class="form-control me-2" placeholder="Ask a health question..." required autocomplete="off">
+          <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i></button>
         </form>
       </div>
     </div>
   </div>
 
+  <style>
+    /* Raktadata Helpher Widget Styles */
+    .helpher-widget-container {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 1050;
+      font-family: 'Inter', sans-serif;
+    }
+    .helpher-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+      color: white;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+    }
+    .helpher-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 25px rgba(229, 57, 53, 0.4) !important;
+    }
+    .helpher-window {
+      position: absolute;
+      bottom: 80px;
+      right: 0;
+      width: 350px;
+      height: 500px;
+      background: white;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      animation: helpherFadeIn 0.3s ease-out forwards;
+    }
+    .helpher-window.d-none {
+      display: none !important;
+    }
+    @keyframes helpherFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .helpher-header {
+      background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .helpher-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .message {
+      max-width: 85%;
+      animation: msgPop 0.3s ease-out forwards;
+    }
+    @keyframes msgPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .msg-content {
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .user-message {
+      align-self: flex-end;
+    }
+    .user-message .msg-content {
+      background: #e53935;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .ai-message {
+      align-self: flex-start;
+    }
+    .ai-message .msg-content {
+      background: white;
+      color: #333;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      border: 1px solid #eee;
+    }
+    .ai-message .msg-content p:last-child {
+      margin-bottom: 0;
+    }
+    .ai-message .msg-content pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .helpher-input-area {
+      padding: 15px;
+      background: white;
+      border-top: 1px solid #eee;
+    }
+    .helpher-input-area input {
+      border-radius: 20px;
+      padding-left: 15px;
+      border: 1px solid #ddd;
+    }
+    .helpher-input-area input:focus {
+      box-shadow: none;
+      border-color: #e53935;
+    }
+    .helpher-input-area button {
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: #888;
+      border-radius: 50%;
+      animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    @media (max-width: 576px) {
+      .helpher-window {
+        width: calc(100vw - 40px);
+        right: -5px;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    function toggleAiWidget() {
-      const popover = document.getElementById('aiWidgetPopover');
-      popover.classList.toggle('d-none');
-      if (!popover.classList.contains('d-none')) {
-        document.getElementById('widgetInput').focus();
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleBtn = document.getElementById('helpher-toggle');
+      const closeBtn = document.getElementById('helpher-close');
+      const windowEl = document.getElementById('helpher-window');
+      const form = document.getElementById('helpher-form');
+      const input = document.getElementById('helpher-input');
+      const messagesContainer = document.getElementById('helpher-messages');
+      
+      let chatHistory = [];
+
+      function toggleWindow() {
+        windowEl.classList.toggle('d-none');
+        if (!windowEl.classList.contains('d-none')) {
+          input.focus();
+        }
       }
-    }
 
-    async function handleWidgetSubmit(e) {
-      e.preventDefault();
-      const input = document.getElementById('widgetInput');
-      const box = document.getElementById('widgetChatBox');
-      const msg = input.value.trim();
-      if (!msg) return;
+      toggleBtn.addEventListener('click', toggleWindow);
+      closeBtn.addEventListener('click', toggleWindow);
 
-      // Add user message
-      box.innerHTML += `<div class="d-flex justify-content-end mb-2"><div class="bg-danger text-white p-2 rounded-3 max-w-85 extra-small">${msg}</div></div>`;
-      input.value = '';
-      box.scrollTop = box.scrollHeight;
-
-      // Typing indicator
-      const typingId = 'w-typing-' + Date.now();
-      box.innerHTML += `<div id="${typingId}" class="d-flex align-items-center gap-2 mb-2 text-muted extra-small"><i class="fas fa-spinner fa-spin text-danger"></i> Thinking...</div>`;
-      box.scrollTop = box.scrollHeight;
-
-      try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        const res = await fetch('/api/v1/ai-chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-          body: JSON.stringify({ message: msg })
-        });
-        const data = await res.json();
-        document.getElementById(typingId).remove();
-
-        const reply = data.success ? data.reply : 'Sorry, please try again.';
-        const formatted = reply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        box.innerHTML += `<div class="d-flex align-items-start gap-2 mb-3"><div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:28px;height:28px;font-size:0.7rem;"><i class="fas fa-robot"></i></div><div class="bg-white p-2 rounded-3 shadow-sm border text-dark extra-small">${formatted}</div></div>`;
-      } catch (err) {
-        if (document.getElementById(typingId)) document.getElementById(typingId).remove();
-        box.innerHTML += `<div class="text-danger extra-small mb-2">Network error.</div>`;
+      function addMessage(text, role, isHtml = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}-message`;
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'msg-content';
+        if (isHtml) {
+          contentDiv.innerHTML = text;
+        } else {
+          contentDiv.textContent = text;
+        }
+        msgDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
-      box.scrollTop = box.scrollHeight;
-    }
+
+      function showTyping() {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message ai-message typing-msg';
+        msgDiv.innerHTML = `
+          <div class="msg-content">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        `;
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return msgDiv;
+      }
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        input.value = '';
+        input.disabled = true;
+
+        const typingEl = showTyping();
+
+        try {
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+          const response = await fetch('/api/v1/raktadata-helpher/stream', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ message: text, history: chatHistory })
+          });
+          
+          typingEl.remove();
+          
+          if (!response.ok) {
+            addMessage("I'm sorry, I encountered an error. Please try again.", 'ai');
+            return;
+          }
+
+          // Create an empty AI message to append to
+          const msgDiv = document.createElement('div');
+          msgDiv.className = 'message ai-message';
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'msg-content';
+          msgDiv.appendChild(contentDiv);
+          messagesContainer.appendChild(msgDiv);
+          
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let aiFullText = "";
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep the last incomplete line in buffer
+            
+            for (const line of lines) {
+              if (line.trim().startsWith('data: ')) {
+                const dataStr = line.replace('data: ', '').trim();
+                if (!dataStr || dataStr === '[DONE]') continue;
+                try {
+                  const jsonData = JSON.parse(dataStr);
+                  if (jsonData.error) {
+                    aiFullText += "\n\nError: " + jsonData.error;
+                  } else if (jsonData.candidates && jsonData.candidates.length > 0) {
+                    const parts = jsonData.candidates[0].content?.parts;
+                    if (parts && parts.length > 0) {
+                      aiFullText += parts[0].text;
+                    }
+                  }
+                  // Render markdown progressively
+                  contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(aiFullText) : aiFullText;
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                } catch (e) {
+                  // ignore JSON parse errors for incomplete chunks
+                  console.error("JSON parse error:", e, dataStr);
+                }
+              }
+            }
+          }
+          
+          chatHistory.push({ role: 'user', content: text });
+          chatHistory.push({ role: 'ai', content: aiFullText });
+          if (chatHistory.length > 10) chatHistory = chatHistory.slice(chatHistory.length - 10);
+        } catch (err) {
+          typingEl?.remove();
+          addMessage("Network error. Please try again.", 'ai');
+        } finally {
+          input.disabled = false;
+          input.focus();
+        }
+      });
+    });
   </script>
 
   {% block extra_js %}{% endblock %}
