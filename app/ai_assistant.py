@@ -148,13 +148,91 @@ def generate_ai_response(user_query: str) -> str:
 
 
 def _synthesize_english_response(query: str, q_lower: str) -> str:
-    """Synthesizes a natural, conversational response in English."""
+    """Synthesizes a natural, conversational, genuine medical response in English."""
     
     # Greetings & Introductions
     if any(k in q_lower for k in ['hello', 'hi', 'hey', 'namaste', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'what can you do', 'help']):
-        return "Namaste! 👋 I am your Raktadata Health & Transfusion AI Assistant. How can I assist your health or blood donation needs today? Feel free to ask about blood donor eligibility, blood group compatibility, locating blood for a patient in Nepal, or healthy habits!"
+        return "Namaste! 👋 I am your Raktadata Health & Transfusion AI Assistant. How can I assist your health or blood donation needs today? Feel free to ask about weight management, blood donor eligibility, blood group compatibility, locating blood for a patient in Nepal, or healthy lifestyle habits!"
 
-    # Intent 1: Finding Blood / Emergency Requests
+    # Intent: Weight Loss / Fat Reduction
+    elif any(k in q_lower for k in ['lose weight', 'weight loss', 'lose my weight', 'belly fat', 'burn fat', 'slimming', 'overweight', 'obese', 'reduce weight', 'fat loss']):
+        return f"""
+🏋️‍♂️ **Evidence-Based Medical Guidance for Weight Loss:**
+
+To achieve healthy, sustainable weight loss, follow these clinical principles:
+
+1. 🥗 **Nutrition & Caloric Deficit:**
+   - Create a modest caloric deficit (consuming 300–500 kcal less than your Daily Energy Expenditure).
+   - **Protein Priority:** Increase lean protein intake (eggs, chicken, lentils, chickpeas, tofu) to boost metabolism and maintain muscle.
+   - **High Fiber:** Eat plentiful non-starchy vegetables (spinach, cucumber, broccoli) and whole grains to stay full longer.
+   - **Eliminate Sugar:** Avoid sugary drinks, sodas, bakery items, and ultra-processed fried foods.
+
+2. 🏃‍♂️ **Exercise & Activity:**
+   - Engage in 150 minutes of moderate aerobic exercise (brisk walking, jogging, cycling) per week.
+   - Perform strength/resistance training 3 days a week to preserve lean muscle tissue.
+
+3. 💧 **Hydration & Sleep:**
+   - Drink 2.5 to 3 liters of water daily. Drink a large glass of water 20 minutes before meals.
+   - Ensure 7 to 8 hours of quality sleep nightly (sleep deprivation increases ghrelin, the hunger hormone).
+
+4. 🩺 **Note on Blood Donor Safety:**
+   Donor safety guidelines require a minimum weight of **45 kg** and hemoglobin level of **12.5 g/dL**. As long as your weight remains above 45 kg and nutrition is balanced, you remain fully eligible to donate blood!
+"""
+
+    # Intent: Weight Gain / Muscle Building
+    elif any(k in q_lower for k in ['gain weight', 'weight gain', 'skinny', 'underweight', 'build muscle', 'bulk up']):
+        return f"""
+💪 **Medical Guidance for Healthy Weight & Muscle Gain:**
+
+1. 🥑 **Caloric Surplus & Nutrient-Dense Diet:**
+   - Consume 300–500 calories above your daily maintenance level.
+   - Eat nutrient-dense foods: almonds, walnuts, peanut butter, avocado, eggs, dairy, whole grains, and lean meats.
+   - Eat 4–5 smaller, frequent meals throughout the day.
+
+2. 🏋️ **Progressive Strength Training:**
+   - Focus on compound lifting exercises (squats, deadlifts, push-ups, shoulder presses) 3–4 days a week to ensure weight gain is muscle rather than fat.
+
+3. 😴 **Rest & Protein Intake:**
+   - Consume 1.4–2.0 grams of protein per kg of body weight daily.
+   - Sleep 7–8 hours to allow muscle tissue repair and growth.
+"""
+
+    # Intent: Diabetes & Blood Sugar
+    elif any(k in q_lower for k in ['diabetes', 'blood sugar', 'glucose', 'insulin', 'diabetic']):
+        return f"""
+🩺 **Medical Information on Diabetes & Blood Sugar Control:**
+
+1. 🥗 **Dietary Management:**
+   - Choose Low Glycemic Index (GI) complex carbohydrates (brown rice, oats, buckwheat, lentils).
+   - Pair carbs with high fiber and protein to prevent sharp post-meal blood sugar spikes.
+   - Restrict refined flour (maida), sweets, fruit juices, and processed snacks.
+
+2. 🚶‍♂️ **Physical Activity:**
+   - A 15-minute brisk walk after meals significantly improves insulin sensitivity.
+
+3. 🩸 **Blood Donation with Diabetes:**
+   - Individuals with well-controlled Type 2 diabetes managed via diet or oral medication are generally eligible to donate blood if feeling well on the day!
+"""
+
+    # Intent: Blood Pressure & Cholesterol
+    elif any(k in q_lower for k in ['blood pressure', 'hypertension', 'bp', 'high bp', 'cholesterol', 'heart']):
+        return f"""
+❤️ **Cardiovascular Health & Blood Pressure Guidance:**
+
+1. 🥗 **DASH Diet Principles:**
+   - Reduce sodium (salt) intake to under 2,000 mg/day (less than 1 teaspoon).
+   - Increase potassium-rich foods (bananas, spinach, sweet potatoes, coconut water).
+   - Limit saturated fats; incorporate heart-healthy omega-3 fats (flaxseeds, walnuts, fish).
+
+2. 🏃 **Exercise & Stress Reduction:**
+   - 30 minutes of daily aerobic activity helps lower systolic blood pressure by 5–8 mmHg.
+   - Practice deep breathing exercises and meditation to reduce stress hormones.
+
+3. 🩸 **Blood Donation Benefits:**
+   - Regular blood donation helps manage systemic iron storage and promotes cardiovascular health!
+"""
+
+    # Intent: Finding Blood / Emergency Requests
     elif any(k in q_lower for k in ['where', 'find', 'need', 'get', 'search', 'patient', 'urgent', 'emergency', 'bank', 'hospital', 'red cross']):
         return f"""
 🩸 **Here is how you can locate blood in Nepal for: "{query}"**
@@ -169,7 +247,7 @@ def _synthesize_english_response(query: str, q_lower: str) -> str:
 4. 📞 **24/7 Support:** Call Raktadata emergency helpline at **+977 9816003020**.
 """
 
-    # Intent 2: Deferrals (Tattoo, Alcohol, Meds, Surgery, Infections)
+    # Intent: Deferrals (Tattoo, Alcohol, Meds, Surgery, Infections)
     elif any(k in q_lower for k in ['tattoo', 'piercing', 'alcohol', 'drink', 'smoking', 'medication', 'antibiotic', 'surgery', 'dengue', 'malaria', 'fever', 'cold', 'pregnant']):
         return f"""
 💉 **Medical Deferral & Eligibility Guidance:**
@@ -182,7 +260,7 @@ def _synthesize_english_response(query: str, q_lower: str) -> str:
 - **Basic Requirements:** Age 18–60 years, weight ≥ 45 kg, hemoglobin ≥ 12.5 g/dL.
 """
 
-    # Intent 3: Compatibility
+    # Intent: Compatibility
     elif any(k in q_lower for k in ['compatib', 'group', 'type', 'receive', 'donate', 'o+', 'o-', 'a+', 'a-', 'b+', 'b-', 'ab+', 'ab-']):
         return f"""
 🩸 **Blood Group Compatibility Summary:**
@@ -196,7 +274,7 @@ def _synthesize_english_response(query: str, q_lower: str) -> str:
 Search matching donors in your district on **[Find Donors](/find-donors)**!
 """
 
-    # Intent 4: Hemoglobin & Diet
+    # Intent: Hemoglobin & Diet
     elif any(k in q_lower for k in ['hemoglobin', 'hb', 'iron', 'beetroot', 'spinach', 'diet', 'anemia', 'food', 'nutrition']):
         return f"""
 🥦 **Diet & Hemoglobin Boosting Advice:**
@@ -207,17 +285,21 @@ Search matching donors in your district on **[Find Donors](/find-donors)**!
 4. 🩺 Minimum donor hemoglobin requirement is **12.5 g/dL**.
 """
 
-    # General Conversational Response
+    # General Health Conversational Synthesizer
     return f"""
-Hello! Regarding your inquiry about **"{query}"**:
+🏥 **Health & Medical Advice regarding: "{query}"**
 
-I am here to assist with any blood donation or health-related query. You can:
-- Locate blood donors in Nepal via **[Find Donors](/find-donors)**
-- Post urgent blood requests on **[Post Blood Request](/blood-request)**
-- Browse contacts on **[Blood Banks Directory](/blood-banks)**
-- Check donor eligibility (age 18–60, weight ≥ 45kg, hemoglobin ≥ 12.5g/dL, 90 days gap)
+1. 🌿 **General Wellness Principles:**
+   - Maintain balanced daily hydration (2.5 to 3 liters of water).
+   - Consume a whole-food diet rich in green vegetables, lean proteins, and complex fiber while minimizing refined sugars.
+   - Aim for 150 minutes of moderate physical activity weekly.
+   - Ensure 7 to 8 hours of restful sleep every night.
 
-What specific information or medical advice would you like to know?
+2. 🩺 **Blood Donation & Community Health:**
+   - Donors should be 18–60 years old, weigh at least 45 kg, and maintain a hemoglobin level of 12.5 g/dL.
+   - Need blood donors in Nepal? Use **[Find Donors](/find-donors)** or **[Post Blood Request](/blood-request)**.
+
+If you have specific clinical symptoms or concerns, please consult a certified medical practitioner!
 """
 
 
@@ -225,7 +307,17 @@ def _synthesize_nepali_response(query: str, q_lower: str) -> str:
     """Synthesizes a natural, conversational response in Nepali."""
     
     if any(k in q_lower for k in ['नमस्ते', 'नमस्कार', 'हेलो', 'हाई', 'के छ']):
-        return "नमस्ते! 👋 म तपाईंको स्वास्थ्य तथा रक्तदान AI सहायक हुँ। आज म तपाईंलाई के सहयोग गर्न सक्छु? तपाईंले रक्तदानको मापदण्ड, रक्त समूह योग्यता, वा नेपालमा रगत खोज्ने तरिकाबारे सोध्न सक्नुहुन्छ।"
+        return "नमस्ते! 👋 म तपाईंको स्वास्थ्य तथा रक्तदान AI सहायक हुँ। आज म तपाईंलाई के सहयोग गर्न सक्छु? तपाईंले वजन घटाउने, रक्तदानको मापदण्ड, रक्त समूह योग्यता, वा नेपालमा रगत खोज्ने तरिकाबारे सोध्न सक्नुहुन्छ।"
+
+    elif any(k in q_lower for k in ['वजन', 'तौल', 'घटाउने', 'दुब्लो', 'फ्याट']):
+        return f"""
+🏋️‍♂️ **तौल घटाउने सम्बन्धी स्वास्थ्य सल्लाह:**
+
+1. 🥗 **सन्तुलित खानपान:** क्यालोरी नियन्त्रण गर्नुहोस्। खानामा प्रोटिन (अण्डा, दाल, चना) र फाइबर (सागपात, काँक्रो) बढाउनुहोस्। चिनी र फ्राइड खाना पूर्ण बन्द गर्नुहोस्।
+2. 🏃 **नियमित व्यायाम:** हप्तामा कम्तिमा १५० मिनेट हिँड्ने, कुद्ने वा व्यायाम गर्नुहोस्।
+3. 💧 **पानी र निद्रा:** दैनिक ३ लिटर पानी पिउनुहोस् र ७-८ घण्टा सुत्नुहोस्।
+4. 🩺 **रक्तदान:** रक्तदानका लागि न्यूनतम तौल ४५ केजी हुनुपर्छ।
+"""
 
     elif any(k in q_lower for k in ['रगत', 'बिरामी', 'कहाँ', 'पाइन्छ', 'चाहियो', 'अनुरोध']):
         return f"""
