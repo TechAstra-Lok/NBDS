@@ -58,6 +58,7 @@ email-validator==2.1.0
 executing==2.2.0
 ezdxf==1.4.3
 fastapi==0.138.2
+Flask-Babel==4.0.0
 fastapi-sso==0.21.1
 fastjsonschema==2.21.1
 fastuuid==0.14.0

@@ -38,7 +38,17 @@ login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
 migrate = Migrate()
-from flask_babel import Babel, gettext as _
+try:
+    from flask_babel import Babel, gettext as _
+    has_babel = True
+except ImportError:
+    has_babel = False
+    class Babel:
+        def init_app(self, app, **kwargs):
+            pass
+    def _(text):
+        return text
+
 import nepali_datetime
 import datetime
 
