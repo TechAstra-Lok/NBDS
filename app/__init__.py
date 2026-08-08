@@ -49,7 +49,12 @@ except ImportError:
     def _(text):
         return text
 
-import nepali_datetime
+try:
+    import nepali_datetime
+    has_nepali_datetime = True
+except ImportError:
+    has_nepali_datetime = False
+
 import datetime
 
 def get_locale():
@@ -105,11 +110,13 @@ def create_app(config_name=None):
                 return dt
         else:
             return str(dt)
-        try:
-            bs_date = nepali_datetime.date.from_datetime_date(dt_date)
-            return bs_date.strftime('%Y-%m-%d')
-        except Exception:
-            return str(dt)
+        if has_nepali_datetime:
+            try:
+                bs_date = nepali_datetime.date.from_datetime_date(dt_date)
+                return bs_date.strftime('%Y-%m-%d')
+            except Exception:
+                return str(dt)
+        return str(dt)
     
     # Initialize and start the APScheduler
     try:
