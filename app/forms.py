@@ -336,7 +336,7 @@ class NoticeForm(FlaskForm):
     title           = StringField('Notice Title *', validators=[DataRequired(), Length(min=5, max=300)])
     content         = TextAreaField('Notice Content *', validators=[DataRequired(), Length(min=10)], render_kw={"rows": 8})
     expiry_date     = DateField('Expiry Date (Optional)', format='%Y-%m-%d', validators=[Optional()])
-    priority        = SelectField('Priority', choices=[('0', 'Normal'), ('1', 'Important'), ('2', 'Urgent')], default='0')
+    priority        = SelectField('Priority', choices=[(0, 'Normal'), (1, 'Important'), (2, 'Urgent')], coerce=int, default=0)
     attachment      = FileField('Attachment (PDF/Image)', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'PDF or Images only!')])
     is_active       = BooleanField('Make Active', default=True)
     submit          = SubmitField('Publish Notice')

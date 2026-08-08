@@ -1,6 +1,33 @@
 {% extends "base.html" %}
 {% block title %}धेरै सोधिने प्रश्नहरू (FAQs) — {{ site_name }}{% endblock %}
 
+{% block extra_css %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "के रक्तदान गर्दा शरीर कमजोर हुन्छ वा बिरामी परिन्छ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "कदापि हुँदैन। एउटा स्वस्थ मानिसको शरीरमा सामान्यतया ५ देखि ६ लिटर रगत हुन्छ। रक्तदान गर्दा मात्र ३५० देखि ४५० मिलिलिटर रगत निकालिन्छ जुन २४-४८ घण्टामा पुन: पूर्ति हुन्छ।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "को-को व्यक्तिले रक्तदान गर्न सक्नुहुन्छ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "१८ देखि ६० वर्ष उमेर पुगेका, कम्तिमा ४५ केजी तौल भएका र स्वस्थ व्यक्तिले रक्तदान गर्न सक्नुहुन्छ।"
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-xl py-2">
     <div class="text-center mb-5 animate__animated animate__fadeIn">

@@ -1140,6 +1140,14 @@ def faq():
 
 
 # ════════════════════════════════════════════
+#   AI HEALTH ASSISTANT
+# ════════════════════════════════════════════
+@public_bp.route('/ai-assistant')
+def ai_assistant():
+    return render_template('ai_assistant.html')
+
+
+# ════════════════════════════════════════════
 #   AD CLICK TRACKING
 # ════════════════════════════════════════════
 @public_bp.route('/ad/click/<int:ad_id>')
@@ -1154,45 +1162,60 @@ def ad_click(ad_id):
 
 
 # ════════════════════════════════════════════
-#   SITEMAP GENERATION
+#   SEO: SITEMAP & ROBOTS.TXT
 # ════════════════════════════════════════════
+@public_bp.route('/robots.txt')
+def robots():
+    content = """User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /bloodbank/
+Disallow: /api/
+
+Sitemap: https://raktadata.lokeshprasai.com.np/sitemap.xml
+"""
+    return Response(content, mimetype='text/plain')
+
+
 @public_bp.route('/sitemap.xml', methods=['GET'])
 def sitemap():
-    pages = []
-    pages.append((url_for('public.index', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.news_list', _external=True), datetime.utcnow().date().isoformat()))
+    today = datetime.utcnow().date().isoformat()
+    pages = [
+        (url_for('public.index', _external=True), today, '1.0', 'daily'),
+        (url_for('public.find_donors', _external=True), today, '0.9', 'daily'),
+        (url_for('public.blood_request_board', _external=True), today, '0.9', 'hourly'),
+        (url_for('public.blood_banks', _external=True), today, '0.8', 'weekly'),
+        (url_for('public.ai_assistant', _external=True), today, '0.8', 'weekly'),
+        (url_for('public.become_donor', _external=True), today, '0.8', 'monthly'),
+        (url_for('public.news_list', _external=True), today, '0.8', 'daily'),
+        (url_for('public.about', _external=True), today, '0.6', 'monthly'),
+        (url_for('public.contact', _external=True), today, '0.6', 'monthly'),
+        (url_for('public.faq', _external=True), today, '0.6', 'monthly'),
+        (url_for('public.donor_guidelines', _external=True), today, '0.6', 'monthly'),
+        (url_for('public.success_stories', _external=True), today, '0.7', 'weekly'),
+    ]
     
     try:
-        news_count = News.query.filter_by(is_published=True).count()
-        per_page = current_app.config.get('NEWS_PER_PAGE', 10)
-        total_pages = max(1, (news_count // per_page) + (1 if news_count % per_page else 0))
-        for p in range(1, min(total_pages, 5) + 1):
-            pages.append((url_for('public.news_list', page=p, _external=True), datetime.utcnow().date().isoformat()))
+        for n in News.query.filter_by(is_published=True).order_by(desc(News.created_at)).limit(50).all():
+            lastmod = n.updated_at.date().isoformat() if n.updated_at else n.created_at.date().isoformat()
+            pages.append((url_for('public.news_detail', slug=n.slug, _external=True), lastmod, '0.7', 'monthly'))
     except Exception:
         pass
-        
-    pages.append((url_for('public.blood_request_board', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
 
-    for n in News.query.filter_by(is_published=True).order_by(desc(News.created_at)).all():
-        pages.append((url_for('public.news_detail', slug=n.slug, _external=True), n.created_at.date().isoformat()))
-
-    pages.append((url_for('public.about', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.contact', _external=True), datetime.utcnow().date().isoformat()))
-    pages.append((url_for('public.success_stories', _external=True), datetime.utcnow().date().isoformat()))
-
-    for no in Notice.query.filter_by(is_active=True).order_by(desc(Notice.published_date)).all():
-        pages.append((url_for('public.index', _external=True) + '#notice-' + str(no.id), no.published_date.date().isoformat()))
-
-    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, lastmod in pages:
-        xml_parts.append('<url>')
-        xml_parts.append(f'<loc>{loc}</loc>')
-        xml_parts.append(f'<lastmod>{lastmod}</lastmod>')
-        xml_parts.append('</url>')
+    xml_parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    ]
+    for loc, lastmod, prio, freq in pages:
+        xml_parts.append('  <url>')
+        xml_parts.append(f'    <loc>{loc}</loc>')
+        xml_parts.append(f'    <lastmod>{lastmod}</lastmod>')
+        xml_parts.append(f'    <changefreq>{freq}</changefreq>')
+        xml_parts.append(f'    <priority>{prio}</priority>')
+        xml_parts.append('  </url>')
     xml_parts.append('</urlset>')
-    body = '\n'.join(xml_parts)
-    return Response(body, mimetype='application/xml')
+    
+    return Response('\n'.join(xml_parts), mimetype='application/xml')
 
 
 # ════════════════════════════════════════════

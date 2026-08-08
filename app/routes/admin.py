@@ -1547,7 +1547,12 @@ def add_notice():
 @permission_required('manage_notices')
 def edit_notice(id):
     notice = Notice.query.get_or_404(id)
-    form = NoticeForm(obj=notice)
+    if request.method == 'GET':
+        form = NoticeForm(obj=notice)
+        if notice.expiry_date and isinstance(notice.expiry_date, datetime):
+            form.expiry_date.data = notice.expiry_date.date()
+    else:
+        form = NoticeForm()
     
     if form.validate_on_submit():
         if form.attachment.data and form.attachment.data.filename:
@@ -1559,8 +1564,12 @@ def edit_notice(id):
             
         notice.title = form.title.data.strip()
         notice.content = form.content.data.strip()
-        notice.expiry_date = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None
-        notice.priority = int(form.priority.data)
+        if form.expiry_date.data:
+            ed = form.expiry_date.data
+            notice.expiry_date = datetime.combine(ed, datetime.min.time()) if not isinstance(ed, datetime) else ed
+        else:
+            notice.expiry_date = None
+        notice.priority = int(form.priority.data) if form.priority.data is not None else 0
         notice.is_active = form.is_active.data
         notice.updated_at = datetime.utcnow()
         
@@ -1595,19 +1604,32 @@ def toggle_notice(id):
 #   ADVERTISEMENT MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/advertisements')
-@permission_required('manage_users')
+@permission_required('manage_ads')
 def advertisements():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
         Advertisement.query.order_by(desc(Advertisement.created_at)), page, 15
     )
     
-    # Monthly click report
-    monthly_clicks = db.session.query(
-        func.strftime('%Y-%m', Advertisement.created_at).label('month'),
-        func.sum(Advertisement.clicks).label('total_clicks'),
-        func.sum(Advertisement.impressions).label('total_impressions'),
-    ).group_by('month').order_by(desc('month')).limit(6).all()
+    # Monthly click report (Database dialect aware: PostgreSQL vs SQLite)
+    try:
+        bind = db.session.get_bind()
+        dialect_name = bind.dialect.name if bind else 'sqlite'
+        if dialect_name == 'postgresql':
+            month_col = func.to_char(Advertisement.created_at, 'YYYY-MM').label('month')
+            monthly_clicks = db.session.query(
+                month_col,
+                func.sum(Advertisement.clicks).label('total_clicks'),
+                func.sum(Advertisement.impressions).label('total_impressions'),
+            ).group_by(month_col).order_by(desc(month_col)).limit(6).all()
+        else:
+            monthly_clicks = db.session.query(
+                func.strftime('%Y-%m', Advertisement.created_at).label('month'),
+                func.sum(Advertisement.clicks).label('total_clicks'),
+                func.sum(Advertisement.impressions).label('total_impressions'),
+            ).group_by('month').order_by(desc('month')).limit(6).all()
+    except Exception:
+        monthly_clicks = []
     
     return render_template('admin/advertisements.html',
         pagination=pagination,

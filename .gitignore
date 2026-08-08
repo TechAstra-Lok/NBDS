@@ -29,3 +29,5 @@ htmlcov/
 *.sqlite
 app/static/uploads/
 *.json
+.env.example*
+README.md

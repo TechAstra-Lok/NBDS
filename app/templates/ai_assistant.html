@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}AI Health & Blood Assistant — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+      
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-danger text-white rounded-circle mb-3 shadow" style="width:64px;height:64px;">
+          <i class="fas fa-user-md fa-2x"></i>
+        </div>
+        <h2 class="fw-bold mb-1">Raktadata AI Health & Donor Guidance</h2>
+        <p class="text-muted small max-w-600 mx-auto">
+          Your 24/7 intelligent health assistant specialized in blood donation guidelines, group compatibility, pre/post donation tips, and healthy habit advice.
+        </p>
+      </div>
+
+      <!-- Quick Prompt Suggestion Pills -->
+      <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+        <button class="btn btn-sm btn-outline-danger rounded-pill quick-prompt-btn" onclick="sendQuickPrompt('Can I donate blood if I have O positive blood type?')">
+          <i class="fas fa-droplet me-1"></i>O+ Compatibility
+        </button>
+        <button class="btn btn-sm btn-outline-danger rounded-pill quick-prompt-btn" onclick="sendQuickPrompt('What are the minimum eligibility requirements to donate blood?')">
+          <i class="fas fa-clipboard-check me-1"></i>Donor Eligibility
+        </button>
+        <button class="btn btn-sm btn-outline-danger rounded-pill quick-prompt-btn" onclick="sendQuickPrompt('What should I eat before and after donating blood?')">
+          <i class="fas fa-apple-whole me-1"></i>Pre & Post Donation Diet
+        </button>
+        <button class="btn btn-sm btn-outline-danger rounded-pill quick-prompt-btn" onclick="sendQuickPrompt('How can I naturally boost my hemoglobin and iron levels?')">
+          <i class="fas fa-bolt me-1"></i>Increase Hemoglobin
+        </button>
+      </div>
+
+      <!-- Chat Container Card -->
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-danger text-white py-3 px-4 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <span class="spinner-grow spinner-grow-sm text-light" role="status"></span>
+            <span class="fw-bold">Raktadata Health AI Doctor</span>
+          </div>
+          <span class="badge bg-white text-danger fw-semibold">24/7 Online</span>
+        </div>
+
+        <div class="card-body p-4 bg-light" id="chatBox" style="height:420px; overflow-y:auto; scroll-behavior:smooth;">
+          <!-- Default Bot Welcome -->
+          <div class="d-flex align-items-start gap-3 mb-4">
+            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div class="bg-white p-3 rounded-4 shadow-sm border max-w-80">
+              <h6 class="fw-bold text-danger mb-1"><i class="fas fa-stethoscope me-1"></i>Raktadata Health AI</h6>
+              <p class="mb-0 text-dark small" style="line-height:1.5;">
+                Namaste! I am your AI Health & Blood Guidance Assistant. Ask me anything about <strong>blood donation eligibility, blood group compatibility, iron-rich diets, or pre/post donation care</strong>. How can I assist your health today?
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer bg-white p-3 border-0">
+          <form id="aiChatForm" onsubmit="handleChatSubmit(event)" class="d-flex gap-2">
+            <input type="text" id="userInput" class="form-control form-control-lg rounded-pill fs-6" placeholder="Type your health or blood donation question..." required autocomplete="off">
+            <button type="submit" id="sendBtn" class="btn btn-danger btn-lg rounded-circle d-flex align-items-center justify-content-center px-3" style="width:48px;height:48px;" title="Send">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function appendMessage(sender, text, isHtml = false) {
+  const chatBox = document.getElementById('chatBox');
+  const isUser = sender === 'user';
+  const wrapper = document.createElement('div');
+  wrapper.className = `d-flex align-items-start gap-3 mb-4 ${isUser ? 'justify-content-end' : ''}`;
+
+  const avatar = isUser ? '' : `
+    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
+      <i class="fas fa-robot"></i>
+    </div>`;
+
+  const bgClass = isUser ? 'bg-danger text-white' : 'bg-white text-dark border shadow-sm';
+  const senderTitle = isUser ? '' : '<h6 class="fw-bold text-danger mb-1"><i class="fas fa-stethoscope me-1"></i>Raktadata Health AI</h6>';
+
+  const formattedText = text
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  wrapper.innerHTML = `
+    ${!isUser ? avatar : ''}
+    <div class="${bgClass} p-3 rounded-4 max-w-80">
+      ${senderTitle}
+      <div class="small" style="line-height:1.5;">${formattedText}</div>
+    </div>
+  `;
+
+  chatBox.appendChild(wrapper);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function sendQuickPrompt(promptText) {
+  document.getElementById('userInput').value = promptText;
+  document.getElementById('aiChatForm').dispatchEvent(new Event('submit'));
+}
+
+async function handleChatSubmit(e) {
+  e.preventDefault();
+  const input = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const message = input.value.strip ? input.value.strip() : input.value.trim();
+  if (!message) return;
+
+  appendMessage('user', message);
+  input.value = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  // Append Typing Indicator
+  const typingId = 'typing-' + Date.now();
+  const chatBox = document.getElementById('chatBox');
+  const typingDiv = document.createElement('div');
+  typingDiv.id = typingId;
+  typingDiv.className = 'd-flex align-items-start gap-3 mb-4';
+  typingDiv.innerHTML = `
+    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
+      <i class="fas fa-robot"></i>
+    </div>
+    <div class="bg-white p-3 rounded-4 border shadow-sm">
+      <span class="spinner-dots text-danger small"><i class="fas fa-spinner fa-spin me-2"></i>Analyzing medical guidance...</span>
+    </div>
+  `;
+  chatBox.appendChild(typingDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try {
+    const res = await fetch('/api/v1/ai-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message })
+    });
+    const data = await res.json();
+    document.getElementById(typingId).remove();
+
+    if (data.success && data.reply) {
+      appendMessage('bot', data.reply);
+    } else {
+      appendMessage('bot', data.error || 'Sorry, I am unable to process your request right now.');
+    }
+  } catch (err) {
+    if (document.getElementById(typingId)) document.getElementById(typingId).remove();
+    appendMessage('bot', 'Network error. Please check your connection and try again.');
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+</script>
+{% endblock %}

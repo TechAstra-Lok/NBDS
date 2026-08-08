@@ -162,3 +162,15 @@ def track_impression(ad_id):
         db.session.commit()
         return jsonify({'ok': True})
     return jsonify({'ok': False}), 404
+
+
+@api_bp.route('/ai-chat', methods=['POST'])
+def ai_chat():
+    data = request.get_json(silent=True) or {}
+    message = data.get('message', '').strip()
+    if not message:
+        return jsonify({'success': False, 'error': 'Please enter a health question.'}), 400
+    
+    from app.ai_assistant import generate_ai_response
+    response_text = generate_ai_response(message)
+    return jsonify({'success': True, 'reply': response_text})
