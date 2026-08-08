@@ -148,96 +148,105 @@ def generate_ai_response(user_query: str) -> str:
 
 
 def _synthesize_english_response(query: str, q_lower: str) -> str:
-    """Synthesizes a tailored, non-static response in English for the exact user prompt."""
+    """Synthesizes a natural, conversational response in English."""
     
-    # Intent 1: Finding Blood / Emergency Requests
-    if any(k in q_lower for k in ['where', 'find', 'need', 'get', 'search', 'patient', 'urgent', 'emergency', 'bank', 'hospital', 'red cross']):
-        return f"""
-🩸 **Action Steps to Find Blood for: "{query}"**
+    # Greetings & Introductions
+    if any(k in q_lower for k in ['hello', 'hi', 'hey', 'namaste', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'what can you do', 'help']):
+        return "Namaste! 👋 I am your Raktadata Health & Transfusion AI Assistant. How can I assist your health or blood donation needs today? Feel free to ask about blood donor eligibility, blood group compatibility, locating blood for a patient in Nepal, or healthy habits!"
 
-1. 🔍 **Search Registered Donors:** Go to **[Find Donors](/find-donors)** to filter active donors by blood group and district in Nepal. You can view primary contact numbers and call donors directly.
-2. 🆘 **Post Emergency Blood Request:** Submit a request on **[Post Blood Request](/blood-request)** to notify nearby registered donors immediately.
-3. 🏥 **Contact Blood Transfusion Centers:** Check our **[Blood Banks Directory](/blood-banks)** for verified centers:
-   - Central Blood Transfusion Service (NRCS, Exhibition Road, Kathmandu): 📞 **+977-1-4225344**
+    # Intent 1: Finding Blood / Emergency Requests
+    elif any(k in q_lower for k in ['where', 'find', 'need', 'get', 'search', 'patient', 'urgent', 'emergency', 'bank', 'hospital', 'red cross']):
+        return f"""
+🩸 **Here is how you can locate blood in Nepal for: "{query}"**
+
+1. 🔍 **Filter Active Donors:** Visit **[Find Donors](/find-donors)** to search registered donors by blood group and district/city in Nepal.
+2. 🆘 **Submit an Emergency Request:** Post an urgent request on **[Post Blood Request](/blood-request)** to broadcast your patient's details to nearby registered donors.
+3. 🏥 **Contact Hospital Blood Banks:** Access verified numbers on our **[Blood Banks Directory](/blood-banks)**:
+   - Central Blood Transfusion Service (Red Cross, Exhibition Road, Kathmandu): 📞 **+977-1-4225344**
    - Lalitpur Blood Bank (Pulchowk): 📞 **+977-1-5527045**
    - Bhaktapur Blood Bank: 📞 **+977-1-6612266**
    - Teaching Hospital Transfusion Unit: 📞 **+977-1-4412404**
-4. 📞 **Emergency Support:** Call Raktadata 24/7 helpline at **+977 9816003020**.
+4. 📞 **24/7 Support:** Call Raktadata emergency helpline at **+977 9816003020**.
 """
 
     # Intent 2: Deferrals (Tattoo, Alcohol, Meds, Surgery, Infections)
     elif any(k in q_lower for k in ['tattoo', 'piercing', 'alcohol', 'drink', 'smoking', 'medication', 'antibiotic', 'surgery', 'dengue', 'malaria', 'fever', 'cold', 'pregnant']):
         return f"""
-💉 **Medical Deferral & Eligibility Guidance regarding: "{query}"**
+💉 **Medical Deferral & Eligibility Guidance:**
 
-- **Tattoos & Piercings:** Deferred for **6 months** to rule out blood-borne infection risks.
-- **Alcohol & Smoking:** Avoid alcohol for **24 hours** prior; refrain from smoking **2 hours before & after** donation.
+- **Tattoos & Piercings:** Deferred for **6 months** to rule out infection risks.
+- **Alcohol & Smoking:** Avoid alcohol for **24 hours** before donating; avoid smoking **2 hours before and after**.
 - **Medications & Antibiotics:** Wait **7 days after completing** your full antibiotic course.
 - **Surgeries:** Major surgeries require a **6-month deferral**; minor procedures require 1-3 months.
-- **Fever / Infections / Dengue:** Wait until **14 days to 6 months** post full recovery.
-- **Basic Criteria:** Age 18–60 years, weight ≥ 45 kg, hemoglobin ≥ 12.5 g/dL.
+- **Infections / Dengue / Fever:** Wait 14 days to 6 months post full recovery.
+- **Basic Requirements:** Age 18–60 years, weight ≥ 45 kg, hemoglobin ≥ 12.5 g/dL.
 """
 
     # Intent 3: Compatibility
     elif any(k in q_lower for k in ['compatib', 'group', 'type', 'receive', 'donate', 'o+', 'o-', 'a+', 'a-', 'b+', 'b-', 'ab+', 'ab-']):
         return f"""
-🩸 **Blood Group Compatibility Analysis for: "{query}"**
+🩸 **Blood Group Compatibility Summary:**
 
-- **O Negative (O-):** Universal Red Blood Cell Donor (Can donate to all ABO/Rh types).
-- **AB Positive (AB+):** Universal Red Blood Cell Recipient (Can receive from all types).
+- **O Negative (O-):** Universal Red Cell Donor (Can donate to all blood types).
+- **AB Positive (AB+):** Universal Red Cell Recipient (Can receive from all blood types).
 - **O Positive (O+):** Can donate to O+, A+, B+, AB+. Can receive from O+ and O-.
 - **A Positive (A+):** Can donate to A+, AB+. Can receive from A+, A-, O+, O-.
 - **B Positive (B+):** Can donate to B+, AB+. Can receive from B+, B-, O+, O-.
 
-Filter compatible active donors in Nepal on **[Find Donors](/find-donors)**!
+Search matching donors in your district on **[Find Donors](/find-donors)**!
 """
 
     # Intent 4: Hemoglobin & Diet
     elif any(k in q_lower for k in ['hemoglobin', 'hb', 'iron', 'beetroot', 'spinach', 'diet', 'anemia', 'food', 'nutrition']):
         return f"""
-🥦 **Iron & Hemoglobin Optimization Tips for: "{query}"**
+🥦 **Diet & Hemoglobin Boosting Advice:**
 
-1. 🥬 **Iron-Rich Foods:** Consume dark leafy greens (spinach, methi), lentils, chickpeas, beetroot, dates, raisins, and jaggery.
-2. 🍋 **Pair with Vitamin C:** Add lemon, oranges, or amla to meals to boost iron absorption by up to 300%.
-3. ☕ **Avoid Inhibitors:** Do not drink tea, coffee, or milk during or immediately after meals as calcium and tannins block iron absorption.
-4. 🩺 Minimum donor hemoglobin is **12.5 g/dL**.
+1. 🥬 **Iron-Rich Foods:** Eat spinach, fenugreek, lentils, black chickpeas, beetroot, dates, raisins, and jaggery.
+2. 🍋 **Pair with Vitamin C:** Add lemon juice, oranges, or amla to meals to triple iron absorption.
+3. ☕ **Avoid Inhibitors:** Do not drink tea, coffee, or milk during or immediately after meals as tannins and calcium block iron absorption.
+4. 🩺 Minimum donor hemoglobin requirement is **12.5 g/dL**.
 """
 
-    # Default Dynamic Synthesizer
+    # General Conversational Response
     return f"""
-🏥 **Raktadata Medical Guidance regarding: "{query}"**
+Hello! Regarding your inquiry about **"{query}"**:
 
-Here is key advice tailored to your query:
-- **Locating Blood:** Search active donors in your district on **[Find Donors](/find-donors)** or submit an emergency request on **[Post Blood Request](/blood-request)**.
-- **Donor Eligibility:** Donors must be 18–60 years old, weigh at least 45 kg, have a minimum 12.5 g/dL hemoglobin level, and observe a 90-day gap between donations.
-- **Blood Banks:** Contact hospital blood banks across Nepal via our **[Blood Banks Directory](/blood-banks)**.
-- **Pre-Donation:** Drink 500ml water, eat a healthy non-greasy meal, and get 7-8 hours sleep.
+I am here to assist with any blood donation or health-related query. You can:
+- Locate blood donors in Nepal via **[Find Donors](/find-donors)**
+- Post urgent blood requests on **[Post Blood Request](/blood-request)**
+- Browse contacts on **[Blood Banks Directory](/blood-banks)**
+- Check donor eligibility (age 18–60, weight ≥ 45kg, hemoglobin ≥ 12.5g/dL, 90 days gap)
+
+What specific information or medical advice would you like to know?
 """
 
 
 def _synthesize_nepali_response(query: str, q_lower: str) -> str:
-    """Synthesizes a tailored, non-static response in Nepali for the exact user prompt."""
+    """Synthesizes a natural, conversational response in Nepali."""
     
-    if any(k in q_lower for k in ['रगत', 'बिरामी', 'कहाँ', 'पाइन्छ', 'चाहियो', 'अनुरोध']):
-        return f"""
-🩸 **"{query}" को लागि रगत खोज्ने उपायहरू:**
+    if any(k in q_lower for k in ['नमस्ते', 'नमस्कार', 'हेलो', 'हाई', 'के छ']):
+        return "नमस्ते! 👋 म तपाईंको स्वास्थ्य तथा रक्तदान AI सहायक हुँ। आज म तपाईंलाई के सहयोग गर्न सक्छु? तपाईंले रक्तदानको मापदण्ड, रक्त समूह योग्यता, वा नेपालमा रगत खोज्ने तरिकाबारे सोध्न सक्नुहुन्छ।"
 
-1. 🔍 **रक्तदाता खोज्नुहोस्:** **[रक्तदाता खोज्नुहोस् (/find-donors)](/find-donors)** मा गई आफ्नो जिल्ला र रक्त समूह छानी सिधै सम्पर्क गर्नुहोस्।
-2. 🆘 **आकस्मिक अनुरोध पोस्ट गर्नुहोस्:** **[रक्त अनुरोध पोस्ट गर्नुहोस् (/blood-request)](/blood-request)** मा विवरण पेश गर्नुहोस् ता कि रक्तदाताहरूलाई खबर होस्।
-3. 🏥 **ब्लड बैंकहरू:** **[ब्लड बैंक डाइरेक्टरी (/blood-banks)](/blood-banks)** हेर्नुहोस्।
+    elif any(k in q_lower for k in ['रगत', 'बिरामी', 'कहाँ', 'पाइन्छ', 'चाहियो', 'अनुरोध']):
+        return f"""
+🩸 **"{query}" को लागि रगत खोज्ने मुख्य उपायहरू:**
+
+1. 🔍 **रक्तदाता खोज्नुहोस्:** **[रक्तदाता खोज्नुहोस् (/find-donors)](/find-donors)** मा गई जिल्ला र रक्त समूह अनुसार सिधै फोन गर्नुहोस्।
+2. 🆘 **आकस्मिक अनुरोध पोस्ट गर्नुहोस्:** **[रक्त अनुरोध पोस्ट गर्नुहोस् (/blood-request)](/blood-request)** मा बिरामीको विवरण राख्नुहोस्।
+3. 🏥 **ब्लड बैंकहरू:** **[ब्लड बैंक डाइरेक्टरी (/blood-banks)](/blood-banks)**
    - केन्द्रीय रक्तसञ्चार सेवा (रेडक्रस), भृकुटीमण्डप: 📞 **०१-४२२५३४४**
-   - ललितपुर ब्लड बैंक (पुल्चोक): 📞 **०१-५५२७०४५**
+   - ललितपुर ब्लड बैंक: 📞 **०१-५५२७०४५**
    - भक्तपुर ब्लड बैंक: 📞 **०१-६६१२२६६**
 4. 📞 **२४/७ हटलाइन:** **+977 9816003020** मा सम्पर्क गर्नुहोस्।
 """
 
     return f"""
-🇳🇵 **"{query}" सम्बन्धी स्वास्थ्य जानकारी:**
+नमस्ते! **"{query}"** को बारेमा स्वास्थ्य जानकारी:
 
-- 🩸 **रक्तदानको मापदण्ड:** उमेर १८-६० वर्ष, तौल कम्तिमा ४५ केजी, र हिमोग्लोबिन १२.५ g/dL हुनुपर्छ।
-- ⏱️ **रक्तदानको अन्तर:** दुई रक्तदान बीच कम्तिमा ९० दिन (३ महिना) को फरक हुनुपर्छ।
-- 🔍 **रगत खोज्न:** **[रक्तदाता खोज्नुहोस्](/find-donors)** वा **[रक्त अनुरोध पोस्ट गर्नुहोस्](/blood-request)** मा जानुहोस्।
-- 🍎 **खानपान:** पालुङ्गो, चना, दाल, चुकुन्दर र कागतीको प्रयोग गरी हिमोग्लोबिन बढाउन सकिन्छ।
+- 🩸 **रक्तदानको मापदण्ड:** उमेर १८-६० वर्ष, तौल कम्तिमा ४५ केजी, र हिमोग्लोबिन १२.५ g/dL।
+- ⏱️ **अन्तर:** दुई रक्तदान बीच ९० दिन (३ महिना) को फरक।
+- 🔍 **रगत खोज्न:** **[रक्तदाता खोज्नुहोस्](/find-donors)** वा **[रक्त अनुरोध पोस्ट गर्नुहोस्](/blood-request)**।
+- 🍎 **खानपान:** पालुङ्गो, चना, चुकुन्दर र कागती प्रयोग गरी हिमोग्लोबिन बढाउन सकिन्छ।
 """
 
 
