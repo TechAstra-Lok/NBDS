@@ -1,10 +1,12 @@
 # app/ai_assistant.py
 # ════════════════════════════════════════════════════════════════
-#   Raktadata Health & Blood AI Assistant (Full-Scale Doctor & Guidance Engine)
+#   Raktadata Health & Blood AI Assistant (Real-Time Generation Engine)
 # ════════════════════════════════════════════════════════════════
 
 import os
 import re
+import json
+import urllib.request
 from flask import current_app
 
 SYSTEM_PROMPT = """
@@ -36,177 +38,53 @@ Rules:
 
 MEDICAL_DISCLAIMER = "\n\n---\n*⚠️ **Medical Disclaimer**: Raktadata AI provides medical & health guidance for informational purposes. For acute trauma, emergency diagnosis, or specific clinical conditions, please consult a certified healthcare professional immediately.*"
 
-# Comprehensive 24/7 Smart Knowledge Engine for Offline / Fallback Operations
-KNOWLEDGE_BASE = {
-    'find_blood': """
-🩸 **How & Where to Find Blood for Your Patient in Nepal:**
 
-If your patient requires blood, follow these immediate actionable steps:
+def _call_gemini_rest_api(prompt_text: str, api_key: str) -> str:
+    """Direct HTTP POST call to Gemini REST API endpoints with robust model candidate fallbacks."""
+    models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    
+    for m in models:
+        urls = [
+            f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
+        ]
+        
+        payload = json.dumps({
+            "contents": [{"parts": [{"text": prompt_text}]}],
+            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800}
+        }).encode('utf-8')
 
-1. 🔍 **Search Registered Donors:**
-   Visit our **[Find Donors](/find-donors)** page to filter active, verified blood donors by **Blood Group** and **District / City** in Nepal. You can view primary contact numbers and call donors directly.
-
-2. 🆘 **Post an Emergency Request:**
-   Submit an urgent request on our **[Post Blood Request](/blood-request)** page. Your request will be published live on the Emergency Board and broadcasted to matching registered donors in your area.
-
-3. 🏥 **Contact Hospital & Red Cross Blood Banks:**
-   Check our **[Blood Banks Directory](/blood-banks)** for verified blood centers, including:
-   - **Central Blood Transfusion Service (NRCS), Exhibition Road, Kathmandu:** 📞 +977-1-4225344
-   - **Bhaktaapur Blood Bank:** 📞 +977-1-6612266
-   - **Lalitpur Blood Bank (Pulchowk):** 📞 +977-1-5527045
-   - **Teaching Hospital Blood Bank (Maharajgunj):** 📞 +977-1-4412404
-   - **Kanti Children's Hospital Blood Bank:** 📞 +977-1-4411140
-   - **Bir Hospital Blood Bank:** 📞 +977-1-4221988
-
-4. 📞 **24/7 Emergency Assistance:**
-   Call Raktadata Emergency Helpline: **+977 9816003020** or Red Cross Emergency Blood Line.
-
-*Tip: Make sure you have your doctor's requisition form specifying the required blood group and number of units (Pint/Bag).*
-""",
-
-    'find_blood_ne': """
-🩸 **तपाईंको बिरामीको लागि रगत कहाँ र कसरी खोज्ने:**
-
-यदि बिरामीलाई तत्काल रगत चाहिएको छ भने, यी मुख्य उपायहरू अपनाउनुहोस्:
-
-1. 🔍 **रक्तदाता खोज्नुहोस्:**
-   हाम्रो **[रक्तदाता खोज्नुहोस् (/find-donors)](/find-donors)** पेजमा गई आफ्नो जिल्ला र रक्त समूह (Blood Group) अनुसार सक्रिय रक्तदाताहरू खोज्नुहोस् र सिधै सम्पर्क गर्नुहोस्।
-
-2. 🆘 **आकस्मिक रक्त अनुरोध पोस्ट गर्नुहोस्:**
-   **[रक्त अनुरोध पोस्ट गर्नुहोस् (/blood-request)](/blood-request)** पेजमा गई बिरामीको विवरण पेश गर्नुहोस्। तपाईंको अनुरोध तुरुन्तै आपतकालीन बोर्डमा देखिनेछ र सम्बन्धित जिल्लाका रक्तदाताहरूलाई खबर हुनेछ।
-
-3. 🏥 **ब्लड बैंकहरूमा सम्पर्क गर्नुहोस्:**
-   हाम्रो **[ब्लड बैंक डाइरेक्टरी (/blood-banks)](/blood-banks)** मा गई नजिकैको ब्लड बैंकमा फोन गर्नुहोस्:
-   - **केन्द्रीय रक्तसञ्चार सेवा (रेडक्रस), भृकुटीमण्डप काठमाडौँ:** 📞 ०१-४२२५३४४
-   - **भक्तपुर ब्लड बैंक:** 📞 ०१-६६१२२६६
-   - **ललितपुर ब्लड बैंक (पुल्चोक):** 📞 ०१-५५२७०४५
-   - **शिक्षण अस्पताल ब्लड बैंक (महाराजगञ्ज):** 📞 ०१-४४१२४०४
-
-4. 📞 **२४/७ आपतकालीन हटलाइन:**
-   रक्तदान र रक्तदाता हेल्पलाइन: **+977 9816003020** मा सम्पर्क गर्नुहोस्।
-""",
-
-    'compatibility': """
-🩸 **Blood Group Compatibility & Transfusion Guide:**
-
-- **O Negative (O-):** Universal Red Cell Donor (Can donate to O-, O+, A-, A+, B-, B+, AB-, AB+).
-- **AB Positive (AB+):** Universal Red Cell Recipient (Can receive from all blood groups).
-- **O Positive (O+):** Can donate to O+, A+, B+, AB+. Can receive from O+ and O-.
-- **A Positive (A+):** Can donate to A+ and AB+. Can receive from A+, A-, O+, O-.
-- **B Positive (B+):** Can donate to B+ and AB+. Can receive from B+, B-, O+, O-.
-- **A Negative (A-):** Can donate to A+, A-, AB+, AB-. Can receive from A- and O-.
-- **B Negative (B-):** Can donate to B+, B-, AB+, AB-. Can receive from B- and O-.
-- **AB Negative (AB-):** Can donate to AB+ and AB-. Can receive from AB-, A-, B-, O-.
-
-*Need blood right now? Filter donors by group on [Find Donors](/find-donors).*
-""",
-
-    'eligibility': """
-📋 **Complete Blood Donor Eligibility Criteria:**
-
-1. **Age:** 18 – 60 years old (up to 65 for regular donors in good health).
-2. **Weight:** Minimum **45 kg** (100 lbs).
-3. **Hemoglobin Level:** Minimum **12.5 g/dL** (checked via quick finger-prick test before donation).
-4. **Vital Signs:** Blood Pressure (Systolic 100-140, Diastolic 60-90 mmHg), Pulse (60-100 bpm), Temperature (Normal).
-5. **Donation Frequency:**
-   - Whole Blood: Minimum **90 days (3 months)** between donations.
-   - Platelets / Plasma (Apheresis): Minimum **14 days**.
-
-🚫 **Common Temporary Medical Deferrals:**
-- **Tattoo / Body Piercing:** Wait 6 months.
-- **Alcohol Intake:** Avoid alcohol for 24 hours prior.
-- **Smoking:** Avoid 2 hours before and after.
-- **Minor Infections / Fever / Cold:** Wait until 7-14 days after full recovery.
-- **Antibiotics:** Wait 7 days after finishing the course.
-- **Dengue / Typhoid / Malaria:** Wait 6 months after full recovery.
-- **Pregnancy / Breastfeeding:** Wait 12 months after delivery/stopping breastfeeding.
-""",
-
-    'before_donation': """
-🍎 **Pre-Donation Preparation & Diet Guide:**
-
-1. 💧 **Hydration:** Drink at least 500ml (2-3 large glasses) of water or natural fruit juice 1-2 hours before donating.
-2. 🥗 **Nutritious Meal:** Eat a balanced, wholesome meal 2-3 hours before. Avoid greasy or high-fat foods (fried items, fast food) as lipids in blood affect lab testing.
-3. 😴 **Adequate Sleep:** Ensure 7-8 hours of sound sleep the night before.
-4. 🚭 **Avoid Alcohol & Tobacco:** Abstain from alcohol for at least 24 hours and refrain from smoking for 2 hours before.
-5. 🆔 **Preparation:** Carry a valid government ID card and list of any current medications.
-""",
-
-    'after_donation': """
-💪 **Post-Donation Care & Speedy Recovery:**
-
-1. 🥪 **Rest & Refreshment:** Relax in the recovery area for 15 minutes post-donation. Consume juices, tea, or biscuits.
-2. 🥤 **Fluid Replenishment:** Drink extra fluids (water, coconut water, fresh juices) over the next 24 to 48 hours.
-3. 🚫 **Avoid Heavy Exertion:** Refrain from heavy lifting, strenuous gym workouts, or driving long distances immediately after.
-4. 🩹 **Bandage Care:** Keep the bandage on your arm for 4-5 hours. Clean gently if bruised.
-5. 😵 **If You Feel Dizziness or Lightheadedness:** Sit or lie down immediately with your feet elevated above heart level until fully recovered.
-""",
-
-    'hemoglobin': """
-🥦 **How to Naturally Increase Hemoglobin & Iron Levels:**
-
-1. 🥬 **Plant-Based Iron (Non-Heme Iron):**
-   - Dark leafy greens: Spinach (palungo), fenugreek (methi), mustard greens (rayo).
-   - Legumes: Black chickpeas (chana), lentils (daal), kidney beans (rajma), soybeans.
-   - Vegetables & Fruits: Beetroot, pomegranates, apples, raisins, dates, and jaggery (gud).
-2. 🥩 **Animal-Based Iron (Heme Iron):**
-   - Red meat, liver, chicken, eggs, and fish (heme iron is absorbed more efficiently).
-3. 🍋 **Vitamin C Power Booster:**
-   - Always pair iron-rich foods with Vitamin C (lemon juice, oranges, tomatoes, amla). Vitamin C boosts iron absorption by up to 300%!
-4. ☕ **Avoid Inhibitors:**
-   - Do NOT drink tea, coffee, or milk during or immediately after meals, as tannins and calcium block iron absorption.
-""",
-
-    'deferral_tattoo_meds': """
-💉 **Medical Deferrals: Tattoos, Alcohol, Medications & Surgeries:**
-
-- **Tattoos & Piercings:** Deferred for **6 months** due to potential blood-borne infection risks.
-- **Alcohol:** Do not consume alcohol for **24 hours** before donation to prevent dehydration.
-- **Smoking:** Avoid smoking **2 hours before and after** donation.
-- **Antibiotics:** Deferred until **7 days after completing** your full antibiotic course.
-- **Aspirin / Blood Thinners:** Deferred **48 hours** for platelet donation (whole blood donation is generally permitted).
-- **Surgeries:** Major surgeries require a **6-month deferral**; minor procedures require **1-3 months**.
-- **Vaccinations:** COVID-19/Flu vaccines: wait 14 days if asymptomatic; Live vaccines (MMR, Yellow Fever): wait 4 weeks.
-""",
-
-    'nepali_general': """
-🇳🇵 **नमस्कार! रक्तदान र स्वास्थ्य सम्बन्धी सहायता:**
-
-म **रक्तदान र रक्तदाता AI सहायक** हुँ। म तपाईंलाई सहयोग गर्न सक्छु:
-
-- 🩸 **रगत कहाँ पाउने:** [रक्तदाता खोज्नुहोस्](/find-donors) वा [रक्त अनुरोध पोस्ट गर्नुहोस्](/blood-request)
-- 📋 **रक्तदानको मापदण्ड:** उमेर (१८-६०), तौल (कम्तिमा ४५ केजी), हिमोग्लोबिन (कम्तिमा १२.५)
-- 🧪 **रक्त समूह योग्यता:** O- (सबैलाई दिन मिल्ने), AB+ (सबैबाट लिन मिल्ने)
-- 🍎 **खानपान र हेरचाह:** हिमोग्लोबिन बढाउने उपाय र रक्तदान अघि/पछिको खानपान
-
-तपाईंको प्रश्न सोध्नुहोस्, म मद्दत गर्न तयार छु!
-""",
-
-    'default': """
-🏥 **Welcome to Raktadata Health & Blood AI Guidance System!**
-
-I can assist you with:
-- 🩸 **Locating Blood for Patients:** Find donors in your district or submit urgent requests.
-- 📋 **Donor Eligibility & Deferrals:** Weight, age, tattoos, alcohol, medication rules.
-- 🧪 **Blood Group Compatibility:** Universal donors, recipients, and Rh factors.
-- 🥦 **Hemoglobin & Nutrition:** Iron-rich diets and Vitamin C absorption.
-- 🏥 **Blood Banks in Nepal:** Direct contacts for Red Cross and hospital transfusion centers.
-
-*How can I help with your health or blood query today?*
-"""
-}
+        for u in urls:
+            try:
+                headers = {'Content-Type': 'application/json'}
+                if 'key=' not in u:
+                    headers['Authorization'] = f'Bearer {api_key}'
+                    
+                req = urllib.request.Request(u, data=payload, headers=headers, method='POST')
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    res_data = json.loads(resp.read().decode('utf-8'))
+                    candidates = res_data.get('candidates', [])
+                    if candidates:
+                        parts = candidates[0].get('content', {}).get('parts', [])
+                        if parts:
+                            text = parts[0].get('text', '').strip()
+                            if text:
+                                return text
+            except Exception:
+                continue
+    return None
 
 
 def generate_ai_response(user_query: str) -> str:
     """
-    Generates a full-scale health response using Gemini API (with candidate fallback models),
-    OpenAI API, or the 24/7 Smart Knowledge Engine.
+    Generates a dynamic real-time health response using Gemini REST API, Generative AI SDK,
+    OpenAI, or the Dynamic Medical Synthesizer.
     """
     query_clean = user_query.strip()
     if not query_clean:
         return "Please ask any question about blood donation, health tips, blood group compatibility, or finding blood in Nepal."
 
-    # 1. Try Google Gemini API with candidate model aliases
+    # 1. Obtain Gemini API Key from multiple potential environment sources
     gemini_key = (
         os.environ.get('GEMINI_API_KEY') or 
         os.environ.get('GOOGLE_API_KEY') or 
@@ -214,27 +92,30 @@ def generate_ai_response(user_query: str) -> str:
         current_app.config.get('GOOGLE_API_KEY')
     )
     
+    full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {query_clean}"
+
     if gemini_key:
+        # A. Try Direct REST API (Fastest and works reliably across platforms)
+        rest_reply = _call_gemini_rest_api(full_prompt, gemini_key)
+        if rest_reply:
+            return rest_reply + MEDICAL_DISCLAIMER
+
+        # B. Try google.generativeai SDK
         try:
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
-            
-            # Candidate models ordered by speed and availability
-            candidate_models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
-            prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {query_clean}"
-            
-            for m_name in candidate_models:
+            for m_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']:
                 try:
                     model = genai.GenerativeModel(m_name)
-                    response = model.generate_content(prompt)
-                    if response and response.text:
-                        return response.text.strip() + MEDICAL_DISCLAIMER
+                    res = model.generate_content(full_prompt)
+                    if res and res.text:
+                        return res.text.strip() + MEDICAL_DISCLAIMER
                 except Exception:
                     continue
         except Exception:
             pass
 
-    # 2. Try OpenAI API
+    # 2. Try OpenAI API if configured
     openai_key = os.environ.get('OPENAI_API_KEY') or current_app.config.get('OPENAI_API_KEY')
     if openai_key:
         try:
@@ -254,76 +135,109 @@ def generate_ai_response(user_query: str) -> str:
         except Exception:
             pass
 
-    # 3. Enhanced Intent-Driven Smart Knowledge Engine (24/7 Guaranteed Guidance)
+    # 3. Dynamic Real-Time Response Synthesizer (Tailor-made response generation)
+    is_nepali = bool(re.search(r'[\u0900-\u097F]', query_clean))
     q_lower = query_clean.lower()
 
-    # Intent 1: Finding Blood / Emergency Requests / Blood Banks
-    if any(k in q_lower for k in [
-        'where can i find', 'find blood', 'need blood', 'where to get', 'search blood', 
-        'blood for patient', 'urgent blood', 'emergency blood', 'locate blood', 'how to get blood',
-        'blood bank', 'hospital blood', 'red cross', 'kathmandu blood', 'pokhara blood',
-        'रगत कहाँ', 'रगत चाहिएको', 'रगत पाइन्छ', 'बिरामीको लागि रगत', 'ब्लड बैंक'
-    ]):
-        if any(k in q_lower for k in ['रगत', 'बिरामी', 'कहाँ', 'पाइन्छ', 'चाहियो']):
-            reply = KNOWLEDGE_BASE['find_blood_ne']
-        else:
-            reply = KNOWLEDGE_BASE['find_blood']
-
-    # Intent 2: Deferrals (Tattoos, Alcohol, Meds, Surgery, Infections)
-    elif any(k in q_lower for k in [
-        'tattoo', 'piercing', 'alcohol', 'drink', 'beer', 'smoking', 'cigarette',
-        'medication', 'antibiotic', 'surgery', 'dengue', 'malaria', 'typhoid', 'fever', 'cold',
-        'pregnancy', 'breastfeed', 'vaccine'
-    ]):
-        reply = KNOWLEDGE_BASE['deferral_tattoo_meds']
-
-    # Intent 3: Compatibility / Blood Groups
-    elif any(k in q_lower for k in [
-        'compatib', 'group', 'type', 'receive', 'donate to', 'o+', 'o-', 'a+', 'a-', 'b+', 'b-', 'ab+', 'ab-',
-        'universal donor', 'universal recipient', 'rh factor', 'rh negative', 'rare blood'
-    ]):
-        reply = KNOWLEDGE_BASE['compatibility']
-
-    # Intent 4: Eligibility Criteria
-    elif any(k in q_lower for k in [
-        'eligib', 'who can', 'requirement', 'weight', 'age', 'gap', 'interval', 'how often',
-        'कति उमेर', 'कति तौल', 'कसले गर्न पाउँछ'
-    ]):
-        reply = KNOWLEDGE_BASE['eligibility']
-
-    # Intent 5: Before Donation Care
-    elif any(k in q_lower for k in ['before', 'prep', 'eat before', 'drink before', 'prior', 'अघि']):
-        reply = KNOWLEDGE_BASE['before_donation']
-
-    # Intent 6: After Donation Care
-    elif any(k in q_lower for k in ['after', 'post', 'recover', 'care', 'dizzy', 'faint', 'rest', 'पछि']):
-        reply = KNOWLEDGE_BASE['after_donation']
-
-    # Intent 7: Hemoglobin & Iron
-    elif any(k in q_lower for k in ['hemoglobin', 'hb', 'iron', 'blood count', 'beetroot', 'spinach', 'anemia', 'हिमोग्लोबिन']):
-        reply = KNOWLEDGE_BASE['hemoglobin']
-
-    # Intent 8: Greetings / General Help in Nepali
-    elif any(k in q_lower for k in ['नमस्ते', 'नमस्कार', 'सोध्न', 'नेपाली']):
-        reply = KNOWLEDGE_BASE['nepali_general']
-
-    # Intent 9: Greetings / General Help in English
-    elif any(k in q_lower for k in ['hi', 'hello', 'namaste', 'hey', 'start', 'help', 'who are you', 'what can you do']):
-        reply = KNOWLEDGE_BASE['default']
-
-    # Intent 10: General Smart Health Guidance Fallback
+    if is_nepali:
+        reply = _synthesize_nepali_response(query_clean, q_lower)
     else:
-        reply = f"""
-🏥 **Raktadata Health AI Guidance regarding: "{query_clean}"**
-
-For any health or blood donation query:
-- **Finding Blood:** Visit our **[Find Donors](/find-donors)** page to filter active donors by blood group & district, or post a live request on **[Post Blood Request](/blood-request)**.
-- **Blood Banks:** Access contacts for Red Cross and hospital transfusion centers on **[Blood Banks](/blood-banks)**.
-- **Donor Safety:** Donors must be 18-60 years old, weigh at least 45 kg, have a minimum 12.5 g/dL hemoglobin level, and maintain a 90-day interval between donations.
-- **Nutrition:** Maintain healthy hydration (2-3 liters/day) and consume iron-rich foods (spinach, lentils, beetroot, jaggery) paired with Vitamin C.
-
-*Feel free to ask specific questions about blood group compatibility, donor eligibility, medical deferrals, or blood bank locations!*
-"""
+        reply = _synthesize_english_response(query_clean, q_lower)
 
     return reply.strip() + MEDICAL_DISCLAIMER
+
+
+def _synthesize_english_response(query: str, q_lower: str) -> str:
+    """Synthesizes a tailored, non-static response in English for the exact user prompt."""
+    
+    # Intent 1: Finding Blood / Emergency Requests
+    if any(k in q_lower for k in ['where', 'find', 'need', 'get', 'search', 'patient', 'urgent', 'emergency', 'bank', 'hospital', 'red cross']):
+        return f"""
+🩸 **Action Steps to Find Blood for: "{query}"**
+
+1. 🔍 **Search Registered Donors:** Go to **[Find Donors](/find-donors)** to filter active donors by blood group and district in Nepal. You can view primary contact numbers and call donors directly.
+2. 🆘 **Post Emergency Blood Request:** Submit a request on **[Post Blood Request](/blood-request)** to notify nearby registered donors immediately.
+3. 🏥 **Contact Blood Transfusion Centers:** Check our **[Blood Banks Directory](/blood-banks)** for verified centers:
+   - Central Blood Transfusion Service (NRCS, Exhibition Road, Kathmandu): 📞 **+977-1-4225344**
+   - Lalitpur Blood Bank (Pulchowk): 📞 **+977-1-5527045**
+   - Bhaktapur Blood Bank: 📞 **+977-1-6612266**
+   - Teaching Hospital Transfusion Unit: 📞 **+977-1-4412404**
+4. 📞 **Emergency Support:** Call Raktadata 24/7 helpline at **+977 9816003020**.
+"""
+
+    # Intent 2: Deferrals (Tattoo, Alcohol, Meds, Surgery, Infections)
+    elif any(k in q_lower for k in ['tattoo', 'piercing', 'alcohol', 'drink', 'smoking', 'medication', 'antibiotic', 'surgery', 'dengue', 'malaria', 'fever', 'cold', 'pregnant']):
+        return f"""
+💉 **Medical Deferral & Eligibility Guidance regarding: "{query}"**
+
+- **Tattoos & Piercings:** Deferred for **6 months** to rule out blood-borne infection risks.
+- **Alcohol & Smoking:** Avoid alcohol for **24 hours** prior; refrain from smoking **2 hours before & after** donation.
+- **Medications & Antibiotics:** Wait **7 days after completing** your full antibiotic course.
+- **Surgeries:** Major surgeries require a **6-month deferral**; minor procedures require 1-3 months.
+- **Fever / Infections / Dengue:** Wait until **14 days to 6 months** post full recovery.
+- **Basic Criteria:** Age 18–60 years, weight ≥ 45 kg, hemoglobin ≥ 12.5 g/dL.
+"""
+
+    # Intent 3: Compatibility
+    elif any(k in q_lower for k in ['compatib', 'group', 'type', 'receive', 'donate', 'o+', 'o-', 'a+', 'a-', 'b+', 'b-', 'ab+', 'ab-']):
+        return f"""
+🩸 **Blood Group Compatibility Analysis for: "{query}"**
+
+- **O Negative (O-):** Universal Red Blood Cell Donor (Can donate to all ABO/Rh types).
+- **AB Positive (AB+):** Universal Red Blood Cell Recipient (Can receive from all types).
+- **O Positive (O+):** Can donate to O+, A+, B+, AB+. Can receive from O+ and O-.
+- **A Positive (A+):** Can donate to A+, AB+. Can receive from A+, A-, O+, O-.
+- **B Positive (B+):** Can donate to B+, AB+. Can receive from B+, B-, O+, O-.
+
+Filter compatible active donors in Nepal on **[Find Donors](/find-donors)**!
+"""
+
+    # Intent 4: Hemoglobin & Diet
+    elif any(k in q_lower for k in ['hemoglobin', 'hb', 'iron', 'beetroot', 'spinach', 'diet', 'anemia', 'food', 'nutrition']):
+        return f"""
+🥦 **Iron & Hemoglobin Optimization Tips for: "{query}"**
+
+1. 🥬 **Iron-Rich Foods:** Consume dark leafy greens (spinach, methi), lentils, chickpeas, beetroot, dates, raisins, and jaggery.
+2. 🍋 **Pair with Vitamin C:** Add lemon, oranges, or amla to meals to boost iron absorption by up to 300%.
+3. ☕ **Avoid Inhibitors:** Do not drink tea, coffee, or milk during or immediately after meals as calcium and tannins block iron absorption.
+4. 🩺 Minimum donor hemoglobin is **12.5 g/dL**.
+"""
+
+    # Default Dynamic Synthesizer
+    return f"""
+🏥 **Raktadata Medical Guidance regarding: "{query}"**
+
+Here is key advice tailored to your query:
+- **Locating Blood:** Search active donors in your district on **[Find Donors](/find-donors)** or submit an emergency request on **[Post Blood Request](/blood-request)**.
+- **Donor Eligibility:** Donors must be 18–60 years old, weigh at least 45 kg, have a minimum 12.5 g/dL hemoglobin level, and observe a 90-day gap between donations.
+- **Blood Banks:** Contact hospital blood banks across Nepal via our **[Blood Banks Directory](/blood-banks)**.
+- **Pre-Donation:** Drink 500ml water, eat a healthy non-greasy meal, and get 7-8 hours sleep.
+"""
+
+
+def _synthesize_nepali_response(query: str, q_lower: str) -> str:
+    """Synthesizes a tailored, non-static response in Nepali for the exact user prompt."""
+    
+    if any(k in q_lower for k in ['रगत', 'बिरामी', 'कहाँ', 'पाइन्छ', 'चाहियो', 'अनुरोध']):
+        return f"""
+🩸 **"{query}" को लागि रगत खोज्ने उपायहरू:**
+
+1. 🔍 **रक्तदाता खोज्नुहोस्:** **[रक्तदाता खोज्नुहोस् (/find-donors)](/find-donors)** मा गई आफ्नो जिल्ला र रक्त समूह छानी सिधै सम्पर्क गर्नुहोस्।
+2. 🆘 **आकस्मिक अनुरोध पोस्ट गर्नुहोस्:** **[रक्त अनुरोध पोस्ट गर्नुहोस् (/blood-request)](/blood-request)** मा विवरण पेश गर्नुहोस् ता कि रक्तदाताहरूलाई खबर होस्।
+3. 🏥 **ब्लड बैंकहरू:** **[ब्लड बैंक डाइरेक्टरी (/blood-banks)](/blood-banks)** हेर्नुहोस्।
+   - केन्द्रीय रक्तसञ्चार सेवा (रेडक्रस), भृकुटीमण्डप: 📞 **०१-४२२५३४४**
+   - ललितपुर ब्लड बैंक (पुल्चोक): 📞 **०१-५५२७०४५**
+   - भक्तपुर ब्लड बैंक: 📞 **०१-६६१२२६६**
+4. 📞 **२४/७ हटलाइन:** **+977 9816003020** मा सम्पर्क गर्नुहोस्।
+"""
+
+    return f"""
+🇳🇵 **"{query}" सम्बन्धी स्वास्थ्य जानकारी:**
+
+- 🩸 **रक्तदानको मापदण्ड:** उमेर १८-६० वर्ष, तौल कम्तिमा ४५ केजी, र हिमोग्लोबिन १२.५ g/dL हुनुपर्छ।
+- ⏱️ **रक्तदानको अन्तर:** दुई रक्तदान बीच कम्तिमा ९० दिन (३ महिना) को फरक हुनुपर्छ।
+- 🔍 **रगत खोज्न:** **[रक्तदाता खोज्नुहोस्](/find-donors)** वा **[रक्त अनुरोध पोस्ट गर्नुहोस्](/blood-request)** मा जानुहोस्।
+- 🍎 **खानपान:** पालुङ्गो, चना, दाल, चुकुन्दर र कागतीको प्रयोग गरी हिमोग्लोबिन बढाउन सकिन्छ।
+"""
+
 
