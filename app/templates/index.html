@@ -13,33 +13,32 @@
     <div class="row align-items-center g-4 py-3">
       <div class="col-lg-7 animate__animated animate__fadeInLeft">
         <span class="badge bg-danger-soft text-danger fs-6 mb-3 px-3 py-2 rounded-pill">
-          <i class="fas fa-heartbeat me-1 blink text-danger"></i> Save Lives in Nepal
+          <i class="fas fa-heartbeat me-1 blink text-danger"></i> {{ t.hero_badge }}
         </span>
         <h1 class="hero-title fw-black mb-4">
-          रगत दान गर्नुहोस्,<br />
-          <span class="text-danger">जीवन बचाउनुहोस्!</span>
+          {{ t.hero_heading_1 }}<br />
+          <span class="text-danger">{{ t.hero_heading_2 }}</span>
         </h1>
         <p class="hero-subtitle text-white-75 fs-5 mb-4">
-          Donate Blood · Save Lives<br />
-          <span class="small">Join Nepal's largest blood donor network.
-            Your single donation can save up to 3 lives.</span>
+          {{ t.hero_donate_blood }}<br />
+          <span class="small">{{ t.hero_desc }}</span>
         </p>
         <div class="d-flex flex-wrap gap-3">
           <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-lg shadow px-4">
-            <i class="fas fa-plus-circle me-2"></i>Request Blood
+            <i class="fas fa-plus-circle me-2"></i>{{ t.request_blood_btn }}
           </a>
           <a href="{{ url_for('public.become_donor') }}" class="btn btn-info btn-lg shadow px-4">
-            <i class="fas fa-heart me-2"></i>Become a Donor
+            <i class="fas fa-heart me-2"></i>{{ t.become_donor_btn }}
           </a>
           <a href="{{ url_for('public.find_donors') }}" class="btn btn-success btn-lg shadow px-4">
-            <i class="fas fa-search me-2"></i>Find Donors
+            <i class="fas fa-search me-2"></i>{{ t.find_donors_btn }}
           </a>
         </div>
 
         <!-- Blood Group Quick Search -->
         <div class="mt-4 p-3 rounded-3" style="background:rgba(255,255,255,0.1); backdrop-filter:blur(10px);">
           <div class="small text-white-75 mb-2 fw-semibold">
-            <i class="fas fa-tint me-1"></i> Quick Find by Blood Group:
+            <i class="fas fa-tint me-1"></i> {{ t.quick_find_bg }}
           </div>
           <div class="d-flex flex-wrap gap-2">
             {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
@@ -155,16 +154,16 @@
         <div class="section-header d-flex align-items-center justify-content-between mb-4">
           <div>
             <h2 class="h4 fw-bold mb-1">
-              <span class="text-danger blink me-2">🆘</span>Emergency Blood Requests
+              <span class="text-danger blink me-2">🆘</span>{{ t.emergency_blood_requests }}
             </h2>
-            <p class="text-muted small mb-0">Active requests needing immediate attention</p>
+            <p class="text-muted small mb-0">{{ t.active_requests_needing }}</p>
           </div>
           <div class="d-flex gap-2">
             <a href="{{ url_for('public.blood_request_board') }}" class="btn btn-outline-danger btn-sm">
-              View All <i class="fas fa-arrow-right ms-1"></i>
+              {{ t.view_all }} <i class="fas fa-arrow-right ms-1"></i>
             </a>
             <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-sm">
-              <i class="fas fa-plus me-1"></i> Post Request
+              <i class="fas fa-plus me-1"></i> {{ t.post_request }}
             </a>
           </div>
         </div>
@@ -183,7 +182,7 @@
                   </div>
                   <div class="d-flex flex-column align-items-end gap-1">
                     {% if req.is_emergency %}
-                    <span class="badge bg-danger blink">🔴 URGENT</span>
+                    <span class="badge bg-danger blink">🔴 {{ t.urgent }}</span>
                     {% endif %}
                     <span class="badge bg-{{ req.status_badge }}">{{ req.status|title }}</span>
                   </div>
@@ -216,7 +215,7 @@
                   </div>
                   <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-vials text-warning me-2" style="width:14px;"></i>
-                    <span>{{ req.units_needed }} unit(s) needed</span>
+                    <span>{{ req.units_needed }} {{ t.units_needed_label }}</span>
                   </div>
                   <div class="d-flex align-items-center mb-2">
                     <i class="fas fa-user text-info me-2" style="width:14px;"></i>
@@ -245,8 +244,8 @@
         {% else %}
         <div class="text-center py-5 bg-light rounded-4">
           <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
-          <h5>No Active Blood Requests</h5>
-          <p class="text-muted">Great news! No urgent requests at the moment.</p>
+          <h5>{{ t.no_active_requests }}</h5>
+          <p class="text-muted">{{ t.no_active_requests_desc }}</p>
         </div>
         {% endif %}
       </section>
@@ -255,27 +254,27 @@
       <section class="search-donors py-4">
         <div class="card border-0 shadow-sm rounded-4 bg-gradient-danger text-white overflow-hidden">
           <div class="card-body p-4">
-            <h3 class="fw-bold mb-1"><i class="fas fa-search me-2"></i>Find Blood Donors</h3>
-            <p class="opacity-75 mb-3">Search for available donors in your area</p>
+            <h3 class="fw-bold mb-1"><i class="fas fa-search me-2"></i>{{ t.find_blood_donors }}</h3>
+            <p class="opacity-75 mb-3">{{ t.search_area_desc }}</p>
             <form action="{{ url_for('public.find_donors') }}" method="GET">
               <div class="row g-2">
                 <div class="col-md-3">
                   <select class="form-select" name="blood_group">
-                    <option value="">🩸 Blood Group</option>
+                    <option value="">🩸 {{ t.blood_group_label }}</option>
                     {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
                     <option value="{{ bg }}">{{ bg }}</option>
                     {% endfor %}
                   </select>
                 </div>
                 <div class="col-md-3">
-                  <input type="text" class="form-control" name="district" placeholder="📍 District (e.g. Kathmandu)">
+                  <input type="text" class="form-control" name="district" placeholder="📍 {{ t.district_placeholder }}">
                 </div>
                 <div class="col-md-3">
-                  <input type="text" class="form-control" name="city" placeholder="🏙️ City / Town">
+                  <input type="text" class="form-control" name="city" placeholder="🏙️ {{ t.city_placeholder }}">
                 </div>
                 <div class="col-md-3">
                   <button type="submit" class="btn btn-light text-danger w-100 fw-semibold">
-                    <i class="fas fa-search me-1"></i> Search Donors
+                    <i class="fas fa-search me-1"></i> {{ t.search_donors_btn }}
                   </button>
                 </div>
               </div>
@@ -287,7 +286,7 @@
       <!-- ═══════ BLOOD GROUP STATS ═══════ -->
       {% if bg_stats %}
       <section class="bg-stats py-3">
-        <h4 class="fw-bold mb-3">Donors by Blood Group</h4>
+        <h4 class="fw-bold mb-3">{{ t.donors_by_bg }}</h4>
         <div class="row g-2">
           {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
           {% set data = bg_stats.get(bg, {'total': 0, 'available': 0}) %}
@@ -296,8 +295,8 @@
               class="card border-0 shadow-sm text-decoration-none hover-lift rounded-3">
               <div class="card-body text-center py-3">
                 <div class="bg-badge text-danger fw-black fs-4">{{ bg }}</div>
-                <div class="small text-success fw-semibold">{{ data.available }} available</div>
-                <div class="small text-muted">{{ data.total }} total</div>
+                <div class="small text-success fw-semibold">{{ data.available }} {{ t.available }}</div>
+                <div class="small text-muted">{{ data.total }} {{ t.total }}</div>
               </div>
             </a>
           </div>
@@ -311,11 +310,11 @@
       <section class="latest-news py-4">
         <div class="section-header d-flex align-items-center justify-content-between mb-4">
           <div>
-            <h2 class="h4 fw-bold mb-1"><i class="fas fa-newspaper text-danger me-2"></i>Latest News & Events</h2>
-            <p class="text-muted small mb-0">Stay updated with blood donation activities</p>
+            <h2 class="h4 fw-bold mb-1"><i class="fas fa-newspaper text-danger me-2"></i>{{ t.latest_news }}</h2>
+            <p class="text-muted small mb-0">{{ t.stay_updated }}</p>
           </div>
           <a href="{{ url_for('public.news_list') }}" class="btn btn-outline-danger btn-sm">
-            View All <i class="fas fa-arrow-right ms-1"></i>
+            {{ t.view_all }} <i class="fas fa-arrow-right ms-1"></i>
           </a>
         </div>
         <div class="row g-3">
@@ -338,7 +337,7 @@
                     <i class="fas fa-user me-1"></i>{{ post.author }}
                   </small>
                   <a href="{{ url_for('public.news_detail', slug=post.slug) }}" class="btn btn-danger btn-sm">
-                    Read More <i class="fas fa-arrow-right ms-1"></i>
+                    {{ t.read_more }} <i class="fas fa-arrow-right ms-1"></i>
                   </a>
                 </div>
               </div>
@@ -354,11 +353,11 @@
       <section class="stories py-4 bg-light rounded-4 px-3">
         <div class="section-header d-flex align-items-center justify-content-between mb-4">
           <div>
-            <h2 class="h4 fw-bold mb-1"><i class="fas fa-star text-warning me-2"></i>Success Stories</h2>
-            <p class="text-muted small mb-0">Real lives saved through blood donation</p>
+            <h2 class="h4 fw-bold mb-1"><i class="fas fa-star text-warning me-2"></i>{{ t.success_stories }}</h2>
+            <p class="text-muted small mb-0">{{ t.real_lives_saved }}</p>
           </div>
           <a href="{{ url_for('public.news_list', category='story') }}" class="btn btn-outline-warning btn-sm">
-            All Stories <i class="fas fa-arrow-right ms-1"></i>
+            {{ t.all_stories }} <i class="fas fa-arrow-right ms-1"></i>
           </a>
         </div>
         <div class="row g-3">
@@ -372,7 +371,7 @@
                 <h6 class="fw-bold">{{ story.title[:50] }}...</h6>
                 <p class="small text-muted">{{ story.short_desc[:100] if story.short_desc else '' }}...</p>
                 <a href="{{ url_for('public.news_detail', slug=story.slug) }}"
-                  class="btn btn-sm btn-outline-warning">Read Story</a>
+                  class="btn btn-sm btn-outline-warning">{{ t.read_story }}</a>
               </div>
             </div>
           </div>
@@ -389,7 +388,7 @@
       {% if active_notices %}
       <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-warning text-dark fw-bold rounded-top-4 border-0">
-          <i class="fas fa-bell me-2"></i>Latest Notices
+          <i class="fas fa-bell me-2"></i>{{ t.latest_notices }}
         </div>
         <div class="card-body p-0">
           <ul class="list-group list-group-flush">
@@ -416,12 +415,12 @@
       <div class="card border-0 shadow-sm rounded-4 bg-danger text-white mb-4">
         <div class="card-body text-center p-4">
           <i class="fas fa-heartbeat fa-3x mb-3 opacity-75 heartbeat-anim"></i>
-          <h5 class="fw-bold">Donate Blood Today!</h5>
+          <h5 class="fw-bold">{{ t.donate_blood_today }}</h5>
           <p class="small opacity-90 mb-3">
-            You could be the reason someone survives. Register as a donor now.
+            {{ t.donate_blood_cta }}
           </p>
           <a href="{{ url_for('public.become_donor') }}" class="btn btn-light text-danger fw-bold w-100">
-            <i class="fas fa-plus me-1"></i> Register as Donor
+            <i class="fas fa-plus me-1"></i> {{ t.register_as_donor }}
           </a>
         </div>
       </div>
@@ -429,7 +428,7 @@
       <!-- Sidebar Ads -->
       {% if sidebar_ads %}
       <div class="mb-2">
-        <small class="text-muted text-uppercase fw-bold">Sponsored</small>
+        <small class="text-muted text-uppercase fw-bold">{{ t.sponsored }}</small>
       </div>
       {% for ad in sidebar_ads %}
       {% if ad.is_valid %}

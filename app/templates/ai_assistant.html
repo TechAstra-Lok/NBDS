@@ -140,9 +140,10 @@ async function handleChatSubmit(e) {
   chatBox.scrollTop = chatBox.scrollHeight;
 
   try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const res = await fetch('/api/v1/ai-chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
       body: JSON.stringify({ message: message })
     });
     const data = await res.json();

@@ -5,12 +5,12 @@
 <div class="mb-4">
   <nav aria-label="breadcrumb" class="mb-1">
     <ol class="breadcrumb small mb-0">
-      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">Home</a></li>
-      <li class="breadcrumb-item active">Contact Us</li>
+      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">{{ t.home }}</a></li>
+      <li class="breadcrumb-item active">{{ t.contact_us }}</li>
     </ol>
   </nav>
   <h1 class="h3 fw-bold mb-1">
-    <i class="fas fa-envelope text-danger me-2"></i>Contact Us
+    <i class="fas fa-envelope text-danger me-2"></i>{{ t.contact_us }}
   </h1>
 </div>
 

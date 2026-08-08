@@ -664,7 +664,10 @@
             <small style="color:#98b2d5;">
               <a href="/privacy" class="footer-link me-3">Privacy Policy</a>
               <a href="/terms" class="footer-link me-3">Terms of Use</a>
-              <a href="{{ url_for('admin.login') }}" class="footer-link">Admin Portal</a>
+              <a href="{{ url_for('admin.login') }}" class="footer-link me-3">Admin Portal</a>
+              <a href="https://lokeshprasai.com.np/#contact" target="_blank" rel="noopener" class="footer-link">
+                <i class="fas fa-code me-1"></i>Contact Developer
+              </a>
             </small>
           </div>
         </div>
@@ -880,9 +883,10 @@
       box.scrollTop = box.scrollHeight;
 
       try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const res = await fetch('/api/v1/ai-chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
           body: JSON.stringify({ message: msg })
         });
         const data = await res.json();
