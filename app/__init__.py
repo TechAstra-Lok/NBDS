@@ -161,6 +161,52 @@ def create_app(config_name=None):
         # कन्टेक्स्ट प्रोसेसरहरू सुचारु गर्ने (ग्लोबल डाटाहरूको लागि)
         _register_context_processors(app)
         
+        # Register render_pagination as a Jinja2 global helper
+        from markupsafe import Markup
+        from flask import url_for as _url_for
+
+        def render_pagination(pagination, endpoint, **kwargs):
+            """Render Bootstrap 5 pagination links for any paginated query."""
+            if not pagination or pagination.pages <= 1:
+                return Markup('')
+            
+            pages = pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1)
+            html = ['<nav aria-label="Page navigation"><ul class="pagination justify-content-center flex-wrap">']
+            
+            # Previous button
+            if pagination.has_prev:
+                html.append(
+                    f'<li class="page-item"><a class="page-link" href="{_url_for(endpoint, page=pagination.prev_num, **kwargs)}">'
+                    f'<i class="fas fa-chevron-left"></i></a></li>'
+                )
+            else:
+                html.append('<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>')
+            
+            for p in pages:
+                if p:
+                    if p == pagination.page:
+                        html.append(f'<li class="page-item active"><span class="page-link">{p}</span></li>')
+                    else:
+                        html.append(
+                            f'<li class="page-item"><a class="page-link" href="{_url_for(endpoint, page=p, **kwargs)}">{p}</a></li>'
+                        )
+                else:
+                    html.append('<li class="page-item disabled"><span class="page-link">…</span></li>')
+            
+            # Next button
+            if pagination.has_next:
+                html.append(
+                    f'<li class="page-item"><a class="page-link" href="{_url_for(endpoint, page=pagination.next_num, **kwargs)}">'
+                    f'<i class="fas fa-chevron-right"></i></a></li>'
+                )
+            else:
+                html.append('<li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>')
+            
+            html.append('</ul></nav>')
+            return Markup(''.join(html))
+
+        app.jinja_env.globals['render_pagination'] = render_pagination
+        
         # Schedule Background Jobs
         from app.tasks import schedule_jobs
         schedule_jobs(app, scheduler)
