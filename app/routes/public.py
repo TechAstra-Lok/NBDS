@@ -611,6 +611,7 @@ def blood_request_form():
             request_message = form.request_message.data.strip() if form.request_message.data else "",
             case_details    = form.case_details.data.strip(),
             blood_group     = form.blood_group.data,
+            required_component = form.required_component.data or 'Whole Blood',
             units_needed    = form.units_needed.data,
             hospital        = form.hospital.data.strip(),
             province        = form.province.data or "",

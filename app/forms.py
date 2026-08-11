@@ -270,12 +270,25 @@ class VolunteerRegistrationForm(FlaskForm):
             raise ValidationError(f'Email {field.data} is already registered.')
 
 
+BLOOD_COMPONENT_CHOICES = [
+    ('Whole Blood', 'Whole Blood (सबै रगत)'),
+    ('Packed Red Blood Cells (PRBC/PCV)', 'Packed Red Blood Cells (PRBC / PCV)'),
+    ('Platelet Concentrate (RDP)', 'Platelet Concentrate (RDP)'),
+    ('Single Donor Platelets (SDP)', 'Single Donor Platelets (SDP)'),
+    ('Fresh Frozen Plasma (FFP)', 'Fresh Frozen Plasma (FFP)'),
+    ('White Blood Cells (WBC)', 'White Blood Cells (WBC / Granulocytes)'),
+    ('Cryoprecipitate', 'Cryoprecipitate (क्रायो)'),
+    ('Other / Special', 'Other / Special Requirement')
+]
+
+
 # ─── Blood Request Form ───────────────────────
 class BloodRequestForm(FlaskForm):
     patient_name    = StringField('Patient Name *', validators=[DataRequired(), Length(min=2, max=150)])
     case_details    = StringField('Case / Medical Condition *', validators=[DataRequired(), Length(min=3, max=255)])
     request_message = TextAreaField('Blood Request Message (Optional)', validators=[Optional(), Length(max=2000)], render_kw={"rows": 5})
     blood_group     = SelectField('Blood Group Required *', choices=BLOOD_GROUP_CHOICES, validators=[DataRequired()])
+    required_component = SelectField('Required Blood Type / Component *', choices=BLOOD_COMPONENT_CHOICES, default='Whole Blood', validators=[DataRequired()])
     units_needed    = IntegerField('Units Needed', default=1, validators=[DataRequired(), NumberRange(min=1, max=20)])
     
     hospital        = StringField('Hospital Name *', validators=[DataRequired(), Length(min=3, max=200)])

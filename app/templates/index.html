@@ -203,25 +203,30 @@
                 {% endif %}
 
                 <!-- Details -->
-                <div class="req-details small">
+                <div class="req-details small mb-2">
                   <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-hospital text-danger me-2" style="width:14px;"></i>
-                    <span class="text-truncate">
+                    <span class="text-truncate fw-semibold">
                       {{ req.hospital }}
-                      {% if req.hospital_paper_file %}
-                      <span class="badge bg-light text-secondary ms-1 border" title="Hospital paper attached">📄</span>
-                      {% endif %}
                     </span>
                   </div>
                   <div class="d-flex align-items-center mb-1">
-                    <i class="fas fa-vials text-warning me-2" style="width:14px;"></i>
-                    <span>{{ req.units_needed }} {{ t.units_needed_label }}</span>
+                    <i class="fas fa-vials text-danger me-2" style="width:14px;"></i>
+                    <span>{{ req.units_needed }} {{ t.units_needed_label }} · <strong>{{ req.required_component or 'Whole Blood' }}</strong></span>
                   </div>
-                  <div class="d-flex align-items-center mb-2">
+                  <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-user text-info me-2" style="width:14px;"></i>
                     <span>{{ req.contact_person }}</span>
                   </div>
                 </div>
+
+                {% if req.hospital_paper_url %}
+                <div class="mb-2 p-1 rounded border bg-light">
+                  <a href="{{ req.hospital_paper_url }}" target="_blank" class="d-block overflow-hidden rounded text-center" style="max-height:65px;">
+                    <img src="{{ req.hospital_paper_url }}" alt="Hospital Paper" class="img-fluid w-100" style="max-height:65px;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'small text-muted p-1 d-block\'>📄 Hospital Paper Uploaded</span>';">
+                  </a>
+                </div>
+                {% endif %}
 
                 <!-- CTA -->
                 <div class="d-flex gap-2 mt-2">

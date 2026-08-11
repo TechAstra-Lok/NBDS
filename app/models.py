@@ -942,6 +942,7 @@ class BloodRequest(db.Model):
     request_message = db.Column(db.Text, nullable=True)
     case_details    = db.Column(db.String(255), nullable=False)
     blood_group     = db.Column(db.String(5), nullable=False, index=True)
+    required_component = db.Column(db.String(100), default='Whole Blood', nullable=True)
     units_needed    = db.Column(db.Integer, default=1)
     
     # Location
@@ -985,6 +986,47 @@ class BloodRequest(db.Model):
             'managed_from_other_source': 'info'
         }
         return badges.get(self.status, 'secondary')
+
+    @property
+    def hospital_paper_url(self):
+        if not self.hospital_paper_file:
+            return None
+        fn = str(self.hospital_paper_file).replace('\\', '/').strip('/')
+        if fn.startswith('http://') or fn.startswith('https://'):
+            return fn
+        if fn.startswith('static/'):
+            return f"/{fn}"
+        if fn.startswith('uploads/'):
+            return f"/static/{fn}"
+        return f"/static/uploads/request_papers/{fn}"
+
+    @property
+    def formatted_share_text(self):
+        comp = self.required_component or 'Whole Blood'
+        msg = f' ("{self.request_message.strip()}")' if self.request_message else ''
+        loc = f"{self.hospital}"
+        if self.district:
+            loc += f", {self.district}"
+        contacts = f"{self.contact_number}"
+        if self.alt_number:
+            contacts += f" / {self.alt_number}"
+        
+        return (
+            f"🩸 URGENT BLOOD REQUEST 🩸\n"
+            f"────────────────────────────\n"
+            f"🆔 Request ID: {self.request_id}\n"
+            f"🅰️ Blood Group: {self.blood_group}\n"
+            f"🧪 Required Type/Component: {comp}\n"
+            f"🩸 Quantity Needed: {self.units_needed} Unit(s)\n"
+            f"👤 Patient Name: {self.patient_name}\n"
+            f"🏥 Hospital / Location: {loc}\n"
+            f"📞 Contact Person: {self.contact_person}\n"
+            f"📱 Contact Phone: {contacts}\n"
+            f"📋 Case / Reason: {self.case_details}{msg}\n"
+            f"────────────────────────────\n"
+            f"📌 Source: Raktadata Blood Request System Nepal\n"
+            f"🔗 Direct Link: https://raktadata.lokeshprasai.com.np/blood-requests/{self.request_id}"
+        )
     
     def to_dict(self):
         return {
@@ -992,12 +1034,14 @@ class BloodRequest(db.Model):
             'request_id': self.request_id,
             'patient_name': self.patient_name,
             'blood_group': self.blood_group,
+            'required_component': self.required_component or 'Whole Blood',
             'units_needed': self.units_needed,
             'hospital': self.hospital,
             'district': self.district,
             'local_level': self.local_level,
             'is_emergency': self.is_emergency,
             'status': self.status,
+            'hospital_paper_url': self.hospital_paper_url,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
     
