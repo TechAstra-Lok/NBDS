@@ -272,10 +272,29 @@ def _ensure_legacy_schema_columns(app):
             table_columns = {col['name'] for col in inspector.get_columns(table_name)}
             for column in model_cls.__table__.columns:
                 if column.name not in table_columns:
-                    column_type = column.type.compile(dialect=db.engine.dialect)
-                    db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {column_type}"))
+                    try:
+                        col_type_str = str(column.type).upper()
+                        if "VARCHAR" in col_type_str or "STRING" in col_type_str:
+                            length = getattr(column.type, 'length', 255) or 255
+                            sql_type = f"VARCHAR({length})"
+                        elif "TEXT" in col_type_str:
+                            sql_type = "TEXT"
+                        elif "INTEGER" in col_type_str or "INT" in col_type_str:
+                            sql_type = "INTEGER"
+                        elif "BOOLEAN" in col_type_str or "BOOL" in col_type_str:
+                            sql_type = "BOOLEAN"
+                        elif "DATETIME" in col_type_str or "TIMESTAMP" in col_type_str:
+                            sql_type = "TIMESTAMP"
+                        else:
+                            sql_type = "VARCHAR(255)"
+                        
+                        db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {sql_type}"))
+                        db.session.commit()
+                        print(f"[SCHEMA] Successfully added missing column '{column.name}' ({sql_type}) to table '{table_name}'.")
+                    except Exception as col_err:
+                        db.session.rollback()
+                        print(f"[WARN] Failed to add column {column.name} to {table_name}: {col_err}")
 
-        db.session.commit()
     except Exception as exc:
         db.session.rollback()
         print(f"[WARN] Failed to ensure legacy schema columns: {exc}")

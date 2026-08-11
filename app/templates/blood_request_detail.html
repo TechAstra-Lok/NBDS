@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }} ({{ req.blood_group }}) — {{ site_name }}{% endblock %}
 
-{% block meta_desc %}Emergency Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }}: Need {{ req.units_needed }} unit(s) of {{ req.blood_group }} ({{ req.required_component or 'Whole Blood' }}) at {{ req.hospital }}, {{ req.district }}. Please share to save a life!{% endblock %}
+{% block meta_desc %}Emergency Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }}: Need {{ req.units_needed }} unit(s) of {{ req.blood_group }} ({{ req.component_display }}) at {{ req.hospital }}, {{ req.district }}. Please share to save a life!{% endblock %}
 
-{% block og_title %}🩸 EMERGENCY BLOOD REQUEST: {{ req.blood_group }} ({{ req.required_component or 'Whole Blood' }}) Needed at {{ req.hospital }}{% endblock %}
-{% block og_desc %}Request ID: {{ req.request_id }} | Patient: {{ req.patient_name }} | Units: {{ req.units_needed }} | Component: {{ req.required_component or 'Whole Blood' }} | Contact: {{ req.contact_number }}. Source: Raktadata Blood Request System Nepal.{% endblock %}
+{% block og_title %}🩸 EMERGENCY BLOOD REQUEST: {{ req.blood_group }} ({{ req.component_display }}) Needed at {{ req.hospital }}{% endblock %}
+{% block og_desc %}Request ID: {{ req.request_id }} | Patient: {{ req.patient_name }} | Units: {{ req.units_needed }} | Component: {{ req.component_display }} | Contact: {{ req.contact_number }}. Source: Raktadata Blood Request System Nepal.{% endblock %}
 
 {% block content %}
 <div class="container-xl py-4" style="max-width: 850px;">
@@ -55,7 +55,7 @@
           </p>
           <div class="d-flex flex-wrap gap-3 text-secondary small fw-semibold">
             <span><i class="fas fa-vial text-danger me-1"></i><strong>{{ req.units_needed }}</strong> Unit(s) Required</span>
-            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="fas fa-vials me-1"></i>{{ req.required_component or 'Whole Blood' }}</span>
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="fas fa-vials me-1"></i>{{ req.component_display }}</span>
             <span><i class="fas fa-calendar-alt text-primary me-1"></i>Posted: {{ req.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
           </div>
         </div>

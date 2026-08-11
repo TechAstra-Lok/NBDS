@@ -988,22 +988,32 @@ class BloodRequest(db.Model):
         return badges.get(self.status, 'secondary')
 
     @property
+    def component_display(self):
+        try:
+            return getattr(self, 'required_component', None) or 'Whole Blood'
+        except Exception:
+            return 'Whole Blood'
+
+    @property
     def hospital_paper_url(self):
-        if not self.hospital_paper_file:
+        try:
+            if not getattr(self, 'hospital_paper_file', None):
+                return None
+            fn = str(self.hospital_paper_file).replace('\\', '/').strip('/')
+            if fn.startswith('http://') or fn.startswith('https://'):
+                return fn
+            if fn.startswith('static/'):
+                return f"/{fn}"
+            if fn.startswith('uploads/'):
+                return f"/static/{fn}"
+            return f"/static/uploads/request_papers/{fn}"
+        except Exception:
             return None
-        fn = str(self.hospital_paper_file).replace('\\', '/').strip('/')
-        if fn.startswith('http://') or fn.startswith('https://'):
-            return fn
-        if fn.startswith('static/'):
-            return f"/{fn}"
-        if fn.startswith('uploads/'):
-            return f"/static/{fn}"
-        return f"/static/uploads/request_papers/{fn}"
 
     @property
     def formatted_share_text(self):
-        comp = self.required_component or 'Whole Blood'
-        msg = f' ("{self.request_message.strip()}")' if self.request_message else ''
+        comp = self.component_display
+        msg = f' ("{self.request_message.strip()}")' if getattr(self, 'request_message', None) else ''
         loc = f"{self.hospital}"
         if self.district:
             loc += f", {self.district}"
