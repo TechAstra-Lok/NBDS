@@ -179,6 +179,44 @@ TRANSLATIONS = {
         'latest_updates': 'Latest blood donation updates and announcements',
         'no_news': 'No news articles published yet.',
 
+        # ── Success Stories ──
+        'success_stories_title': 'Inspiring Success Stories',
+        'success_stories_subtitle': 'How did a single effort save a precious life? Share your experience and inspire others.',
+        'latest_stories': 'Latest Stories',
+        'no_stories_posted': 'No success stories posted yet.',
+        'no_stories_desc': 'Be the first to share an inspiring story using the form!',
+        'add_your_story': 'Add Your Story',
+        'your_name_label': 'Your Name',
+        'story_title_label': 'Title',
+        'story_content_label': 'Experience / Details',
+        'upload_image_label': 'Upload Photo (Optional)',
+        'publish_story': 'Publish Story',
+        'community_guidelines': 'Community Guidelines',
+
+        # ── FAQ Page ──
+        'faq_title': 'Frequently Asked Questions (FAQ)',
+        'faq_subtitle': 'Answers to common questions about blood donation, eligibility, and our platform.',
+        'faq_q1': 'Who is eligible to donate blood?',
+        'faq_a1': 'Healthy individuals aged 18 to 60 years, weighing at least 45 kg, without any serious chronic illnesses or active infections.',
+        'faq_q2': 'How often can one donate blood?',
+        'faq_a2': 'Healthy male and female donors can donate blood every 3 months (90 days).',
+        'faq_q3': 'Does donating blood make you weak?',
+        'faq_a3': 'No. Fluids are replenished within 24–48 hours and new blood cells are produced by your body in a few weeks.',
+        'faq_q4': 'How to request blood in an emergency?',
+        'faq_a4': 'Fill out the "Request Blood" form on our website or contact local blood banks immediately.',
+
+        # ── Donor Guidelines Page ──
+        'guidelines_title': 'Donor Guidelines & Health Tips',
+        'guidelines_subtitle': 'Essential guidelines and safety tips for effective blood donation.',
+        'pre_donation': 'Before Blood Donation',
+        'pre_tip1': 'Drink plenty of water and fluids before donating blood.',
+        'pre_tip2': 'Eat a healthy, non-fatty meal; avoid heavy greasy foods.',
+        'pre_tip3': 'Get a good night\'s sleep of 7-8 hours.',
+        'post_donation': 'After Blood Donation',
+        'post_tip1': 'Rest for 10–15 minutes post donation and drink fruit juice.',
+        'post_tip2': 'Avoid heavy lifting or strenuous exercise for the rest of the day.',
+        'post_tip3': 'Avoid smoking or alcohol consumption for at least 2 hours.',
+
         # ── Contact Page ──
         'contact_us': 'Contact Us',
         'get_in_touch': 'Get in touch with us',
@@ -191,6 +229,7 @@ TRANSLATIONS = {
         'our_mission': 'Our Mission',
         'our_vision': 'Our Vision',
         'who_we_are': 'Who We Are',
+        'about_desc': 'A free digital network connecting blood donors and patients across Nepal.',
 
         # ── Messages ──
         'no_donors_found': 'No donors found matching your criteria.',
@@ -379,6 +418,44 @@ TRANSLATIONS = {
         'donor_guidelines': 'रक्तदाता मार्गदर्शन',
         'blood_banks': 'ब्लड बैंकहरू',
 
+        # ── Success Stories ──
+        'success_stories_title': 'रक्तदानका प्रेरक कथाहरू',
+        'success_stories_subtitle': 'तपाईंको एउटा प्रयासले कसरी कसैको अमूल्य जीवन बचायो? आफ्ना अनुभवहरू सेयर गर्नुहोस् र संसारलाई प्रेरित गर्नुहोस्।',
+        'latest_stories': 'नवीनतम कथाहरू',
+        'no_stories_posted': 'अहिलेसम्म कुनै कथा पोस्ट गरिएको छैन।',
+        'no_stories_desc': 'दायाँपट्टिको फारम प्रयोग गरेर पहिलो प्रेरक कथा पोस्ट गर्नुहोस्!',
+        'add_your_story': 'आफ्नो कथा थप्नुहोस्',
+        'your_name_label': 'तपाईंको नाम',
+        'story_title_label': 'शीर्षक',
+        'story_content_label': 'अनुभव / विवरण',
+        'upload_image_label': 'तस्बिर अपलोड गर्नुहोस् (ऐच्छिक)',
+        'publish_story': 'कथा प्रकाशित गर्नुहोस्',
+        'community_guidelines': 'समुदाय निर्देशिका',
+
+        # ── FAQ Page ──
+        'faq_title': 'बारम्बार सोधिने प्रश्नहरू (FAQ)',
+        'faq_subtitle': 'रक्तदान, योग्यता, र हाम्रो प्लेटफर्मबारे साधारण प्रश्नहरूका उत्तर।',
+        'faq_q1': 'को-को मानिसहरू रक्तदान गर्न योग्य हुन्छन्?',
+        'faq_a1': '१८ देखि ६० वर्ष उमेर पुगेका, कम्तीमा ४५ केजी तौल भएका, र कुनै गम्भीर रोग वा सङ्क्रमण नभएका स्वस्थ व्यक्तिहरू रक्तदान गर्न योग्य हुन्छन्।',
+        'faq_q2': 'कति समयको अन्तरमा रक्तदान गर्न सकिन्छ?',
+        'faq_a2': 'स्वस्थ पुरुष तथा महिलाले हरेक ३ महिना (९० दिन) को अन्तरमा रक्तदान गर्न सक्दछन्।',
+        'faq_q3': 'रक्तदान गर्दा शरीर कमजोर हुन्छ?',
+        'faq_a3': 'हुँदैन। रक्तदान गरेपछि शरीरले २४ देखि ४८ घण्टाभित्र नयाँ तरल पदार्थ र केही हप्तामा नयाँ रक्तकोषहरू बनाउँछ।',
+        'faq_q4': 'आपतकालीन अवस्थामा कसरी रगत माग गर्ने?',
+        'faq_a4': 'हाम्रो वेबसाइटको "रक्त अनुरोध" फारम भरेर वा नजिकैको ब्लड बैंकमा तुरुन्त सम्पर्क गरेर रगत माग गर्न सकिन्छ।',
+
+        # ── Donor Guidelines Page ──
+        'guidelines_title': 'रक्तदाता निर्देशिका र स्वास्थ्य सुझाव',
+        'guidelines_subtitle': 'सुरक्षित र प्रभावकारी रक्तदानको लागि आवश्यक मापदण्ड तथा सुझावहरू।',
+        'pre_donation': 'रक्तदान अघि ध्यान दिनुपर्ने कुराहरू',
+        'pre_tip1': 'रक्तदान गर्नुअघि प्रशस्त पानी वा तरल पदार्थ पिउनुहोस्।',
+        'pre_tip2': 'पौष्टिक र हलुका खाना खानुहोस्, धेरै चिल्लो खानबाट बच्नुहोस्।',
+        'pre_tip3': 'कम्तीमा ७-८ घण्टा राम्ररी सुत्नुहोस्।',
+        'post_donation': 'रक्तदान पछि ध्यान दिनुपर्ने कुराहरू',
+        'post_tip1': 'रक्तदानपछि कम्तीमा १०-१५ मिनेट आराम गर्नुहोस् र फलफूलको रस वा जुस पिउनुहोस्।',
+        'post_tip2': 'सोही दिन धेरै भारी वस्तु उठाउने वा कडा व्यायाम नगर्नुहोस्।',
+        'post_tip3': 'धुम्रपान वा मद्यपान कम्तीमा २ घण्टासम्म नगर्नुहोस्।',
+
         # ── Footer Bottom ──
         'privacy_policy': 'गोपनीयता नीति',
         'terms_of_use': 'सेवा सर्तहरू',
@@ -405,6 +482,7 @@ TRANSLATIONS = {
         'our_mission': 'हाम्रो लक्ष्य',
         'our_vision': 'हाम्रो दृष्टिकोण',
         'who_we_are': 'हामी को हौं',
+        'about_desc': 'नेपालभरका रक्तदाता र बिरामीहरूलाई सहजै जोड्ने निःशुल्क डिजिटल प्लेटफर्म।',
 
         # ── Messages ──
         'no_donors_found': 'तपाईंको खोजसँग मिल्ने कुनै रक्तदाता भेटिएन।',

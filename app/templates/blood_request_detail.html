@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Blood Request #REQ-{{ req.request_id }} ({{ req.blood_group }}) — {{ site_name }}{% endblock %}
+
+{% block meta_desc %}Emergency Blood Request #REQ-{{ req.request_id }}: Need {{ req.units_needed }} unit(s) of {{ req.blood_group }} blood at {{ req.hospital }}, {{ req.district }}. Please share to save a life!{% endblock %}
+
+{% block og_title %}🩸 EMERGENCY BLOOD REQUEST: {{ req.blood_group }} Needed at {{ req.hospital }}{% endblock %}
+{% block og_desc %}Request ID: REQ-{{ req.request_id }} | Patient: {{ req.patient_name }} | Units: {{ req.units_needed }} | Contact: {{ req.contact_number }}. Source: Raktadata Blood Request System Nepal.{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4" style="max-width: 850px;">
+  
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-danger">Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('public.blood_request_board') }}" class="text-danger">Blood Requests</a></li>
+      <li class="breadcrumb-item active">#REQ-{{ req.request_id }}</li>
+    </ol>
+  </nav>
+
+  <!-- Detail Card -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 position-relative">
+    
+    {% if req.is_emergency and req.status == 'active' %}
+    <div class="position-absolute top-0 start-0 w-100" style="height:6px;background:linear-gradient(90deg,#DC2626,#f97316);"></div>
+    {% endif %}
+
+    <div class="card-body p-4 p-md-5">
+      
+      <!-- Top Badges -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark fs-6 px-3 py-2 rounded-3"><i class="fas fa-hashtag me-1 text-danger"></i>REQ-{{ req.request_id }}</span>
+          {% if req.is_emergency and req.status == 'active' %}
+          <span class="badge bg-danger blink-anim fs-6 px-3 py-2 rounded-3">🔴 URGENT EMERGENCY</span>
+          {% endif %}
+        </div>
+        <div>
+          <span class="badge bg-{{ req.status_badge }} fs-6 px-3 py-2 rounded-3">{{ req.status|title }}</span>
+        </div>
+      </div>
+
+      <!-- Main Info Header -->
+      <div class="row align-items-center g-4 mb-4 pb-4 border-bottom">
+        <div class="col-auto">
+          <div class="blood-pill text-white fw-black rounded-4 shadow-sm"
+               style="padding:15px 25px;font-size:2.8rem;background:linear-gradient(135deg,#DC2626,#991B1B);min-width:110px;text-align:center;">
+            {{ req.blood_group }}
+          </div>
+        </div>
+        <div class="col">
+          <h2 class="fw-extrabold text-dark mb-1">{{ req.patient_name }}</h2>
+          <p class="text-muted mb-2 fs-5">
+            <i class="fas fa-briefcase-medical text-danger me-2"></i>{{ req.case_details }}
+          </p>
+          <div class="d-flex flex-wrap gap-3 text-secondary small fw-semibold">
+            <span><i class="fas fa-vial text-danger me-1"></i><strong>{{ req.units_needed }}</strong> Unit(s) Required</span>
+            <span><i class="fas fa-calendar-alt text-primary me-1"></i>Posted: {{ req.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hospital & Location Grid -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 bg-light border h-100">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-hospital text-danger me-1"></i>Hospital / Health Center</div>
+            <div class="fw-bold fs-5 text-dark">{{ req.hospital }}</div>
+            {% if req.hospital_address %}
+            <div class="text-muted small"><i class="fas fa-map-pin me-1"></i>{{ req.hospital_address }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 bg-light border h-100">
+            <div class="text-uppercase text-muted small fw-bold mb-1"><i class="fas fa-map-marker-alt text-danger me-1"></i>Location / Address</div>
+            <div class="fw-bold fs-6 text-dark">
+              {% if req.local_level %}{{ req.local_level }}{% if req.ward_no %}-{{ req.ward_no }}{% endif %}, {% endif %}
+              {{ req.district }}{% if req.province %}, {{ req.province }}{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message Excerpt -->
+      {% if req.request_message %}
+      <div class="mb-4">
+        <h6 class="fw-bold text-dark mb-2"><i class="fas fa-quote-left text-danger me-2"></i>Patient Message</h6>
+        <div class="p-3 rounded-3 bg-light border-start border-4 border-danger text-secondary fs-6 lh-base">
+          "{{ req.request_message }}"
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Hospital Paper Verification -->
+      {% if req.hospital_paper_file %}
+      <div class="mb-4 p-3 rounded-3 border bg-light">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="fw-bold text-dark"><i class="fas fa-file-medical text-primary me-2"></i>Hospital Recommendation Paper</span>
+          {% if req.hospital_paper_verified %}
+          <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Verified Request</span>
+          {% else %}
+          <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half me-1"></i>Under Review</span>
+          {% endif %}
+        </div>
+        <a href="{{ url_for('static', filename='uploads/request_papers/' ~ req.hospital_paper_file) }}" target="_blank" class="d-block overflow-hidden rounded border">
+          <img src="{{ url_for('static', filename='uploads/request_papers/' ~ req.hospital_paper_file) }}" alt="Hospital Recommendation Paper" class="img-fluid w-100" style="max-height:280px;object-fit:contain;background:#fff;">
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Contact Actions -->
+      <div class="p-4 rounded-4 bg-danger bg-opacity-10 border border-danger border-opacity-20 mb-4">
+        <div class="row align-items-center g-3">
+          <div class="col-md-6">
+            <div class="text-uppercase text-muted small fw-bold">Contact Person</div>
+            <h5 class="fw-bold text-dark mb-0"><i class="fas fa-user-circle text-danger me-2"></i>{{ req.contact_person }}</h5>
+          </div>
+          <div class="col-md-6 d-flex gap-2 flex-wrap justify-content-md-end">
+            <a href="tel:{{ req.contact_number }}" class="btn btn-danger btn-lg fw-bold shadow-sm">
+              <i class="fas fa-phone-alt me-2"></i>Call {{ req.contact_number }}
+            </a>
+            {% if req.alt_number %}
+            <a href="tel:{{ req.alt_number }}" class="btn btn-outline-danger btn-lg fw-bold">
+              <i class="fas fa-phone me-2"></i>{{ req.alt_number }}
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Share Box with Source Attribution -->
+      <div class="card border-0 bg-dark text-white rounded-4 p-4 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h5 class="fw-bold mb-0 text-white"><i class="fas fa-share-nodes text-danger me-2"></i>Share This Request to Save a Life</h5>
+          <span class="badge bg-secondary">Source: Raktadata Blood Request System</span>
+        </div>
+        <p class="small text-light opacity-75 mb-3">
+          Sharing this request across your social media accounts will quickly alert active donors in {{ req.district }}.
+        </p>
+
+        {% set share_url = url_for('public.single_blood_request', request_ref=req.request_id, _external=True) %}
+        {% set share_text = "🚨 EMERGENCY BLOOD REQUEST (#REQ-" ~ req.request_id ~ ")\nBlood Group: " ~ req.blood_group ~ "\nUnits: " ~ req.units_needed ~ "\nHospital: " ~ req.hospital ~ ", " ~ req.district ~ "\nContact: " ~ req.contact_number ~ "\nSource: Raktadata Blood Request System (" ~ share_url ~ ")" %}
+
+        <div class="d-flex gap-2 flex-wrap">
+          <!-- WhatsApp -->
+          <a href="https://api.whatsapp.com/send?text={{ share_text|urlencode }}" target="_blank" class="btn btn-success fw-bold flex-grow-1">
+            <i class="fab fa-whatsapp me-1"></i> WhatsApp
+          </a>
+
+          <!-- Facebook -->
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}&quote={{ share_text|urlencode }}" target="_blank" class="btn btn-primary fw-bold flex-grow-1" style="background:#1877F2;border:none;">
+            <i class="fab fa-facebook me-1"></i> Facebook
+          </a>
+
+          <!-- Viber -->
+          <a href="viber://forward?text={{ share_text|urlencode }}" target="_blank" class="btn btn-purple fw-bold flex-grow-1" style="background:#7360f2;color:#fff;border:none;">
+            <i class="fab fa-viber me-1"></i> Viber
+          </a>
+
+          <!-- Telegram -->
+          <a href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ share_text|urlencode }}" target="_blank" class="btn btn-info text-white fw-bold flex-grow-1" style="background:#229ED9;border:none;">
+            <i class="fab fa-telegram me-1"></i> Telegram
+          </a>
+
+          <!-- Twitter/X -->
+          <a href="https://twitter.com/intent/tweet?text={{ share_text|urlencode }}" target="_blank" class="btn btn-dark fw-bold border border-secondary flex-grow-1">
+            <i class="fab fa-x-twitter me-1"></i> Twitter/X
+          </a>
+
+          <!-- Copy Link -->
+          <button type="button" class="btn btn-outline-light fw-bold flex-grow-1" onclick="copyShareUrl('{{ share_url }}')">
+            <i class="fas fa-link me-1"></i> Copy Link
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function copyShareUrl(url) {
+  navigator.clipboard.writeText(url).then(function() {
+    alert("✅ Blood request link copied to clipboard!\n" + url);
+  }, function() {
+    prompt("Copy this share link:", url);
+  });
+}
+</script>
+{% endblock %}

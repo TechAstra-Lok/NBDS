@@ -43,13 +43,14 @@ class Config:
 
 
     
-    # Session
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
+    # Session (Permanent login for donors)
+    PERMANENT_SESSION_LIFETIME = timedelta(days=365)
     SESSION_COOKIE_SECURE = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     REMEMBER_COOKIE_HTTPONLY = True
-    REMEMBER_COOKIE_DURATION = timedelta(days=7)
+    REMEMBER_COOKIE_DURATION = timedelta(days=365)
+    REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True
     
     # CSRF
     WTF_CSRF_ENABLED = True

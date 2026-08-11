@@ -1031,6 +1031,15 @@ class SuccessStory(db.Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    @property
+    def image_url(self):
+        if self.image_file:
+            if self.image_file.startswith('http://') or self.image_file.startswith('https://'):
+                return self.image_file
+            clean_filename = self.image_file.replace('static/', '').replace('uploads/stories/', '').lstrip('/')
+            return f"/static/uploads/stories/{clean_filename}"
+        return None
+
 
 # ─────────────────────────────────────────────
 # NEWS MODEL

@@ -259,12 +259,11 @@ def raktadata_helpher_stream():
     })
 
     system_instruction = (
-        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module. "
-        "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, and medical tips. "
-        "You provide suggestions, health tips, and guidance in a professional, empathetic, and strictly medical/health context. "
-        "If a user asks about anything outside of health, medical topics, or blood donation (e.g., programming, history, general knowledge, politics, math), "
-        "you MUST politely decline to answer, state your purpose, and steer the conversation back to health or blood topics. "
-        "Keep your responses concise, well-formatted, and easy to read. You can use markdown."
+        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module for Raktadata Nepal. "
+        "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, medical guidance, and pre/post donation tips. "
+        "Provide complete, thorough, comprehensive, and clear medical guidance. DO NOT truncate or cut off your advice prematurely. "
+        "Structure your answers neatly with markdown headings, bullet points, and clear sections. "
+        "If a user asks about anything outside of health, medical topics, or blood donation, politely decline and redirect them to health topics."
     )
 
     payload = {
@@ -273,14 +272,14 @@ def raktadata_helpher_stream():
         },
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 800
+            "temperature": 0.5,
+            "maxOutputTokens": 3000
         }
     }
 
     def generate():
         try:
-            with requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, stream=True) as response:
+            with requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, stream=True, timeout=30) as response:
                 response.raise_for_status()
                 for line in response.iter_lines():
                     if line:

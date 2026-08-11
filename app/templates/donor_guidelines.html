@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}रक्तदान निर्देशिका (Donor Guidelines) — {{ site_name }}{% endblock %}
+{% block title %}{% if lang == 'ne' %}रक्तदान निर्देशिका{% else %}Donor Guidelines{% endif %} — {{ site_name }}{% endblock %}
 
 {% block content %}
 <div class="container-xl py-2">
@@ -9,9 +9,15 @@
             <div class="mb-3 heartbeat-anim d-inline-block">
                 <i class="fas fa-heart text-white fa-3x"></i>
             </div>
-            <h2 class="fw-extrabold mb-2">रक्तदान जीवनदान: तपाईंको एक थोपा, कसैको जिन्दगी!</h2>
+            <h1 class="fw-extrabold mb-2">
+                {% if lang == 'ne' %}रक्तदान जीवनदान: तपाईंको एक थोपा, कसैको जिन्दगी!{% else %}Blood Donation Guidelines: Your Drop, Their Life!{% endif %}
+            </h1>
             <p class="lead opacity-95 mb-0 mx-auto" style="max-width: 700px;">
+                {% if lang == 'ne' %}
                 रक्तदान गर्नु अघि, गरिरहँदा र गरिसकेपछि ध्यान दिनुपर्ने आवश्यक स्वास्थ्य मापदण्ड तथा निर्देशिकाहरू।
+                {% else %}
+                Essential health standards and guidelines to follow before, during, and after blood donation.
+                {% endif %}
             </p>
         </div>
     </div>
@@ -20,33 +26,48 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
                 <h4 class="fw-bold text-danger border-bottom pb-2 mb-4">
-                    <i class="fas fa-circle-check me-2"></i>को-कसले रक्तदान गर्न सक्छन्? (योग्यता)
+                    <i class="fas fa-circle-check me-2"></i>
+                    {% if lang == 'ne' %}को-कसले रक्तदान गर्न सक्छन्? (योग्यता){% else %}Who Can Donate? (Eligibility){% endif %}
                 </h4>
                 <ul class="list-unstyled">
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-cake-candles text-success mt-1 me-3 fs-5"></i>
                         <div>
+                            {% if lang == 'ne' %}
                             <strong>उमेर:</strong> १८ वर्ष पूरा भई ६० वर्ष नहालेको हुनुपर्नेछ।
+                            {% else %}
+                            <strong>Age:</strong> Must be between 18 and 60 years old.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-weight-scale text-success mt-1 me-3 fs-5"></i>
                         <div>
+                            {% if lang == 'ne' %}
                             <strong>तौल:</strong> न्यूनतम ४५ किलोग्राम (४५ केजी) वा सोभन्दा माथि भएको हुनुपर्नेछ।
+                            {% else %}
+                            <strong>Weight:</strong> Must be at least 45 kg or above.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-heart-pulse text-success mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>रक्तचाप र हेमोग्लोबिन:</strong> रक्तचाप सामान्य (सिस्टोलिक १००-१४० र डायस्टोलिक
-                            ६०-९०) भएको र हेमोग्लोबिन १२.५ ग्राम/डिएल भन्दा माथि हुनुपर्नेछ।
+                            {% if lang == 'ne' %}
+                            <strong>रक्तचाप र हेमोग्लोबिन:</strong> रक्तचाप सामान्य (सिस्टोलिक १००-१४० र डायस्टोलिक ६०-९०) भएको र हेमोग्लोबिन १२.५ ग्राम/डिएल भन्दा माथि हुनुपर्नेछ।
+                            {% else %}
+                            <strong>Blood Pressure & Hemoglobin:</strong> Normal BP (systolic 100-140, diastolic 60-90) and hemoglobin above 12.5 g/dL required.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-hourglass text-success mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>समयको अन्तराल:</strong> पछिल्लो पटक रक्तदान गरेको कम्तीमा ३ महिना (९० दिन) पूरा भएको
-                            हुनुपर्नेछ।
+                            {% if lang == 'ne' %}
+                            <strong>समयको अन्तराल:</strong> पछिल्लो पटक रक्तदान गरेको कम्तीमा ३ महिना (९० दिन) पूरा भएको हुनुपर्नेछ।
+                            {% else %}
+                            <strong>Donation Interval:</strong> At least 3 months (90 days) must have passed since your last donation.
+                            {% endif %}
                         </div>
                     </li>
                 </ul>
@@ -56,35 +77,48 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
                 <h4 class="fw-bold text-secondary border-bottom pb-2 mb-4">
-                    <i class="fas fa-circle-xmark text-danger me-2"></i>कसले रक्तदान गर्नु हुँदैन?
+                    <i class="fas fa-circle-xmark text-danger me-2"></i>
+                    {% if lang == 'ne' %}कसले रक्तदान गर्नु हुँदैन?{% else %}Who Should NOT Donate?{% endif %}
                 </h4>
                 <ul class="list-unstyled">
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-capsules text-danger mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>एन्टिबायोटिक्स सेवन:</strong> एन्टिबायोटिक्स वा कडा औषधि सेवन गरिरहेका वा औषधि
-                            छोडेको १ हप्ता पूरा नभएकाहरू।
+                            {% if lang == 'ne' %}
+                            <strong>एन्टिबायोटिक्स सेवन:</strong> एन्टिबायोटिक्स वा कडा औषधि सेवन गरिरहेका वा औषधि छोडेको १ हप्ता पूरा नभएकाहरू।
+                            {% else %}
+                            <strong>Antibiotic Use:</strong> Those taking antibiotics or strong medication, or who have not completed 1 week after stopping medication.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-syringe text-danger mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>गम्भीर संक्रामक रोग:</strong> एचआईभी (HIV), हेपाटाइटिस 'B' वा 'C', जण्डिस, वा
-                            मलेरिया लागेका व्यक्तिहरू।
+                            {% if lang == 'ne' %}
+                            <strong>गम्भीर संक्रामक रोग:</strong> एचआईभी (HIV), हेपाटाइटिस 'B' वा 'C', जण्डिस, वा मलेरिया लागेका व्यक्तिहरू।
+                            {% else %}
+                            <strong>Serious Infectious Diseases:</strong> Persons with HIV, Hepatitis B or C, Jaundice, or Malaria.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-person-pregnant text-danger mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>गर्भवती वा स्तनपान:</strong> गर्भवती महिला, भर्खरै सुत्केरी भएका वा शिशुलाई स्तनपान
-                            गराइरहेका आमाहरू।
+                            {% if lang == 'ne' %}
+                            <strong>गर्भवती वा स्तनपान:</strong> गर्भवती महिला, भर्खरै सुत्केरी भएका वा शिशुलाई स्तनपान गराइरहेका आमाहरू।
+                            {% else %}
+                            <strong>Pregnant or Breastfeeding:</strong> Pregnant women, recently delivered mothers, or those currently breastfeeding.
+                            {% endif %}
                         </div>
                     </li>
                     <li class="d-flex align-items-start mb-3">
                         <i class="fas fa-paint-roller text-danger mt-1 me-3 fs-5"></i>
                         <div>
-                            <strong>ट्याटू वा पियर्सिङ:</strong> पछिल्लो ६ महिना भित्र शरीरमा ट्याटू खोपेका वा कान/नाक
-                            छेडाएका व्यक्तिहरू।
+                            {% if lang == 'ne' %}
+                            <strong>ट्याटू वा पियर्सिङ:</strong> पछिल्लो ६ महिना भित्र शरीरमा ट्याटू खोपेका वा कान/नाक छेडाएका व्यक्तिहरू।
+                            {% else %}
+                            <strong>Recent Tattoo or Piercing:</strong> Those who have had a tattoo or ear/nose piercing within the past 6 months.
+                            {% endif %}
                         </div>
                     </li>
                 </ul>
@@ -93,45 +127,62 @@
 
         <div class="col-12 mt-4">
             <div class="card border-0 shadow-sm rounded-4 p-4">
-                <h4 class="fw-bold text-dark border-bottom pb-2 mb-4 text-center">
-                    <i class="fas fa-clock-rotate-left text-danger me-2"></i>रक्तदान गर्दाका ३ महत्त्वपूर्ण चरणहरू
+                <h4 class="fw-bold border-bottom pb-2 mb-4 text-center">
+                    <i class="fas fa-clock-rotate-left text-danger me-2"></i>
+                    {% if lang == 'ne' %}रक्तदान गर्दाका ३ महत्त्वपूर्ण चरणहरू{% else %}3 Important Stages of Blood Donation{% endif %}
                 </h4>
                 <div class="row g-4 text-center">
                     <div class="col-md-4">
                         <div class="p-3 bg-light rounded-4 h-100 border-top border-4 border-warning">
-                            <span class="badge bg-warning text-dark mb-2 fs-6">१. रक्तदान गर्नु अघि</span>
+                            <span class="badge bg-warning text-dark mb-2 fs-6">
+                                {% if lang == 'ne' %}१. रक्तदान गर्नु अघि{% else %}1. Before Donation{% endif %}
+                            </span>
                             <p class="small text-muted text-start mt-2 mb-0">
+                                {% if lang == 'ne' %}
                                 <i class="fas fa-check text-success me-1"></i>कम्तीमा ३-४ गिलास सफा पानी पिउनुहोस्।<br>
-                                <i class="fas fa-check text-success me-1"></i>कम्तीमा ४ घण्टा अगाडि पोसिलो खाना खानुहोस्
-                                (खाली पेट नबस्नुहोस्)।<br>
-                                <i class="fas fa-check text-success me-1"></i>अघिल्लो रात कम्तीमा ७-८ घण्टा सुतेको
-                                हुनुपर्छ।
+                                <i class="fas fa-check text-success me-1"></i>कम्तीमा ४ घण्टा अगाडि पोसिलो खाना खानुहोस् (खाली पेट नबस्नुहोस्)।<br>
+                                <i class="fas fa-check text-success me-1"></i>अघिल्लो रात कम्तीमा ७-८ घण्टा सुतेको हुनुपर्छ।
+                                {% else %}
+                                <i class="fas fa-check text-success me-1"></i>Drink at least 3-4 glasses of clean water.<br>
+                                <i class="fas fa-check text-success me-1"></i>Eat a nutritious meal at least 4 hours before (do not donate on an empty stomach).<br>
+                                <i class="fas fa-check text-success me-1"></i>Sleep at least 7-8 hours the previous night.
+                                {% endif %}
                             </p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="p-3 bg-light rounded-4 h-100 border-top border-4 border-danger">
-                            <span class="badge bg-danger text-white mb-2 fs-6">२. रक्तदान गरिरहँदा</span>
+                            <span class="badge bg-danger text-white mb-2 fs-6">
+                                {% if lang == 'ne' %}२. रक्तदान गरिरहँदा{% else %}2. During Donation{% endif %}
+                            </span>
                             <p class="small text-muted text-start mt-2 mb-0">
-                                <i class="fas fa-check text-success me-1"></i>आफूलाई शान्त राख्नुहोस्, लामो र गहिरो सास
-                                लिनुहोस्।<br>
-                                <i class="fas fa-check text-success me-1"></i>रक्तदान गर्ने हातको मुट्ठी बिस्तारै खोल्ने
-                                र बन्द गर्ने गरिरहनुहोस्।<br>
-                                <i class="fas fa-check text-success me-1"></i>असहज महसुस भएमा तुरुन्त स्वास्थ्यकर्मीलाई
-                                भन्नुहोस्।
+                                {% if lang == 'ne' %}
+                                <i class="fas fa-check text-success me-1"></i>आफूलाई शान्त राख्नुहोस्, लामो र गहिरो सास लिनुहोस्।<br>
+                                <i class="fas fa-check text-success me-1"></i>रक्तदान गर्ने हातको मुट्ठी बिस्तारै खोल्ने र बन्द गर्ने गरिरहनुहोस्।<br>
+                                <i class="fas fa-check text-success me-1"></i>असहज महसुस भएमा तुरुन्त स्वास्थ्यकर्मीलाई भन्नुहोस्।
+                                {% else %}
+                                <i class="fas fa-check text-success me-1"></i>Stay calm and take slow, deep breaths.<br>
+                                <i class="fas fa-check text-success me-1"></i>Gently open and close your fist on the donation arm.<br>
+                                <i class="fas fa-check text-success me-1"></i>Immediately inform a health worker if you feel uncomfortable.
+                                {% endif %}
                             </p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="p-3 bg-light rounded-4 h-100 border-top border-4 border-success">
-                            <span class="badge bg-success text-white mb-2 fs-6">३. रक्तदान गरिसकेपछि</span>
+                            <span class="badge bg-success text-white mb-2 fs-6">
+                                {% if lang == 'ne' %}३. रक्तदान गरिसकेपछि{% else %}3. After Donation{% endif %}
+                            </span>
                             <p class="small text-muted text-start mt-2 mb-0">
-                                <i class="fas fa-check text-success me-1"></i>रक्तदान बेडमा कम्तीमा १०-१५ मिनेट आराम
-                                गर्नुहोस्।<br>
-                                <i class="fas fa-check text-success me-1"></i>उपलब्ध गराइने जुस, बिस्कुट र प्रशस्त तरल
-                                पदार्थको सेवन गर्नुहोस्।<br>
-                                <i class="fas fa-check text-success me-1"></i>अर्को ४-५ घण्टासम्म गह्रौँ सामान उठाउने वा
-                                कडा व्यायाम नगर्नुहोस्।
+                                {% if lang == 'ne' %}
+                                <i class="fas fa-check text-success me-1"></i>रक्तदान बेडमा कम्तीमा १०-१५ मिनेट आराम गर्नुहोस्।<br>
+                                <i class="fas fa-check text-success me-1"></i>उपलब्ध गराइने जुस, बिस्कुट र प्रशस्त तरल पदार्थको सेवन गर्नुहोस्।<br>
+                                <i class="fas fa-check text-success me-1"></i>अर्को ४-५ घण्टासम्म गह्रौँ सामान उठाउने वा कडा व्यायाम नगर्नुहोस्।
+                                {% else %}
+                                <i class="fas fa-check text-success me-1"></i>Rest on the donation bed for at least 10-15 minutes.<br>
+                                <i class="fas fa-check text-success me-1"></i>Consume juice, biscuits, and plenty of fluids provided.<br>
+                                <i class="fas fa-check text-success me-1"></i>Avoid heavy lifting or strenuous exercise for the next 4-5 hours.
+                                {% endif %}
                             </p>
                         </div>
                     </div>

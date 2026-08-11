@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}धेरै सोधिने प्रश्नहरू (FAQs) — {{ site_name }}{% endblock %}
+{% block title %}{% if lang == 'ne' %}धेरै सोधिने प्रश्नहरू (FAQs){% else %}Frequently Asked Questions (FAQs){% endif %} — {{ site_name }}{% endblock %}
 
 {% block extra_css %}
 <script type="application/ld+json">
@@ -9,18 +9,18 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "के रक्तदान गर्दा शरीर कमजोर हुन्छ वा बिरामी परिन्छ?",
+      "name": "{% if lang == 'ne' %}के रक्तदान गर्दा शरीर कमजोर हुन्छ वा बिरामी परिन्छ?{% else %}Does blood donation make the body weak or cause illness?{% endif %}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "कदापि हुँदैन। एउटा स्वस्थ मानिसको शरीरमा सामान्यतया ५ देखि ६ लिटर रगत हुन्छ। रक्तदान गर्दा मात्र ३५० देखि ४५० मिलिलिटर रगत निकालिन्छ जुन २४-४८ घण्टामा पुन: पूर्ति हुन्छ।"
+        "text": "{% if lang == 'ne' %}कदापि हुँदैन। एउटा स्वस्थ मानिसको शरीरमा सामान्यतया ५ देखि ६ लिटर रगत हुन्छ। रक्तदान गर्दा मात्र ३५० देखि ४५० मिलिलिटर रगत निकालिन्छ जुन २४-४८ घण्टामा पुन: पूर्ति हुन्छ।{% else %}Not at all. A healthy person's body has 5 to 6 litres of blood. Only 350-450ml is collected during donation which is replenished within 24-48 hours.{% endif %}"
       }
     },
     {
       "@type": "Question",
-      "name": "को-को व्यक्तिले रक्तदान गर्न सक्नुहुन्छ?",
+      "name": "{% if lang == 'ne' %}को-को व्यक्तिले रक्तदान गर्न सक्नुहुन्छ?{% else %}Who can donate blood?{% endif %}",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "१८ देखि ६० वर्ष उमेर पुगेका, कम्तिमा ४५ केजी तौल भएका र स्वस्थ व्यक्तिले रक्तदान गर्न सक्नुहुन्छ।"
+        "text": "{% if lang == 'ne' %}१८ देखि ६० वर्ष उमेर पुगेका, कम्तिमा ४५ केजी तौल भएका र स्वस्थ व्यक्तिले रक्तदान गर्न सक्नुहुन्छ।{% else %}Healthy individuals aged 18 to 60 years who weigh at least 45 kg are eligible to donate blood.{% endif %}"
       }
     }
   ]
@@ -34,10 +34,15 @@
         <div class="d-inline-flex p-3 bg-danger bg-opacity-10 rounded-circle text-danger mb-3">
             <i class="fas fa-comments-question fa-2x"></i>
         </div>
-        <h2 class="fw-black text-dark">रक्तदान सम्बन्धी जिज्ञाशाहरू</h2>
+        <h1 class="fw-black">
+            {% if lang == 'ne' %}रक्तदान सम्बन्धी जिज्ञाशाहरू{% else %}Blood Donation FAQs{% endif %}
+        </h1>
         <p class="text-muted mx-auto" style="max-width: 600px;">
-            रक्तदान गर्न जाँदा मनमा उठ्ने सामान्य तथा स्वास्थ्य सम्बन्धी प्रश्नहरूको स्पष्ट उत्तरहरू यहाँ पाउन
-            सक्नुहुन्छ।
+            {% if lang == 'ne' %}
+            रक्तदान गर्न जाँदा मनमा उठ्ने सामान्य तथा स्वास्थ्य सम्बन्धी प्रश्नहरूको स्पष्ट उत्तरहरू यहाँ पाउन सक्नुहुन्छ।
+            {% else %}
+            Find clear answers to common health and blood donation questions you may have before donating.
+            {% endif %}
         </p>
     </div>
 
@@ -47,86 +52,115 @@
 
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button fw-bold text-dark fs-6" type="button" data-bs-toggle="collapse"
+                        <button class="accordion-button fw-bold fs-6" type="button" data-bs-toggle="collapse"
                             data-bs-target="#faq1">
-                            <i class="fas fa-circle-question text-danger me-2"></i>१. के रक्तदान गर्दा शरीर कमजोर हुन्छ
-                            वा बिरामी परिन्छ?
+                            <i class="fas fa-circle-question text-danger me-2"></i>
+                            {% if lang == 'ne' %}
+                            १. के रक्तदान गर्दा शरीर कमजोर हुन्छ वा बिरामी परिन्छ?
+                            {% else %}
+                            1. Does blood donation make the body weak or cause illness?
+                            {% endif %}
                         </button>
                     </h2>
                     <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
                         <div class="accordion-body lh-base text-muted">
-                            <strong>कदापि हुँदैन।</strong> एउटा स्वस्थ मानिसको शरीरमा सामान्यतया ५ देखि ६ लिटर रगत
-                            हुन्छ। रक्तदान गर्दा मात्र ३५० देखि ४५० मिलिलिटर (करिब १ पाउ) रगत मात्र निकालिन्छ। यो रगतको
-                            मात्रा शरीरले २४ देखि ४८ घण्टा भित्रै तरल पदार्थ खाएर पूर्ति गरिसक्छ भने रक्तकोषिकाहरू ४
-                            देखि ६ हप्ता भित्र पूर्ण रूपमा नयाँ बनिसक्छन्।
+                            {% if lang == 'ne' %}
+                            <strong>कदापि हुँदैन।</strong> एउटा स्वस्थ मानिसको शरीरमा सामान्यतया ५ देखि ६ लिटर रगत हुन्छ। रक्तदान गर्दा मात्र ३५० देखि ४५० मिलिलिटर (करिब १ पाउ) रगत मात्र निकालिन्छ। यो रगतको मात्रा शरीरले २४ देखि ४८ घण्टा भित्रै तरल पदार्थ खाएर पूर्ति गरिसक्छ भने रक्तकोषिकाहरू ४ देखि ६ हप्ता भित्र पूर्ण रूपमा नयाँ बनिसक्छन्।
+                            {% else %}
+                            <strong>Absolutely not.</strong> A healthy person has 5 to 6 litres of blood in their body. Only 350–450ml (about 1 pint) is collected. This fluid volume is replenished by the body within 24–48 hours, and red blood cells are fully renewed within 4–6 weeks.
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed fw-bold text-dark fs-6" type="button"
+                        <button class="accordion-button collapsed fw-bold fs-6" type="button"
                             data-bs-toggle="collapse" data-bs-target="#faq2">
-                            <i class="fas fa-circle-question text-danger me-2"></i>२. म कति समयको अन्तरालमा पुनः रक्तदान
-                            गर्न सक्छु?
+                            <i class="fas fa-circle-question text-danger me-2"></i>
+                            {% if lang == 'ne' %}
+                            २. म कति समयको अन्तरालमा पुनः रक्तदान गर्न सक्छु?
+                            {% else %}
+                            2. How often can I donate blood?
+                            {% endif %}
                         </button>
                     </h2>
                     <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body lh-base text-muted">
-                            एकपटक सुरक्षित रक्तदान गरिसकेपछि पुनः रक्तदान गर्नका लागि कम्तीमा <strong>३ महिना (९०
-                                दिन)</strong> कुर्नुपर्छ। पुरुष र महिला दुवैको हकमा यो नियम लागु हुन्छ ता कि शरीरमा आइरन
-                            र रातो रक्तकोषको मात्रा पूर्ण रूपमा सन्तुलित हुन सकोस्।
+                            {% if lang == 'ne' %}
+                            एकपटक सुरक्षित रक्तदान गरिसकेपछि पुनः रक्तदान गर्नका लागि कम्तीमा <strong>३ महिना (९० दिन)</strong> कुर्नुपर्छ। पुरुष र महिला दुवैको हकमा यो नियम लागु हुन्छ ता कि शरीरमा आइरन र रातो रक्तकोषको मात्रा पूर्ण रूपमा सन्तुलित हुन सकोस्।
+                            {% else %}
+                            After a safe donation, you must wait at least <strong>3 months (90 days)</strong> before donating again. This applies to both men and women to allow iron levels and red blood cells to fully recover.
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed fw-bold text-dark fs-6" type="button"
+                        <button class="accordion-button collapsed fw-bold fs-6" type="button"
                             data-bs-toggle="collapse" data-bs-target="#faq3">
-                            <i class="fas fa-circle-question text-danger me-2"></i>३. रक्तदान गर्न कति समय लाग्छ?
+                            <i class="fas fa-circle-question text-danger me-2"></i>
+                            {% if lang == 'ne' %}
+                            ३. रक्तदान गर्न कति समय लाग्छ?
+                            {% else %}
+                            3. How long does blood donation take?
+                            {% endif %}
                         </button>
                     </h2>
                     <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body lh-base text-muted">
-                            वास्तविक रगत निकाल्ने प्रक्रिया (Donation Process) केवल <strong>७ देखि १० मिनेट</strong>
-                            मात्र लाग्छ। तर, रक्तदान गर्नु अघि गरिने स्वास्थ्य परीक्षण (रक्तचाप, तौल, हेमोग्लोबिन जाँच)
-                            र रक्तदान गरिसकेपछिको १० मिनेटको आराम सहित जम्मा ४५ मिनेट जति लाग्ने गर्दछ।
+                            {% if lang == 'ne' %}
+                            वास्तविक रगत निकाल्ने प्रक्रिया (Donation Process) केवल <strong>७ देखि १० मिनेट</strong> मात्र लाग्छ। तर, रक्तदान गर्नु अघि गरिने स्वास्थ्य परीक्षण (रक्तचाप, तौल, हेमोग्लोबिन जाँच) र रक्तदान गरिसकेपछिको १० मिनेटको आराम सहित जम्मा ४५ मिनेट जति लाग्ने गर्दछ।
+                            {% else %}
+                            The actual blood collection takes only <strong>7 to 10 minutes</strong>. Including a health screening (blood pressure, weight, hemoglobin) before and 10 minutes of rest after, the full process takes about 45 minutes.
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed fw-bold text-dark fs-6" type="button"
+                        <button class="accordion-button collapsed fw-bold fs-6" type="button"
                             data-bs-toggle="collapse" data-bs-target="#faq4">
-                            <i class="fas fa-circle-question text-danger me-2"></i>४. के महिनावारी (Period) भएको बेला
-                            महिलाहरूले रक्तदान गर्न मिल्छ?
+                            <i class="fas fa-circle-question text-danger me-2"></i>
+                            {% if lang == 'ne' %}
+                            ४. के महिनावारी (Period) भएको बेला महिलाहरूले रक्तदान गर्न मिल्छ?
+                            {% else %}
+                            4. Can women donate blood during menstruation (period)?
+                            {% endif %}
                         </button>
                     </h2>
                     <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body lh-base text-muted">
-                            यदि महिनावारी भएको बेला अत्यधिक पेट दुख्ने वा धेरै रगत बग्ने समस्या छैन र हेमोग्लोबिनको
-                            मात्रा १२.५ भन्दा माथि छ भने रक्तदान गर्न मिल्छ। तर, सामान्यतया स्वास्थ्य सुरक्षा र आरामका
-                            लागि <strong>महिनावारी सकिएको १ हप्तापछि</strong> मात्र रक्तदान गर्नु राम्रो मानिन्छ।
+                            {% if lang == 'ne' %}
+                            यदि महिनावारी भएको बेला अत्यधिक पेट दुख्ने वा धेरै रगत बग्ने समस्या छैन र हेमोग्लोबिनको मात्रा १२.५ भन्दा माथि छ भने रक्तदान गर्न मिल्छ। तर, सामान्यतया स्वास्थ्य सुरक्षा र आरामका लागि <strong>महिनावारी सकिएको १ हप्तापछि</strong> मात्र रक्तदान गर्नु राम्रो मानिन्छ।
+                            {% else %}
+                            If there is no severe cramping or heavy flow and hemoglobin is above 12.5, donation is medically permissible. However, for comfort and safety it is generally recommended to donate <strong>1 week after menstruation ends</strong>.
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed fw-bold text-dark fs-6" type="button"
+                        <button class="accordion-button collapsed fw-bold fs-6" type="button"
                             data-bs-toggle="collapse" data-bs-target="#faq5">
-                            <i class="fas fa-circle-question text-danger me-2"></i>५. के रक्तदान गर्दा कुनै सरुवा रोग
-                            सर्ने जोखिम हुन्छ?
+                            <i class="fas fa-circle-question text-danger me-2"></i>
+                            {% if lang == 'ne' %}
+                            ५. के रक्तदान गर्दा कुनै सरुवा रोग सर्ने जोखिम हुन्छ?
+                            {% else %}
+                            5. Is there any risk of catching an infectious disease while donating blood?
+                            {% endif %}
                         </button>
                     </h2>
                     <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body lh-base text-muted">
-                            <strong>बिल्कुलै हुँदैन।</strong> प्रत्येक रक्तदाताको लागि एकदमै नयाँ, स्टेराइल (Sterilized)
-                            र निर्मलीकरण गरिएको छुट्टै सियो (Needle) र रगत राख्ने ब्याग प्रयोग गरिन्छ। एउटा सियो एक
-                            जनालाई मात्र प्रयोग गरेर तुरुन्तै नष्ट गरिने हुनाले रक्तदान गर्दा कुनै पनि प्रकारको संक्रमण
-                            सर्ने सम्भावना हुँदैन।
+                            {% if lang == 'ne' %}
+                            <strong>बिल्कुलै हुँदैन।</strong> प्रत्येक रक्तदाताको लागि एकदमै नयाँ, स्टेराइल (Sterilized) र निर्मलीकरण गरिएको छुट्टै सियो (Needle) र रगत राख्ने ब्याग प्रयोग गरिन्छ। एउटा सियो एक जनालाई मात्र प्रयोग गरेर तुरुन्तै नष्ट गरिने हुनाले रक्तदान गर्दा कुनै पनि प्रकारको संक्रमण सर्ने सम्भावना हुँदैन।
+                            {% else %}
+                            <strong>Absolutely none.</strong> A brand new, sterile needle and blood bag is used for every donor and immediately discarded after use. There is zero risk of infection from donating blood.
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -134,12 +168,19 @@
             </div>
 
             <div class="card border-0 bg-light p-4 text-center mt-5 rounded-4 border-start border-4 border-danger">
-                <h5 class="fw-bold text-dark">अझै केही सोध्न बाँकी छ?</h5>
-                <p class="small text-muted mb-3">हाम्रो २४/७ आकस्मिक हटलाइन नम्बरमा सिधै सम्पर्क गरेर चिकित्सक र
-                    स्वास्थ्यकर्मीसँग सल्लाह लिन सक्नुहुन्छ।</p>
+                <h5 class="fw-bold">
+                    {% if lang == 'ne' %}अझै केही सोध्न बाँकी छ?{% else %}Still have questions?{% endif %}
+                </h5>
+                <p class="small text-muted mb-3">
+                    {% if lang == 'ne' %}
+                    हाम्रो २४/७ आकस्मिक हटलाइन नम्बरमा सिधै सम्पर्क गरेर चिकित्सक र स्वास्थ्यकर्मीसँग सल्लाह लिन सक्नुहुन्छ।
+                    {% else %}
+                    Contact our 24/7 emergency hotline to speak with a health professional directly.
+                    {% endif %}
+                </p>
                 <a href="tel:+9779816003020"
                     class="btn btn-danger btn-sm d-inline-flex align-items-center justify-content-center mx-auto px-4 rounded-pill fw-bold">
-                    <i class="fas fa-phone me-2"></i>+977 9816003020 मा फोन गर्नुहोस्
+                    <i class="fas fa-phone me-2"></i>+977 9816003020
                 </a>
             </div>
         </div>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Become a Blood Donor — {{ site_name }}{% endblock %}
-{% block meta_desc %}Register as a blood donor in Nepal. Join our network and save lives.{% endblock %}
+{% block title %}{% if lang == 'ne' %}रक्तदाता बन्नुहोस्{% else %}Become a Blood Donor{% endif %} — {{ site_name }}{% endblock %}
+{% block meta_desc %}{% if lang == 'ne' %}नेपालमा रक्तदाताको रूपमा दर्ता गर्नुहोस् र जीवन बचाउनुहोस्।{% else %}Register as a blood donor in Nepal. Join our network and save lives.{% endif %}{% endblock %}
 
 {% block content %}
 <!-- Hero Banner -->
@@ -8,16 +8,19 @@
   <div class="row align-items-center">
     <div class="col-md-8">
       <h1 class="text-white fw-black mb-2" style="font-size:clamp(1.5rem,3vw,2.5rem);">
-        Become a Blood Donor
+        {% if lang == 'ne' %}रक्तदाता बन्नुहोस्{% else %}Become a Blood Donor{% endif %}
       </h1>
       <p class="text-white opacity-80 mb-3">
-        Your single donation can save up to <strong>3 lives</strong>.
-        Join {{ total_donors|default('thousands of') }} donors across Nepal.
+        {% if lang == 'ne' %}
+        तपाईंको एउटा रक्तदानले <strong>३ जनाको जीवन</strong> बचाउन सक्छ। नेपालभरका {{ total_donors|default('हजारौं') }} रक्तदाताहरूमा सामेल हुनुहोस्।
+        {% else %}
+        Your single donation can save up to <strong>3 lives</strong>. Join {{ total_donors|default('thousands of') }} donors across Nepal.
+        {% endif %}
       </p>
       <div class="d-flex gap-3 flex-wrap text-white small">
-        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>Free Registration</div>
-        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>Unique Donor ID</div>
-        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>Manage Your Profile</div>
+        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>{% if lang == 'ne' %}निःशुल्क दर्ता{% else %}Free Registration{% endif %}</div>
+        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>{% if lang == 'ne' %}अनन्य रक्तदाता ID{% else %}Unique Donor ID{% endif %}</div>
+        <div><i class="fas fa-check text-green me-1" style="color:#86efac;"></i>{% if lang == 'ne' %}प्रोफाइल व्यवस्थापन{% else %}Manage Your Profile{% endif %}</div>
       </div>
     </div>
     <div class="col-md-4 d-none d-md-flex justify-content-end">
@@ -32,9 +35,9 @@
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-header border-0 bg-transparent pt-4 px-4 pb-0">
         <h4 class="fw-bold mb-0">
-          <i class="fas fa-user-plus text-danger me-2"></i>Donor Registration Form
+          <i class="fas fa-user-plus text-danger me-2"></i>{% if lang == 'ne' %}रक्तदाता दर्ता फारम{% else %}Donor Registration Form{% endif %}
         </h4>
-        <p class="text-muted small mt-1">Fields marked <span class="text-danger">*</span> are required.</p>
+        <p class="text-muted small mt-1">{% if lang == 'ne' %}<span class="text-danger">*</span> चिन्ह भएका क्षेत्रहरू अनिवार्य छन्।{% else %}Fields marked <span class="text-danger">*</span> are required.{% endif %}</p>
       </div>
       <div class="card-body p-4">
         <form method="POST" action="{{ url_for('public.become_donor') }}" novalidate id="donorForm">
@@ -43,17 +46,17 @@
           <!-- ─ PERSONAL INFO ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-user me-2"></i>Personal Information
+              <i class="fas fa-user me-2"></i>{% if lang == 'ne' %}व्यक्तिगत जानकारी{% else %}Personal Information{% endif %}
             </h6>
             <div class="row g-3">
               <div class="col-md-6">
                 {{ form.full_name.label(class="form-label fw-semibold") }}
-                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder="Your full legal name") }}
+                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder=("तपाईंको पूरा नाम" if lang == 'ne' else "Your full legal name")) }}
                 {% for e in form.full_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
               </div>
               <div class="col-md-6">
                 {{ form.email.label(class="form-label fw-semibold") }}
-                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Your email address") }}
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="your@email.com") }}
                 {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
               </div>
               <div class="col-md-3">
@@ -63,10 +66,10 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">
-                  Weight (kg) <span class="text-danger">*</span>
-                  <i class="fas fa-info-circle text-muted ms-1" data-bs-toggle="tooltip" title="Minimum 50kg required"></i>
+                  {% if lang == 'ne' %}तौल (केजी){% else %}Weight (kg){% endif %} <span class="text-danger">*</span>
+                  <i class="fas fa-info-circle text-muted ms-1" data-bs-toggle="tooltip" title="{% if lang == 'ne' %}न्यूनतम ५० केजी आवश्यक{% else %}Minimum 50kg required{% endif %}"></i>
                 </label>
-                {{ form.weight(class="form-control" + (" is-invalid" if form.weight.errors else ""), placeholder="Min 50kg") }}
+                {{ form.weight(class="form-control" + (" is-invalid" if form.weight.errors else ""), placeholder=("न्यू. ५० केजी" if lang == 'ne' else "Min 50kg")) }}
                 {% for e in form.weight.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
               </div>
             </div>
@@ -75,18 +78,18 @@
           <!-- ─ ACCOUNT SECURITY ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-lock me-2"></i>Account Security
+              <i class="fas fa-lock me-2"></i>{% if lang == 'ne' %}खाता सुरक्षा{% else %}Account Security{% endif %}
             </h6>
             <div class="row g-3">
               <div class="col-md-6">
                 {{ form.pin.label(class="form-label fw-semibold") }}
-                {{ form.pin(class="form-control" + (" is-invalid" if form.pin.errors else ""), placeholder="4-Digit PIN") }}
+                {{ form.pin(class="form-control" + (" is-invalid" if form.pin.errors else ""), placeholder=("४-अङ्कको PIN" if lang == 'ne' else "4-Digit PIN")) }}
                 {% for e in form.pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-                <div class="form-text">You will use this PIN to login and update your profile.</div>
+                <div class="form-text">{% if lang == 'ne' %}तपाईं यो PIN प्रयोग गरेर लगइन र प्रोफाइल अपडेट गर्न सक्नुहुन्छ।{% else %}You will use this PIN to login and update your profile.{% endif %}</div>
               </div>
               <div class="col-md-6">
                 {{ form.confirm_pin.label(class="form-label fw-semibold") }}
-                {{ form.confirm_pin(class="form-control" + (" is-invalid" if form.confirm_pin.errors else ""), placeholder="Confirm PIN") }}
+                {{ form.confirm_pin(class="form-control" + (" is-invalid" if form.confirm_pin.errors else ""), placeholder=("PIN पुष्टि गर्नुहोस्" if lang == 'ne' else "Confirm PIN")) }}
                 {% for e in form.confirm_pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
               </div>
             </div>
@@ -95,7 +98,7 @@
           <!-- ─ CONTACT INFO ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-phone me-2"></i>Contact Information
+              <i class="fas fa-phone me-2"></i>{% if lang == 'ne' %}सम्पर्क जानकारी{% else %}Contact Information{% endif %}
             </h6>
             <div class="row g-3">
               <div class="col-md-6">
@@ -105,7 +108,7 @@
                   {{ form.phone1(class="form-control" + (" is-invalid" if form.phone1.errors else ""), placeholder="98XXXXXXXX") }}
                   {% for e in form.phone1.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                 </div>
-                <div class="form-text">This number will be visible to people searching for donors.</div>
+                <div class="form-text">{% if lang == 'ne' %}यो नम्बर रक्तदाता खोज्नेहरूले देख्न सक्छन्।{% else %}This number will be visible to people searching for donors.{% endif %}</div>
               </div>
               <div class="col-md-6">
                 {{ form.phone2.label(class="form-label fw-semibold") }}
@@ -121,7 +124,7 @@
           <!-- ─ PERMANENT ADDRESS ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-house me-2"></i>Permanent Address
+              <i class="fas fa-house me-2"></i>{% if lang == 'ne' %}स्थायी ठेगाना{% else %}Permanent Address{% endif %}
             </h6>
             <div class="row g-3">
               <div class="col-md-6">
@@ -150,12 +153,12 @@
           <!-- ─ CURRENT ADDRESS ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-location-dot me-2"></i>Current Address <span class="text-danger">*</span>
+              <i class="fas fa-location-dot me-2"></i>{% if lang == 'ne' %}हालको ठेगाना{% else %}Current Address{% endif %} <span class="text-danger">*</span>
             </h6>
             <div class="form-check mb-3">
               <input class="form-check-input" type="checkbox" id="sameAddressCheckbox">
               <label class="form-check-label small" for="sameAddressCheckbox">
-                Same as permanent address
+                {% if lang == 'ne' %}स्थायी ठेगाना नै हालको ठेगाना हो{% else %}Same as permanent address{% endif %}
               </label>
             </div>
             <div class="row g-3">
@@ -188,7 +191,7 @@
           <!-- ─ BLOOD INFORMATION ─ -->
           <div class="form-section mb-4">
             <h6 class="fw-bold text-danger border-bottom pb-2 mb-3">
-              <i class="fas fa-droplet me-2"></i>Blood & Donation Information
+              <i class="fas fa-droplet me-2"></i>{% if lang == 'ne' %}रक्त र रक्तदान जानकारी{% else %}Blood & Donation Information{% endif %}
             </h6>
             <div class="row g-3">
               <div class="col-md-4">
@@ -199,8 +202,8 @@
               <div class="col-md-4">
                 {{ form.last_donation_date.label(class="form-label fw-semibold") }}
                 {{ form.last_donation_date(style="display:none;", id="last_donation_date") }}
-                <input type="text" id="nepali-datepicker" class="form-control" placeholder="Select Date (BS)" autocomplete="off">
-                <div class="form-text">Leave blank if never donated.</div>
+                <input type="text" id="nepali-datepicker" class="form-control" placeholder="{% if lang == 'ne' %}मिति छान्नुहोस् (BS){% else %}Select Date (BS){% endif %}" autocomplete="off">
+                <div class="form-text">{% if lang == 'ne' %}कहिल्यै नगरेको भए खाली छोड्नुहोस्।{% else %}Leave blank if never donated.{% endif %}</div>
               </div>
               <div class="col-md-4">
                 {{ form.donation_times.label(class="form-label fw-semibold") }}
@@ -229,10 +232,10 @@
           <!-- Submit -->
           <div class="d-flex gap-3 flex-wrap">
             <button type="submit" class="btn btn-danger btn-lg fw-bold px-5" id="registerBtn">
-              <i class="fas fa-user-plus me-2"></i>Register as Blood Donor
+              <i class="fas fa-user-plus me-2"></i>{% if lang == 'ne' %}रक्तदाताको रूपमा दर्ता गर्नुहोस्{% else %}Register as Blood Donor{% endif %}
             </button>
             <a href="{{ url_for('public.find_donors') }}" class="btn btn-outline-secondary btn-lg">
-              Find Other Donors
+              {% if lang == 'ne' %}अन्य रक्तदाता खोज्नुहोस्{% else %}Find Other Donors{% endif %}
             </a>
           </div>
         </form>
@@ -246,19 +249,31 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-header border-0 bg-danger text-white rounded-top-4 py-3 px-4">
         <h6 class="fw-bold mb-0">
-          <i class="fas fa-clipboard-check me-2"></i>Eligibility Criteria
+          <i class="fas fa-clipboard-check me-2"></i>{% if lang == 'ne' %}योग्यता मापदण्ड{% else %}Eligibility Criteria{% endif %}
         </h6>
       </div>
       <div class="card-body p-4">
-        {% set criteria = [
-        ('check','text-success','Age: 18-65 years'),
-        ('check','text-success','Weight: Minimum 50 kg'),
-        ('check','text-success','Hemoglobin: 12.5g/dL minimum'),
-        ('check','text-success','Blood pressure: Normal range'),
-        ('times','text-danger','Not donated in last 12.5 weeks(3 Months)'),
-        ('times','text-danger','No fever or infections'),
-        ('times','text-danger','Not pregnant or breastfeeding'),
-        ] %}
+        {% if lang == 'ne' %}
+          {% set criteria = [
+          ('check','text-success','उमेर: १८-६५ वर्ष'),
+          ('check','text-success','तौल: न्यूनतम ५० केजी'),
+          ('check','text-success','हेमोग्लोबिन: न्यूनतम १२.५ ग्राम/डिएल'),
+          ('check','text-success','रक्तचाप: सामान्य'),
+          ('times','text-danger','पछिल्लो १२.५ हप्ता (३ महिना) भित्र रक्तदान नगरेको'),
+          ('times','text-danger','ज्वरो वा संक्रमण नभएको'),
+          ('times','text-danger','गर्भवती वा स्तनपान नगरेको'),
+          ] %}
+        {% else %}
+          {% set criteria = [
+          ('check','text-success','Age: 18-65 years'),
+          ('check','text-success','Weight: Minimum 50 kg'),
+          ('check','text-success','Hemoglobin: 12.5g/dL minimum'),
+          ('check','text-success','Blood pressure: Normal range'),
+          ('times','text-danger','Not donated in last 12.5 weeks (3 Months)'),
+          ('times','text-danger','No fever or infections'),
+          ('times','text-danger','Not pregnant or breastfeeding'),
+          ] %}
+        {% endif %}
         {% for icon, color, text in criteria %}
         <div class="d-flex align-items-center gap-2 mb-2 small">
           <i class="fas fa-{{ icon }}-circle {{ color }} flex-shrink-0"></i>
@@ -280,10 +295,8 @@
       const pProv = document.getElementById('perm_province').value;
       const cProv = document.getElementById('curr_province');
       cProv.value = pProv;
-      // Trigger change to load districts
       cProv.dispatchEvent(new Event('change'));
       
-      // Delay so district loads
       setTimeout(() => {
         const pDist = document.getElementById('perm_district').value;
         const cDist = document.getElementById('curr_district');
@@ -310,8 +323,6 @@
       ndpMonth: true,
       ndpYearCount: 50,
       onChange: function() {
-        // Only trigger backend parse logic if not empty
-        // The backend python script will convert it.
         adInput.value = bsInput.value;
       }
     });

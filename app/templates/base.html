@@ -1138,6 +1138,39 @@
     });
   </script>
 
+  <!-- DevTools & Console View Protection Script -->
+  <script>
+    (function() {
+      // Disable Right-Click Context Menu Inspect
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
+
+      // Disable Keyboard Shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S)
+      document.addEventListener('keydown', function(e) {
+        if (
+          e.keyCode === 123 || 
+          (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+          (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      });
+
+      // Suppress Console Output
+      if (typeof console !== 'undefined') {
+        var _empty = function() {};
+        console.log = _empty;
+        console.warn = _empty;
+        console.error = _empty;
+        console.info = _empty;
+        console.debug = _empty;
+      }
+    })();
+  </script>
+
   {% block extra_js %}{% endblock %}
 </body>
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Contact Us — {{ site_name }}{% endblock %}
+{% block title %}{% if lang == 'ne' %}हामीलाई सम्पर्क गर्नुहोस्{% else %}Contact Us{% endif %} — {{ site_name }}{% endblock %}
 
 {% block content %}
 <div class="mb-4">
@@ -18,14 +18,14 @@
 <div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
   <div class="card-body p-4 text-white">
     <h6 class="fw-bold mb-3">
-      <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
+      <i class="fas fa-phone-volume me-2"></i>
+      {% if lang == 'ne' %}रगतको आपत्?{% else %}Blood Emergency?{% endif %}
     </h6>
     <p class="small opacity-90 mb-3">
-      <B>Don't send a message for emergencies. Post a blood request directly and
-        donors will be notified immediately.</B>
+      <b>{% if lang == 'ne' %}आपतकालीन अवस्थामा सन्देश नपठाउनुहोस्। सिधै रक्त अनुरोध पोस्ट गर्नुहोस् र रक्तदाताहरूलाई तुरुन्त सूचना जान्छ।{% else %}Don't send a message for emergencies. Post a blood request directly and donors will be notified immediately.{% endif %}</b>
     </p>
     <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white fw-bold w-100" style="color:#DC2626;">
-      <i class="fas fa-plus me-2"></i>Post Emergency Request Now
+      <i class="fas fa-plus me-2"></i>{% if lang == 'ne' %}अहिले आपतकालीन अनुरोध पोस्ट गर्नुहोस्{% else %}Post Emergency Request Now{% endif %}
     </a>
   </div>
 </div><br>
@@ -35,20 +35,22 @@
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm rounded-4">
       <div class="card-body p-4">
-        <h5 class="fw-bold mb-4 text-center">Send Us a Message</h5>
+        <h5 class="fw-bold mb-4 text-center">
+          {% if lang == 'ne' %}हामीलाई सन्देश पठाउनुहोस्{% else %}Send Us a Message{% endif %}
+        </h5>
         <form method="POST" action="{{ url_for('public.contact') }}" novalidate id="contactForm">
           {{ form.hidden_tag() }}
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Your Name <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% if lang == 'ne' %}तपाईंको नाम{% else %}Your Name{% endif %} <span class="text-danger">*</span></label>
               <input type="text" class="form-control {{ 'is-invalid' if form.name.errors }}" name="name"
-                placeholder="Full name" value="{{ form.name.data or '' }}" required>
+                placeholder="{% if lang == 'ne' %}पूरा नाम{% else %}Full name{% endif %}" value="{{ form.name.data or '' }}" required>
               {% for e in form.name.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% if lang == 'ne' %}इमेल{% else %}Email{% endif %} <span class="text-danger">*</span></label>
               <input type="email" class="form-control {{ 'is-invalid' if form.email.errors }}" name="email"
                 placeholder="your@email.com" value="{{ form.email.data or '' }}" required>
               {% for e in form.email.errors %}
@@ -56,32 +58,36 @@
               {% endfor %}
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Phone Number</label>
-              <input type="tel" class="form-control" name="phone" placeholder="98XXXXXXXX (Optional)"
+              <label class="form-label fw-semibold">{% if lang == 'ne' %}फोन नम्बर{% else %}Phone Number{% endif %}</label>
+              <input type="tel" class="form-control" name="phone" placeholder="98XXXXXXXX ({% if lang == 'ne' %}ऐच्छिक{% else %}Optional{% endif %})"
                 value="{{ form.phone.data or '' }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% if lang == 'ne' %}विषय{% else %}Subject{% endif %} <span class="text-danger">*</span></label>
               <select class="form-select" name="subject" required>
-                <option value="">— Select Subject —</option>
-                {% for s in ['General Inquiry','Donor Registration Help',
-                'Blood Request Assistance','Technical Issue',
-                'Partnership / Sponsorship','Other'] %}
-                <option value="{{ s }}" {{ 'selected' if form.subject.data==s }}>{{ s }}</option>
-                {% endfor %}
+                <option value="">— {% if lang == 'ne' %}विषय छान्नुहोस्{% else %}Select Subject{% endif %} —</option>
+                {% if lang == 'ne' %}
+                  {% for s in ['सामान्य जानकारी','रक्तदाता दर्तामा सहायता','रक्त अनुरोध सहायता','प्राविधिक समस्या','साझेदारी / प्रायोजन','अन्य'] %}
+                  <option value="{{ s }}" {{ 'selected' if form.subject.data==s }}>{{ s }}</option>
+                  {% endfor %}
+                {% else %}
+                  {% for s in ['General Inquiry','Donor Registration Help','Blood Request Assistance','Technical Issue','Partnership / Sponsorship','Other'] %}
+                  <option value="{{ s }}" {{ 'selected' if form.subject.data==s }}>{{ s }}</option>
+                  {% endfor %}
+                {% endif %}
               </select>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% if lang == 'ne' %}सन्देश{% else %}Message{% endif %} <span class="text-danger">*</span></label>
               <textarea class="form-control {{ 'is-invalid' if form.message.errors }}" name="message" rows="6" required
-                placeholder="Write your message here...">{{ form.message.data or '' }}</textarea>
+                placeholder="{% if lang == 'ne' %}यहाँ आफ्नो सन्देश लेख्नुहोस्...{% else %}Write your message here...{% endif %}">{{ form.message.data or '' }}</textarea>
               {% for e in form.message.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
             <div class="col-12 text-center mt-4">
               <button type="submit" class="btn btn-danger fw-bold px-5" id="sendBtn">
-                <i class="fas fa-paper-plane me-2"></i>Send Message
+                <i class="fas fa-paper-plane me-2"></i>{% if lang == 'ne' %}सन्देश पठाउनुहोस्{% else %}Send Message{% endif %}
               </button>
             </div>
           </div>
@@ -90,36 +96,29 @@
     </div>
   </div>
 
-
-  <!-- Emergency Box -->
-  <div class="card border-0 shadow-sm rounded-4" style="background:linear-gradient(135deg,#DC2626,#991B1B);">
-    <div class="card-body p-4 text-white">
-      <h6 class="fw-bold mb-3">
-        <i class="fas fa-phone-volume me-2"></i>Blood Emergency?
-      </h6>
-      <p class="small opacity-90 mb-3">
-        <B>Don't send a message for emergencies. Post a blood request directly and
-          donors will be notified immediately.</B>
-      </p>
-      <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white fw-bold w-100" style="color:#DC2626;">
-        <i class="fas fa-plus me-2"></i>Post Emergency Request Now
-      </a>
-    </div>
-  </div>
-
-
   <!-- Contact Info -->
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
-        <h5 class="fw-bold mb-4 text-center">Get in Touch</h5>
+        <h5 class="fw-bold mb-4 text-center">
+          {% if lang == 'ne' %}सम्पर्क जानकारी{% else %}Get in Touch{% endif %}
+        </h5>
         <div class="row g-4">
-          {% for icon, color, title, detail in [
-          ('fas fa-location-dot','danger','Address','Kathmandu, Nepal'),
-          ('fas fa-phone','success','Phone','+977-9816003020'),
-          ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org'),
-          ('fas fa-clock','warning','Office Hours','Sun–Fri: 9AM–5PM'),
-          ] %}
+          {% if lang == 'ne' %}
+            {% for icon, color, title, detail in [
+            ('fas fa-location-dot','danger','ठेगाना','काठमाडौं, नेपाल'),
+            ('fas fa-phone','success','फोन','+977-9816003020'),
+            ('fas fa-envelope','primary','इमेल','info@nepaliblooddonors.org'),
+            ('fas fa-clock','warning','कार्यालय समय','आइत–शुक्र: बिहान ९ बजेदेखि साँझ ५ बजेसम्म'),
+            ] %}
+          {% else %}
+            {% for icon, color, title, detail in [
+            ('fas fa-location-dot','danger','Address','Kathmandu, Nepal'),
+            ('fas fa-phone','success','Phone','+977-9816003020'),
+            ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org'),
+            ('fas fa-clock','warning','Office Hours','Sun–Fri: 9AM–5PM'),
+            ] %}
+          {% endif %}
           <div class="col-md-6">
             <div class="d-flex gap-3 align-items-center">
               <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-{{ color }}-subtle"
@@ -142,7 +141,7 @@
 <script>
   document.getElementById('contactForm').addEventListener('submit', function () {
     const btn = document.getElementById('sendBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{% if lang == "ne" %}पठाउँदैछ...{% else %}Sending...{% endif %}';
     btn.disabled = true;
   });
 </script>

@@ -700,6 +700,20 @@ def blood_request_board():
     )
 
 
+@public_bp.route('/blood-requests/<request_ref>')
+def single_blood_request(request_ref):
+    req = None
+    if request_ref.isdigit():
+        req = BloodRequest.query.get(int(request_ref))
+    if not req:
+        req = BloodRequest.query.filter_by(request_id=request_ref).first()
+    if not req:
+        # Search by partial request_id or fail with 404
+        req = BloodRequest.query.filter(BloodRequest.request_id.ilike(f"%{request_ref}%")).first_or_404()
+    
+    return render_template('blood_request_detail.html', req=req)
+
+
 @public_bp.route('/blood-requests/manage', methods=['GET', 'POST'])
 def manage_blood_request():
     form = RequestManagementForm()
@@ -865,7 +879,8 @@ def donor_login():
         donor = Donor.query.filter(or_(Donor.phone1 == normalized_phone, Donor.email == login_val)).first()
         
         if donor and check_password_hash(donor.pin_hash, form.pin.data):
-            login_user(donor, remember=form.remember.data)
+            session.permanent = True
+            login_user(donor, remember=True)
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('public.donor_profile', donor_id=donor.donor_id))

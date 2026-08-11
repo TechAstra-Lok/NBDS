@@ -1,30 +1,33 @@
 {% extends "base.html" %}
-{% block title %}About Us — {{ site_name }}{% endblock %}
+{% block title %}{% if lang == 'ne' %}हाम्रो बारेमा{% else %}About Us{% endif %} — {{ site_name }}{% endblock %}
 
 {% block content %}
 <!-- Hero -->
 <div class="rounded-4 overflow-hidden mb-5 p-5 text-center" style="background:linear-gradient(135deg,#7f1d1d,#DC2626);">
   <h1 class="text-white fw-black mb-2" style="font-size:clamp(1.8rem,4vw,3rem);">
-    About रक्तदान र रक्तदाता
+    {% if lang == 'ne' %}रक्तदान र रक्तदाताको बारेमा{% else %}About रक्तदान र रक्तदाता{% endif %}
   </h1>
   <p class="text-white opacity-80 mb-0 fs-5">
-    Connecting Life-Savers with Those in Need Since 2015
+    {% if lang == 'ne' %}२०१५ देखि जीवन बचाउनेहरूलाई आवश्यक परेकाहरूसँग जोड्दैछौं{% else %}Connecting Life-Savers with Those in Need Since 2015{% endif %}
   </p>
 </div>
 
 <!-- Mission / Vision / Values -->
 <div class="row g-4 mb-5">
-  {% for icon, title, color, text in [
-  ('fas fa-bullseye','Our Mission','danger',
-  'To build Nepal\'s largest verified blood donor network that enables instant connection between blood donors and
-  patients in need, saving thousands of lives every year.'),
-  ('fas fa-eye','Our Vision','primary',
-  'A Nepal where no patient dies due to shortage of blood. We envision a society where every citizen is a potential
-  life-saver.'),
-  ('fas fa-heart','Our Values','success',
-  'Compassion, Transparency, Community Service, and Dedication to saving human lives through voluntary blood
-  donation.'),
-  ] %}
+  {% if lang == 'ne' %}
+    {% set mvv = [
+    ('fas fa-bullseye','हाम्रो लक्ष्य','danger','नेपालको सबैभन्दा ठूलो प्रमाणित रक्तदाता नेटवर्क निर्माण गर्नु जसले रक्तदाता र बिरामी बीच तत्काल सम्पर्क सम्भव बनाउँछ र प्रत्येक वर्ष हजारौं जीवन बचाउँछ।'),
+    ('fas fa-eye','हाम्रो दृष्टिकोण','primary','एउटा यस्तो नेपाल जहाँ कुनै पनि बिरामी रगतको अभावले नमरोस्। हामी एउटा यस्तो समाजको कल्पना गर्छौं जहाँ प्रत्येक नागरिक सम्भावित जीवन-रक्षक हो।'),
+    ('fas fa-heart','हाम्रा मूल्यहरू','success','करुणा, पारदर्शिता, सामुदायिक सेवा, र स्वैच्छिक रक्तदानद्वारा मानव जीवन बचाउने समर्पण।'),
+    ] %}
+  {% else %}
+    {% set mvv = [
+    ('fas fa-bullseye','Our Mission','danger','To build Nepal\'s largest verified blood donor network that enables instant connection between blood donors and patients in need, saving thousands of lives every year.'),
+    ('fas fa-eye','Our Vision','primary','A Nepal where no patient dies due to shortage of blood. We envision a society where every citizen is a potential life-saver.'),
+    ('fas fa-heart','Our Values','success','Compassion, Transparency, Community Service, and Dedication to saving human lives through voluntary blood donation.'),
+    ] %}
+  {% endif %}
+  {% for icon, title, color, text in mvv %}
   <div class="col-md-4">
     <div class="card border-0 shadow-sm rounded-4 h-100 text-center hover-lift">
       <div class="card-body p-4">
@@ -42,14 +45,24 @@
 
 <!-- Stats -->
 <div class="rounded-4 p-4 p-md-5 mb-5" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
-  <h2 class="text-center fw-bold mb-4">Our Achievement</h2>
+  <h2 class="text-center fw-bold mb-4">{% if lang == 'ne' %}हाम्रो उपलब्धि{% else %}Our Achievement{% endif %}</h2>
   <div class="row g-4 text-center">
-    {% for val, label, icon, color in [
-    ('10,000+','Registered Donors','fas fa-users','danger'),
-    ('5,000+','Lives Saved','fas fa-heart','success'),
-    ('77','Districts Covered','fas fa-map','primary'),
-    ('24/7','Emergency Support','fas fa-phone','warning'),
-    ] %}
+    {% if lang == 'ne' %}
+      {% set stats = [
+      ('१०,०००+','दर्ता भएका रक्तदाताहरू','fas fa-users','danger'),
+      ('५,०००+','बचाइएका जीवनहरू','fas fa-heart','success'),
+      ('७७','जिल्लाहरू कभर गरिएको','fas fa-map','primary'),
+      ('२४/७','आपतकालीन सहायता','fas fa-phone','warning'),
+      ] %}
+    {% else %}
+      {% set stats = [
+      ('10,000+','Registered Donors','fas fa-users','danger'),
+      ('5,000+','Lives Saved','fas fa-heart','success'),
+      ('77','Districts Covered','fas fa-map','primary'),
+      ('24/7','Emergency Support','fas fa-phone','warning'),
+      ] %}
+    {% endif %}
+    {% for val, label, icon, color in stats %}
     <div class="col-6 col-md-3">
       <div class="fw-black text-{{ color }}" style="font-size:2.5rem;">{{ val }}</div>
       <div class="text-muted small mt-1"><i class="{{ icon }} me-1"></i>{{ label }}</div>
@@ -60,13 +73,13 @@
 
 <!-- Team -->
 <div class="mb-5">
-  <h2 class="fw-bold text-center mb-4">Our Team</h2>
+  <h2 class="fw-bold text-center mb-4">{% if lang == 'ne' %}हाम्रो टोली{% else %}Our Team{% endif %}</h2>
   <div class="row g-4 justify-content-center">
     {% for name, role, initial, color in [
-    ('Dr. Lokesh Prasai','Founder & President','R','danger'),
-    ('Manish Kafle','Executive Director','S','primary'),
-    ('Bhuwan Adhikari','Technical Lead','B','success'),
-    ('Anup Upreti','Community Manager','P','warning'),
+    ('Dr. Lokesh Prasai', ('संस्थापक र अध्यक्ष' if lang == 'ne' else 'Founder & President'), 'L', 'danger'),
+    ('Manish Kafle', ('कार्यकारी निर्देशक' if lang == 'ne' else 'Executive Director'), 'M', 'primary'),
+    ('Bhuwan Adhikari', ('प्राविधिक प्रमुख' if lang == 'ne' else 'Technical Lead'), 'B', 'success'),
+    ('Anup Upreti', ('सामुदायिक प्रबन्धक' if lang == 'ne' else 'Community Manager'), 'A', 'warning'),
     ] %}
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm rounded-4 text-center hover-lift">
@@ -87,14 +100,24 @@
 
 <!-- How We Work -->
 <div class="mb-5">
-  <h2 class="fw-bold mb-4 text-center">How We Work</h2>
+  <h2 class="fw-bold mb-4 text-center">{% if lang == 'ne' %}हामी कसरी काम गर्छौं{% else %}How We Work{% endif %}</h2>
   <div class="row g-3">
-    {% for step, desc, icon in [
-    ('Donor Registration','Donors register with verified details and blood group information.','fas fa-user-plus'),
-    ('Blood Request Posted','Patients or hospitals post blood requests with urgency details.','fas fa-file-medical'),
-    ('Instant Matching','Our system matches requests with available donors in the area.','fas fa-bolt'),
-    ('Life is Saved','Donor contacts patient and blood is donated — a life is saved!','fas fa-heart'),
-    ] %}
+    {% if lang == 'ne' %}
+      {% set steps = [
+      ('रक्तदाता दर्ता','रक्तदाताहरू प्रमाणित विवरण र रक्त समूह जानकारी सहित दर्ता गर्छन्।','fas fa-user-plus'),
+      ('रक्त अनुरोध पोस्ट','बिरामी वा अस्पतालले आकस्मिकता विवरणसहित रक्त अनुरोध पोस्ट गर्छन्।','fas fa-file-medical'),
+      ('तत्काल मिलान','हाम्रो प्रणालीले क्षेत्रमा उपलब्ध रक्तदाताहरूसँग अनुरोध मिलाउँछ।','fas fa-bolt'),
+      ('जीवन बच्छ','रक्तदाताले बिरामीलाई सम्पर्क गर्छन् र रगत दिन्छन् — एउटा जीवन बच्छ!','fas fa-heart'),
+      ] %}
+    {% else %}
+      {% set steps = [
+      ('Donor Registration','Donors register with verified details and blood group information.','fas fa-user-plus'),
+      ('Blood Request Posted','Patients or hospitals post blood requests with urgency details.','fas fa-file-medical'),
+      ('Instant Matching','Our system matches requests with available donors in the area.','fas fa-bolt'),
+      ('Life is Saved','Donor contacts patient and blood is donated — a life is saved!','fas fa-heart'),
+      ] %}
+    {% endif %}
+    {% for step, desc, icon in steps %}
     <div class="col-md-3">
       <div class="text-center p-3">
         <div class="d-inline-flex align-items-center justify-content-center
@@ -102,7 +125,7 @@
           style="width:60px;height:60px;background:linear-gradient(135deg,#d04141,#802828);font-size:1.2rem;">
           <i class="{{ icon }}"></i>
         </div>
-        <div class="badge bg-danger mb-2">Step {{ loop.index }}</div>
+        <div class="badge bg-danger mb-2">{% if lang == 'ne' %}चरण {{ loop.index }}{% else %}Step {{ loop.index }}{% endif %}</div>
         <h6 class="fw-bold mb-2">{{ step }}</h6>
         <p class="small text-muted mb-0">{{ desc }}</p><br>
       </div>
@@ -118,7 +141,7 @@
 
 <!-- Partners -->
 <div class="text-center py-4">
-  <h5 class="text-muted fw-semibold mb-4">In Partnership With</h5>
+  <h5 class="text-muted fw-semibold mb-4">{% if lang == 'ne' %}हाम्रा साझेदारहरू{% else %}In Partnership With{% endif %}</h5>
   <div class="d-flex flex-wrap justify-content-center gap-4 align-items-center">
     {% for partner in ['Nepal Red Cross Society','Bir Hospital','Teaching Hospital',
     'Ministry of Health & Population','WHO Nepal','Ilam Panchthar motor Driving Center'] %}
