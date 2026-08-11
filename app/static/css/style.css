@@ -27,10 +27,10 @@
 
 /* ── Dark Mode Variables ─────────────────────── */
 [data-bs-theme="dark"] {
-  --text-base: #cce1f6;
+  --text-base: #7993ad;
   --text-muted: #94A3B8;
   --border: #334155;
-  --bg-page: #1d273ec1;
+  --bg-page: #0f172a;
   --blood-soft: rgba(220, 38, 38, 0.12);
 }
 
