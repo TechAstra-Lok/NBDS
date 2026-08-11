@@ -105,20 +105,21 @@
         </h5>
         <div class="row g-4">
           {% if lang == 'ne' %}
-            {% for icon, color, title, detail in [
+            {% set contact_items = [
             ('fas fa-location-dot','danger','ठेगाना','काठमाडौं, नेपाल'),
             ('fas fa-phone','success','फोन','+977-9816003020'),
             ('fas fa-envelope','primary','इमेल','info@nepaliblooddonors.org'),
             ('fas fa-clock','warning','कार्यालय समय','आइत–शुक्र: बिहान ९ बजेदेखि साँझ ५ बजेसम्म'),
             ] %}
           {% else %}
-            {% for icon, color, title, detail in [
+            {% set contact_items = [
             ('fas fa-location-dot','danger','Address','Kathmandu, Nepal'),
             ('fas fa-phone','success','Phone','+977-9816003020'),
             ('fas fa-envelope','primary','Email','info@nepaliblooddonors.org'),
             ('fas fa-clock','warning','Office Hours','Sun–Fri: 9AM–5PM'),
             ] %}
           {% endif %}
+          {% for icon, color, title, detail in contact_items %}
           <div class="col-md-6">
             <div class="d-flex gap-3 align-items-center">
               <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-{{ color }}-subtle"
