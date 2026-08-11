@@ -19,12 +19,10 @@
     </p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a href="{{ url_for('public.blood_request_form') }}"
-       class="btn btn-danger fw-bold shadow-sm">
+    <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger fw-bold shadow-sm">
       <i class="fas fa-plus-circle me-2"></i>{{ t.post_blood_request }}
     </a>
-    <a href="{{ url_for('public.manage_blood_request') }}"
-       class="btn btn-outline-danger fw-bold shadow-sm">
+    <a href="{{ url_for('public.manage_blood_request') }}" class="btn btn-outline-danger fw-bold shadow-sm">
       <i class="fas fa-lock me-2"></i>{{ t.manage_your_request }}
     </a>
   </div>
@@ -33,14 +31,13 @@
 <!-- Status Count Cards -->
 <div class="row g-3 mb-4">
   {% for status, count, color, icon in [
-    ('active', active_count, 'danger', 'fa-circle-dot'),
-    ('fulfilled', fulfilled_count, 'success', 'fa-circle-check'),
-    ('closed', closed_count, 'secondary', 'fa-circle-xmark'),
-    ('all', active_count + fulfilled_count + closed_count, 'dark', 'fa-list'),
+  ('active', active_count, 'danger', 'fa-circle-dot'),
+  ('fulfilled', fulfilled_count, 'success', 'fa-circle-check'),
+  ('closed', closed_count, 'secondary', 'fa-circle-xmark'),
+  ('all', active_count + fulfilled_count + closed_count, 'dark', 'fa-list'),
   ] %}
   <div class="col-6 col-md-3">
-    <a href="{{ url_for('public.blood_request_board', status='' if status=='all' else status) }}"
-       class="card border-0 shadow-sm rounded-3 text-decoration-none hover-lift
+    <a href="{{ url_for('public.blood_request_board', status='' if status=='all' else status) }}" class="card border-0 shadow-sm rounded-3 text-decoration-none hover-lift
               {{ 'border-2 border-'+color if selected_status == status or (status=='all' and not selected_status) }}">
       <div class="card-body py-3 text-center">
         <i class="fas {{ icon }} text-{{ color }} fa-lg mb-1 d-block"></i>
@@ -55,14 +52,13 @@
 <!-- Filters -->
 <div class="card border-0 shadow-sm rounded-4 mb-4">
   <div class="card-body p-3">
-    <form method="GET" action="{{ url_for('public.blood_request_board') }}"
-          class="row g-2 align-items-end">
+    <form method="GET" action="{{ url_for('public.blood_request_board') }}" class="row g-2 align-items-end">
       <div class="col-md-3">
         <label class="form-label small fw-semibold mb-1">Blood Group</label>
         <select class="form-select form-select-sm" name="blood_group">
           <option value="">All Blood Groups</option>
           {% for bg in blood_groups %}
-          <option value="{{ bg }}" {{ 'selected' if selected_bg == bg }}>{{ bg }}</option>
+          <option value="{{ bg }}" {{ 'selected' if selected_bg==bg }}>{{ bg }}</option>
           {% endfor %}
         </select>
       </div>
@@ -71,7 +67,7 @@
         <select class="form-select form-select-sm" name="status">
           <option value="">All Status</option>
           {% for s in ['active','fulfilled','closed'] %}
-          <option value="{{ s }}" {{ 'selected' if selected_status == s }}>{{ s|title }}</option>
+          <option value="{{ s }}" {{ 'selected' if selected_status==s }}>{{ s|title }}</option>
           {% endfor %}
         </select>
       </div>
@@ -87,8 +83,7 @@
           <button type="submit" class="btn btn-danger btn-sm flex-grow-1">
             <i class="fas fa-filter me-1"></i>Filter
           </button>
-          <a href="{{ url_for('public.blood_request_board') }}"
-             class="btn btn-outline-secondary btn-sm">
+          <a href="{{ url_for('public.blood_request_board') }}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-rotate-left"></i>
           </a>
         </div>
@@ -107,19 +102,20 @@
 
       {% if req.is_emergency and req.status == 'active' %}
       <div class="position-absolute top-0 start-0 w-100 rounded-top-4"
-           style="height:3px;background:linear-gradient(90deg,#DC2626,#f97316);"></div>
+        style="height:3px;background:linear-gradient(90deg,#DC2626,#f97316);"></div>
       {% endif %}
 
       <div class="card-body p-3">
         <!-- Top -->
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <div class="blood-pill text-white fw-black rounded-3"
-               style="padding:8px 14px;font-size:1.6rem;
+          <div class="blood-pill text-white fw-black rounded-3" style="padding:8px 14px;font-size:1.6rem;
                       background:linear-gradient(135deg,#DC2626,#991B1B);min-width:66px;text-align:center;">
             {{ req.blood_group }}
           </div>
           <div class="d-flex flex-column align-items-end gap-1">
-            <span class="badge bg-dark font-monospace" style="font-size:0.7rem;"><i class="fas fa-hashtag me-1 text-danger"></i>{{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }}</span>
+            <span class="badge bg-dark font-monospace" style="font-size:0.7rem;"><i
+                class="fas fa-hashtag me-1 text-danger"></i>{{ req.request_id if req.request_id.startswith('REQ-') else
+              'REQ-' ~ req.request_id }}</span>
             {% if req.is_emergency and req.status == 'active' %}
             <span class="badge bg-danger blink-anim" style="font-size:0.68rem;">🔴 URGENT</span>
             {% endif %}
@@ -135,11 +131,13 @@
         <!-- Patient & Component -->
         <div class="d-flex justify-content-between align-items-baseline mb-1">
           <h6 class="fw-bold mb-0">
-            <a href="{{ url_for('public.single_blood_request', request_ref=req.request_id) }}" class="text-decoration-none text-dark hover-danger">
+            <a href="{{ url_for('public.single_blood_request', request_ref=req.request_id) }}"
+              class="text-decoration-none text-dark hover-danger">
               {{ req.patient_name }}
             </a>
           </h6>
-          <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-size:0.68rem;">
+          <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"
+            style="font-size:0.68rem;">
             <i class="fas fa-vial me-1"></i>{{ req.required_component or 'Whole Blood' }}
           </span>
         </div>
@@ -152,26 +150,32 @@
         <!-- Message excerpt -->
         {% if req.request_message %}
         <p class="small text-muted p-2 rounded-2 mb-2"
-           style="background:#f8f9fa;font-style:italic;border-left:3px solid #DC2626;">
+          style="background:#a8bcd2;font-style:italic;border-left:3px solid #DC2626;">
           "{{ req.request_message[:120] }}{% if req.request_message|length > 120 %}...{% endif %}"
         </p>
         {% endif %}
-        
+
         <!-- Verified Hospital Paper Preview Thumbnail -->
         {% if req.hospital_paper_url %}
         <div class="mb-3 p-2 rounded-3 border bg-light">
           <div class="d-flex align-items-center justify-content-between mb-1">
             <div class="d-flex align-items-center gap-1">
               {% if req.hospital_paper_verified %}
-              <span class="badge bg-success" style="font-size:0.65rem;"><i class="fas fa-check-circle me-1"></i>Verified Paper</span>
+              <span class="badge bg-success" style="font-size:0.65rem;"><i class="fas fa-check-circle me-1"></i>Verified
+                Paper</span>
               {% else %}
-              <span class="badge bg-warning text-dark" style="font-size:0.65rem;"><i class="fas fa-file-medical me-1"></i>Hospital Paper</span>
+              <span class="badge bg-warning text-dark" style="font-size:0.65rem;"><i
+                  class="fas fa-file-medical me-1"></i>Hospital Paper</span>
               {% endif %}
             </div>
             <span class="small text-muted" style="font-size:0.68rem;">Click to expand</span>
           </div>
-          <a href="{{ req.hospital_paper_url }}" target="_blank" class="d-block overflow-hidden rounded border text-center position-relative group-hover" style="max-height: 110px; background: #fff;">
-            <img src="{{ req.hospital_paper_url }}" alt="Hospital Recommendation Paper" class="img-fluid w-100" style="max-height: 110px; object-fit: contain; opacity: 0.95;" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'p-2 text-muted small\'><i class=\'fas fa-file-image me-1\'></i>Hospital Paper Uploaded</div>';">
+          <a href="{{ req.hospital_paper_url }}" target="_blank"
+            class="d-block overflow-hidden rounded border text-center position-relative group-hover"
+            style="max-height: 110px; background: #fff;">
+            <img src="{{ req.hospital_paper_url }}" alt="Hospital Recommendation Paper" class="img-fluid w-100"
+              style="max-height: 110px; object-fit: contain; opacity: 0.95;"
+              onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'p-2 text-muted small\'><i class=\'fas fa-file-image me-1\'></i>Hospital Paper Uploaded</div>';">
           </a>
         </div>
         {% endif %}
@@ -197,58 +201,72 @@
         <!-- Actions & Social Share -->
         {% set share_url = url_for('public.single_blood_request', request_ref=req.request_id, _external=True) %}
         {% set share_text = req.formatted_share_text %}
-        
+
         <div class="d-flex gap-2 align-items-center">
           <a href="tel:{{ req.contact_number }}"
-             class="btn btn-{{ 'danger' if req.status == 'active' else 'secondary' }} btn-sm flex-grow-1 fw-semibold">
+            class="btn btn-{{ 'danger' if req.status == 'active' else 'secondary' }} btn-sm flex-grow-1 fw-semibold">
             <i class="fas fa-phone me-1"></i>{{ req.contact_number }}
           </a>
-          
-          <a href="{{ url_for('public.single_blood_request', request_ref=req.request_id) }}" 
-             class="btn btn-outline-danger btn-sm" title="View Full Details & Share">
+
+          <a href="{{ url_for('public.single_blood_request', request_ref=req.request_id) }}"
+            class="btn btn-outline-danger btn-sm" title="View Full Details & Share">
             <i class="fas fa-arrow-right"></i>
           </a>
 
           <!-- Share Dropdown -->
           <div class="dropdown">
-            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Share Request">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
+              aria-expanded="false" title="Share Request">
               <i class="fas fa-share-nodes"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" style="min-width: 240px;">
-              <li><h6 class="dropdown-header">Share Full Post Text with Source</h6></li>
               <li>
-                <a class="dropdown-item text-success fw-semibold" href="https://api.whatsapp.com/send?text={{ share_text|urlencode }}" target="_blank">
+                <h6 class="dropdown-header">Share Full Post Text with Source</h6>
+              </li>
+              <li>
+                <a class="dropdown-item text-success fw-semibold"
+                  href="https://api.whatsapp.com/send?text={{ share_text|urlencode }}" target="_blank">
                   <i class="fab fa-whatsapp me-2"></i>Share on WhatsApp
                 </a>
               </li>
               <li>
-                <a class="dropdown-item text-primary fw-semibold" href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}&quote={{ share_text|urlencode }}" target="_blank">
+                <a class="dropdown-item text-primary fw-semibold"
+                  href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}&quote={{ share_text|urlencode }}"
+                  target="_blank">
                   <i class="fab fa-facebook me-2"></i>Share on Facebook
                 </a>
               </li>
               <li>
-                <button type="button" class="dropdown-item text-primary" onclick="copyAndOpenFB('{{ share_text|jsescape }}')">
+                <button type="button" class="dropdown-item text-primary" data-share-text="{{ share_text }}"
+                  onclick="copyAndOpenFB(this)">
                   <i class="fab fa-facebook-square me-2"></i>Copy Text for FB Groups/Pages
                 </button>
               </li>
               <li>
-                <a class="dropdown-item" style="color:#7360f2;" href="viber://forward?text={{ share_text|urlencode }}" target="_blank">
+                <a class="dropdown-item" style="color:#7360f2;" href="viber://forward?text={{ share_text|urlencode }}"
+                  target="_blank">
                   <i class="fab fa-viber me-2"></i>Share on Viber
                 </a>
               </li>
               <li>
-                <a class="dropdown-item text-info" href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ share_text|urlencode }}" target="_blank">
+                <a class="dropdown-item text-info"
+                  href="https://t.me/share/url?url={{ share_url|urlencode }}&text={{ share_text|urlencode }}"
+                  target="_blank">
                   <i class="fab fa-telegram me-2"></i>Share on Telegram
                 </a>
               </li>
               <li>
-                <a class="dropdown-item text-dark" href="https://twitter.com/intent/tweet?text={{ share_text|urlencode }}" target="_blank">
+                <a class="dropdown-item text-dark"
+                  href="https://twitter.com/intent/tweet?text={{ share_text|urlencode }}" target="_blank">
                   <i class="fab fa-x-twitter me-2"></i>Share on Twitter/X
                 </a>
               </li>
-              <li><hr class="dropdown-divider"></li>
               <li>
-                <button type="button" class="dropdown-item fw-semibold text-dark" onclick="copyFullPostText('{{ share_text|jsescape }}')">
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <button type="button" class="dropdown-item fw-semibold text-dark" data-share-text="{{ share_text }}"
+                  onclick="copyFullPostText(this)">
                   <i class="fas fa-copy me-2 text-danger"></i>Copy Full Formatted Text
                 </button>
               </li>
@@ -266,21 +284,25 @@
 <nav aria-label="Blood request pagination" class="mb-4">
   <ul class="pagination justify-content-center">
     <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-      <a class="page-link" href="{{ url_for('public.blood_request_board', page=pagination.prev_num, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">
+      <a class="page-link"
+        href="{{ url_for('public.blood_request_board', page=pagination.prev_num, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">
         <i class="fas fa-chevron-left fa-xs"></i>
       </a>
     </li>
     {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
     {% if p %}
     <li class="page-item {{ 'active' if p == pagination.page }}">
-      <a class="page-link" href="{{ url_for('public.blood_request_board', page=p, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">{{ p }}</a>
+      <a class="page-link"
+        href="{{ url_for('public.blood_request_board', page=p, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">{{
+        p }}</a>
     </li>
     {% else %}
     <li class="page-item disabled"><span class="page-link">…</span></li>
     {% endif %}
     {% endfor %}
     <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-      <a class="page-link" href="{{ url_for('public.blood_request_board', page=pagination.next_num, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">
+      <a class="page-link"
+        href="{{ url_for('public.blood_request_board', page=pagination.next_num, blood_group=selected_bg, status=selected_status, emergency=request.args.get('emergency', '')) }}">
         <i class="fas fa-chevron-right fa-xs"></i>
       </a>
     </li>
@@ -304,21 +326,23 @@
 {% endif %}
 
 <script>
-function copyFullPostText(text) {
-  navigator.clipboard.writeText(text).then(function() {
-    alert("✅ FULL BLOOD REQUEST POST TEXT COPIED!\n\nYou can now paste (Ctrl+V) this entire text on Facebook, WhatsApp, Viber, Telegram, or any Social Media Group/Page/Channel.");
-  }, function() {
-    prompt("Copy this full request text:", text);
-  });
-}
+  function copyFullPostText(el) {
+    const text = (typeof el === 'string') ? el : el.getAttribute('data-share-text');
+    navigator.clipboard.writeText(text).then(function () {
+      alert("✅ FULL BLOOD REQUEST POST TEXT COPIED!\n\nYou can now paste (Ctrl+V) this entire text on Facebook, WhatsApp, Viber, Telegram, or any Social Media Group/Page/Channel.");
+    }, function () {
+      prompt("Copy this full request text:", text);
+    });
+  }
 
-function copyAndOpenFB(text) {
-  navigator.clipboard.writeText(text).then(function() {
-    alert("✅ Request text copied!\n\nOpening Facebook Groups... Paste (Ctrl+V) into your target FB Group, Page, or Profile!");
-    window.open('https://www.facebook.com/groups/', '_blank');
-  }, function() {
-    window.open('https://www.facebook.com/groups/', '_blank');
-  });
-}
+  function copyAndOpenFB(el) {
+    const text = (typeof el === 'string') ? el : el.getAttribute('data-share-text');
+    navigator.clipboard.writeText(text).then(function () {
+      alert("✅ Request text copied!\n\nOpening Facebook Groups... Paste (Ctrl+V) into your target FB Group, Page, or Profile!");
+      window.open('https://www.facebook.com/groups/', '_blank');
+    }, function () {
+      window.open('https://www.facebook.com/groups/', '_blank');
+    });
+  }
 </script>
 {% endblock %}
