@@ -38,6 +38,22 @@ except ImportError:  # pragma: no cover - optional dependency in test/dev enviro
 # ब्लुप्रिन्ट परिभाषा
 public_bp = Blueprint('public', __name__)
 
+
+# ─────────────────────────────────────────────────────────────
+#  /health  — UptimeRobot keep-alive endpoint (zero DB overhead)
+#  UptimeRobot pings this every 5 min to prevent Render cold-starts
+# ─────────────────────────────────────────────────────────────
+import time as _time
+
+@public_bp.route('/health')
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "message": "Raktadata server active",
+        "service": "nepali-blood-donors",
+        "timestamp": _time.strftime('%Y-%m-%dT%H:%M:%SZ', _time.gmtime())
+    }), 200
+
 ALL_DISTRICTS = [
     'Bhojpur', 'Dhankuta', 'Ilam', 'Jhapa', 'Khotang', 'Morang', 'Okhaldhunga',
     'Panchthar', 'Sankhuwasabha', 'Solukunbu', 'Sunsari', 'Taplejung', 'Terhathum',
