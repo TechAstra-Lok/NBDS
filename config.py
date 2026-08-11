@@ -15,6 +15,7 @@ def get_database_uri():
         instance_db = os.path.join(INSTANCE_DIR, 'nepali_blood.db')
         return f"sqlite:///{instance_db}"
     
+    # Fix Render/Heroku legacy postgres:// prefix → postgresql://
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
         
@@ -30,6 +31,19 @@ def get_database_uri():
     return db_url
 
 
+def get_engine_options():
+    """Return SQLAlchemy engine options. Enforce SSL for PostgreSQL (Neon, Render, etc.)."""
+    db_url = os.environ.get('DATABASE_URL', '')
+    if db_url.startswith('postgresql') or db_url.startswith('postgres'):
+        return {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'connect_args': {'sslmode': 'require'},
+        }
+    # SQLite: no SSL needed
+    return {}
+
+
 class Config:
     # Core
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-me'
@@ -37,6 +51,7 @@ class Config:
     
     # Database
     SQLALCHEMY_DATABASE_URI = get_database_uri()
+    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
     SQLALCHEMY_BINDS = {
         'tenant': get_database_uri()
     }
