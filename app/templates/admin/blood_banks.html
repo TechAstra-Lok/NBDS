@@ -181,7 +181,7 @@
           <ul class="mb-0 small">
             <li>Download the template below, fill in your data, then upload.</li>
             <li>Supported formats: <strong>.xlsx</strong> and <strong>.csv</strong></li>
-            <li><strong>Required columns:</strong> <code>name</code>, <code>province</code>, <code>district</code>, <code>contact_number</code>, <code>service_type</code></li>
+            <li><strong>Required columns:</strong> <code>name</code>, <code>province</code>, <code>district</code>, <code>contact_number</code>, <code>service_type</code>, <code>maps_url</code></li>
             <li>Existing records are matched by <strong>name + district</strong> (existing will be <em>updated</em>, not duplicated).</li>
             <li>For boolean columns (<code>is_emergency_panel</code>, <code>is_grouped_entry</code>, <code>is_active</code>), use <code>1</code> for Yes, <code>0</code> for No.</li>
           </ul>
@@ -217,7 +217,7 @@
                 <tr><td><code>website</code></td><td>Optional</td><td>https://example.com</td></tr>
                 <tr><td><code>latitude</code></td><td>Optional</td><td>27.7172</td></tr>
                 <tr><td><code>longitude</code></td><td>Optional</td><td>85.3240</td></tr>
-                <tr><td><code>maps_url</code></td><td>Optional</td><td>https://maps.google.com/…</td></tr>
+                <tr><td><code>maps_url</code></td><td><span class="badge bg-danger">Required</span></td><td>https://maps.google.com/…</td></tr>
                 <tr><td><code>is_emergency_panel</code></td><td>Optional</td><td>1 or 0</td></tr>
                 <tr><td><code>is_grouped_entry</code></td><td>Optional</td><td>1 or 0</td></tr>
                 <tr><td><code>is_active</code></td><td>Optional (default=1)</td><td>1 or 0</td></tr>

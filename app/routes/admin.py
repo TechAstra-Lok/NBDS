@@ -1345,7 +1345,7 @@ def bulk_upload_blood_banks():
         return redirect(url_for('admin.blood_banks'))
 
     filename = file.filename.lower()
-    REQUIRED_COLS = {'name', 'province', 'district', 'contact_number', 'service_type'}
+    REQUIRED_COLS = {'name', 'province', 'district', 'contact_number', 'service_type', 'maps_url'}
 
     created = updated = skipped = 0
     errors = []
