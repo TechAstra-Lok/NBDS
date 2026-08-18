@@ -1187,6 +1187,270 @@ def delete_blood_bank(id):
     flash('Blood Bank and all related data deleted successfully.', 'warning')
     return redirect(url_for('admin.blood_banks'))
 
+
+# ─── EXPORT: Excel / CSV ───────────────────────────────────────────────────────
+@admin_bp.route('/blood-banks/export')
+@permission_required('manage_blood_banks')
+def export_blood_banks():
+    import io, csv
+    from flask import make_response
+    fmt = request.args.get('format', 'xlsx')  # xlsx or csv
+
+    banks = BloodBank.query.order_by(BloodBank.name).all()
+
+    HEADERS = [
+        'name', 'display_name', 'hospital_name', 'branch_type', 'service_type',
+        'province', 'district', 'city', 'local_level', 'ward', 'tole',
+        'contact_number', 'alternate_contact_number', 'email', 'website',
+        'latitude', 'longitude', 'maps_url',
+        'is_emergency_panel', 'is_grouped_entry', 'is_active', 'notes',
+    ]
+
+    rows = []
+    for b in banks:
+        rows.append([
+            b.name, b.display_name or '', b.hospital_name or '',
+            b.branch_type or '', b.service_type or '',
+            b.province or '', b.district or '', b.city or '',
+            getattr(b, 'local_level', '') or '', getattr(b, 'ward', '') or '', getattr(b, 'tole', '') or '',
+            b.contact_number or '', b.alternate_contact_number or '',
+            getattr(b, 'email', '') or '', getattr(b, 'website', '') or '',
+            str(getattr(b, 'latitude', '') or ''), str(getattr(b, 'longitude', '') or ''),
+            b.maps_url or '',
+            '1' if b.is_emergency_panel else '0',
+            '1' if b.is_grouped_entry else '0',
+            '1' if b.is_active else '0',
+            b.notes or '',
+        ])
+
+    if fmt == 'csv':
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(HEADERS)
+        writer.writerows(rows)
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = 'attachment; filename=blood_banks.csv'
+        return response
+
+    # Default: Excel
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        flash('openpyxl is required for Excel export. Please install it.', 'danger')
+        return redirect(url_for('admin.blood_banks'))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Blood Banks'
+
+    # Header styling
+    header_fill = PatternFill('solid', fgColor='DC2626')
+    header_font = Font(bold=True, color='FFFFFF', size=11)
+    thin = Side(style='thin', color='D1D5DB')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    ws.append(HEADERS)
+    for col_idx, _ in enumerate(HEADERS, 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+    ws.row_dimensions[1].height = 30
+
+    # Data rows
+    for row_data in rows:
+        ws.append(row_data)
+        r = ws.max_row
+        for col_idx in range(1, len(HEADERS) + 1):
+            ws.cell(row=r, column=col_idx).border = border
+
+    # Auto-width
+    for col_idx, header in enumerate(HEADERS, 1):
+        max_len = max((len(str(row[col_idx-1])) for row in rows), default=0)
+        ws.column_dimensions[get_column_letter(col_idx)].width = min(max(len(header), max_len) + 3, 40)
+
+    # Freeze header row
+    ws.freeze_panes = 'A2'
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = make_response(buf.read())
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['Content-Disposition'] = 'attachment; filename=blood_banks.xlsx'
+    return response
+
+
+# ─── DOWNLOAD UPLOAD TEMPLATE ──────────────────────────────────────────────────
+@admin_bp.route('/blood-banks/upload-template')
+@permission_required('manage_blood_banks')
+def blood_bank_upload_template():
+    import io
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        flash('openpyxl is required. Please install it.', 'danger')
+        return redirect(url_for('admin.blood_banks'))
+
+    HEADERS = [
+        'name', 'display_name', 'hospital_name', 'branch_type', 'service_type',
+        'province', 'district', 'city', 'local_level', 'ward', 'tole',
+        'contact_number', 'alternate_contact_number', 'email', 'website',
+        'latitude', 'longitude', 'maps_url',
+        'is_emergency_panel', 'is_grouped_entry', 'is_active', 'notes',
+    ]
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Blood Banks Template'
+    ws.append(HEADERS)
+    header_fill = PatternFill('solid', fgColor='DC2626')
+    header_font = Font(bold=True, color='FFFFFF')
+    for col_idx in range(1, len(HEADERS)+1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    # One sample row
+    ws.append([
+        'Example Blood Bank', 'Example BB', 'Teaching Hospital', 'Main', 'Blood Bank',
+        'Bagmati Province', 'Kathmandu', 'Kathmandu', 'Kathmandu Metropolitan', '3', 'Baneshwor',
+        '01-4780000', '9801234567', 'example@bb.org.np', 'https://example.com',
+        '27.7172', '85.3240', 'https://maps.google.com/?q=Kathmandu',
+        '1', '0', '1', 'Sample notes here',
+    ])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    from flask import make_response
+    resp = make_response(buf.read())
+    resp.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    resp.headers['Content-Disposition'] = 'attachment; filename=blood_banks_upload_template.xlsx'
+    return resp
+
+
+# ─── BULK UPLOAD ───────────────────────────────────────────────────────────────
+@admin_bp.route('/blood-banks/bulk-upload', methods=['POST'])
+@permission_required('manage_blood_banks')
+def bulk_upload_blood_banks():
+    import io, csv as csv_module
+    file = request.files.get('bulk_file')
+    if not file or not file.filename:
+        flash('No file selected.', 'danger')
+        return redirect(url_for('admin.blood_banks'))
+
+    filename = file.filename.lower()
+    REQUIRED_COLS = {'name', 'province', 'district', 'contact_number', 'service_type'}
+
+    created = updated = skipped = 0
+    errors = []
+
+    try:
+        if filename.endswith('.csv'):
+            stream = io.StringIO(file.stream.read().decode('utf-8-sig'))
+            reader = csv_module.DictReader(stream)
+            rows = list(reader)
+            headers = set(reader.fieldnames or [])
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            try:
+                from openpyxl import load_workbook
+            except ImportError:
+                flash('openpyxl required for Excel upload.', 'danger')
+                return redirect(url_for('admin.blood_banks'))
+            wb = load_workbook(io.BytesIO(file.stream.read()), read_only=True, data_only=True)
+            ws = wb.active
+            raw = list(ws.values)
+            if not raw:
+                flash('Uploaded file is empty.', 'danger')
+                return redirect(url_for('admin.blood_banks'))
+            header_row = [str(h).strip() if h else '' for h in raw[0]]
+            headers = set(header_row)
+            rows = [dict(zip(header_row, [str(v).strip() if v is not None else '' for v in row])) for row in raw[1:]]
+        else:
+            flash('Only .xlsx, .xls, or .csv files are supported.', 'danger')
+            return redirect(url_for('admin.blood_banks'))
+
+        # Validate required columns
+        missing = REQUIRED_COLS - headers
+        if missing:
+            flash(f'Missing required columns: {", ".join(sorted(missing))}', 'danger')
+            return redirect(url_for('admin.blood_banks'))
+
+        def _bool(val):
+            return str(val).strip() in ('1', 'true', 'True', 'yes', 'Yes', 'YES')
+
+        for i, row in enumerate(rows, 2):
+            name = str(row.get('name', '')).strip()
+            if not name:
+                skipped += 1
+                continue
+
+            try:
+                # Upsert: find by name + district
+                district = str(row.get('district', '')).strip()
+                bank = BloodBank.query.filter_by(name=name, district=district).first()
+                is_new = bank is None
+                if is_new:
+                    bank = BloodBank()
+
+                bank.name               = name
+                bank.display_name       = str(row.get('display_name', '')).strip() or name
+                bank.hospital_name      = str(row.get('hospital_name', '')).strip() or None
+                bank.branch_type        = str(row.get('branch_type', '')).strip() or None
+                bank.service_type       = str(row.get('service_type', '')).strip() or 'Blood Bank'
+                bank.province           = str(row.get('province', '')).strip() or None
+                bank.district           = district or None
+                bank.city               = str(row.get('city', '')).strip() or None
+                bank.contact_number     = str(row.get('contact_number', '')).strip() or None
+                bank.alternate_contact_number = str(row.get('alternate_contact_number', '')).strip() or None
+                bank.maps_url           = str(row.get('maps_url', '')).strip() or None
+                bank.notes              = str(row.get('notes', '')).strip() or None
+                bank.is_emergency_panel = _bool(row.get('is_emergency_panel', 0))
+                bank.is_grouped_entry   = _bool(row.get('is_grouped_entry', 0))
+                bank.is_active          = _bool(row.get('is_active', 1))
+                bank.status             = 'active' if bank.is_active else 'inactive'
+
+                # Optional extended fields
+                for attr in ('local_level', 'ward', 'tole', 'email', 'website'):
+                    val = str(row.get(attr, '')).strip()
+                    if hasattr(bank, attr):
+                        setattr(bank, attr, val or None)
+                for attr in ('latitude', 'longitude'):
+                    val = str(row.get(attr, '')).strip()
+                    if hasattr(bank, attr) and val:
+                        try:
+                            setattr(bank, attr, float(val))
+                        except ValueError:
+                            pass
+
+                if is_new:
+                    db.session.add(bank)
+                    created += 1
+                else:
+                    updated += 1
+
+            except Exception as e:
+                errors.append(f'Row {i} ({name}): {e}')
+                skipped += 1
+
+        db.session.commit()
+        msg = f'Bulk upload complete — {created} created, {updated} updated, {skipped} skipped.'
+        if errors:
+            msg += f' Errors: {"; ".join(errors[:5])}'
+        flash(msg, 'success' if not errors else 'warning')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Upload failed: {e}', 'danger')
+
+    return redirect(url_for('admin.blood_banks'))
+
+
 @admin_bp.route('/blood-banks/<int:id>/generate-account', methods=['POST'])
 @permission_required('manage_users')
 def generate_blood_bank_account(id):
