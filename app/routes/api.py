@@ -165,6 +165,62 @@ def track_impression(ad_id):
 
 import os
 import requests
+import json
+from flask import Response, stream_with_context
+
+GEMINI_CANDIDATE_MODELS = [
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-pro',
+    'gemini-flash-latest'
+]
+
+def _get_medical_fallback_response(user_message):
+    msg = (user_message or '').lower()
+    if any(k in msg for k in ['eligib', 'require', 'age', 'weight', 'can i donate', 'rule', 'qualif']):
+        return (
+            "### 🩸 Basic Blood Donor Eligibility Guidelines\n\n"
+            "- **Age:** Must be between **18 and 60 years** old.\n"
+            "- **Weight:** Minimum **45 kg (99 lbs)**.\n"
+            "- **Hemoglobin Level:** Minimum **12.5 g/dL**.\n"
+            "- **Donation Interval:** At least **90 days (3 months)** between whole blood donations.\n"
+            "- **Health Status:** Must be in good general health, free from active infections, fever, or cold/flu symptoms."
+        )
+    elif any(k in msg for k in ['o+', 'o-', 'a+', 'a-', 'b+', 'b-', 'ab+', 'ab-', 'compatib', 'group', 'receive']):
+        return (
+            "### 🩸 Blood Group Compatibility Overview\n\n"
+            "- **O Negative (O-):** Universal Red Cell Donor (can donate to all blood groups).\n"
+            "- **AB Positive (AB+):** Universal Red Cell Recipient (can receive from all blood groups).\n"
+            "- **O Positive (O+):** Can donate to O+, A+, B+, AB+; receives from O+ and O-.\n"
+            "- **A Positive (A+):** Can donate to A+ and AB+; receives from A+, A-, O+, O-.\n"
+            "- **B Positive (B+):** Can donate to B+ and AB+; receives from B+, B-, O+, O-."
+        )
+    elif any(k in msg for k in ['eat', 'food', 'diet', 'iron', 'hemoglobin', 'hb', 'boost', 'vitamin']):
+        return (
+            "### 🥗 Pre & Post Donation Diet Tips\n\n"
+            "- **Iron-Rich Foods:** Eat spinach, lentils, dark leafy greens, beans, and lean meats.\n"
+            "- **Vitamin C Pairing:** Pair iron-rich foods with Vitamin C (oranges, lemons, tomatoes) for maximum iron absorption.\n"
+            "- **Hydration:** Drink **500ml+ of water or fresh fruit juice** before and after donation.\n"
+            "- **Avoid:** Avoid fatty foods, alcohol, and heavy caffeinated beverages before donating."
+        )
+    elif any(k in msg for k in ['before', 'after', 'care', 'tip', 'pre', 'post']):
+        return (
+            "### 🩺 Pre & Post Donation Care Instructions\n\n"
+            "- **Before Donation:** Get 7-8 hours of sleep, eat a nutritious light meal, and stay well hydrated.\n"
+            "- **During Donation:** Relax and inform the staff immediately if you feel dizzy.\n"
+            "- **After Donation:** Keep the bandage on for 4 hours, avoid heavy lifting or strenuous exercise for 24 hours, and increase fluid intake."
+        )
+    else:
+        return (
+            "Namaste! Raktadata Helpher AI is currently experiencing high demand. Here are essential blood donor guidelines:\n\n"
+            "1. **Age Requirement:** 18–60 years old\n"
+            "2. **Minimum Weight:** 45 kg\n"
+            "3. **Hemoglobin Level:** 12.5 g/dL+\n"
+            "4. **Donation Gap:** 90 days between donations\n\n"
+            "Please try asking your specific question again in a few moments!"
+        )
+
 
 @api_bp.route('/raktadata-helpher', methods=['POST'])
 def raktadata_helpher():
@@ -176,28 +232,22 @@ def raktadata_helpher():
     history = data.get('history', [])
 
     api_key = os.environ.get('GEMINI_API_KEY', '')
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
 
-    # Build contents array from history and new message
     contents = []
     for msg in history:
         contents.append({
-            "role": "model" if msg.get('role') == 'ai' else "user",
-            "parts": [{"text": msg.get('content')}]
+            "role": "model" if msg.get('role') in ('ai', 'model') else "user",
+            "parts": [{"text": msg.get('content', '')}]
         })
-    
     contents.append({
         "role": "user",
         "parts": [{"text": user_message}]
     })
 
     system_instruction = (
-        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module. "
-        "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, and medical tips. "
-        "You provide suggestions, health tips, and guidance in a professional, empathetic, and strictly medical/health context. "
-        "If a user asks about anything outside of health, medical topics, or blood donation (e.g., programming, history, general knowledge, politics, math), "
-        "you MUST politely decline to answer, state your purpose, and steer the conversation back to health or blood topics. "
-        "Keep your responses concise, well-formatted, and easy to read. You can use markdown."
+        "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module for Raktadata Nepal. "
+        "Answer queries ONLY about health, medical tips, and blood donation guidelines. "
+        "Keep responses concise, empathetic, accurate, and structured with markdown."
     )
 
     payload = {
@@ -206,33 +256,29 @@ def raktadata_helpher():
         },
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 800
+            "temperature": 0.5,
+            "maxOutputTokens": 1000
         }
     }
 
-    try:
-        response = requests.post(
-            url, 
-            json=payload, 
-            headers={'Content-Type': 'application/json'}
-        )
-        response.raise_for_status()
-        
-        response_data = response.json()
-        candidates = response_data.get('candidates', [])
-        
-        if candidates and candidates[0].get('content'):
-            reply_text = candidates[0]['content']['parts'][0]['text']
-            return jsonify({'success': True, 'reply': reply_text})
-        else:
-            return jsonify({'success': False, 'error': 'No response from AI model'}), 500
+    # Attempt candidate models
+    for model_name in GEMINI_CANDIDATE_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        try:
+            res = requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, timeout=12)
+            if res.status_code == 200:
+                res_data = res.json()
+                candidates = res_data.get('candidates', [])
+                if candidates and candidates[0].get('content'):
+                    reply_text = candidates[0]['content']['parts'][0]['text']
+                    return jsonify({'success': True, 'reply': reply_text})
+        except Exception:
+            continue
 
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Failed to process request: {str(e)}'}), 500
+    # Fallback if API key / service is unavailable
+    fallback_reply = _get_medical_fallback_response(user_message)
+    return jsonify({'success': True, 'reply': fallback_reply})
 
-from flask import Response, stream_with_context
-import json
 
 @api_bp.route('/raktadata-helpher/stream', methods=['POST'])
 def raktadata_helpher_stream():
@@ -244,15 +290,13 @@ def raktadata_helpher_stream():
     history = data.get('history', [])
 
     api_key = os.environ.get('GEMINI_API_KEY', '')
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?key={api_key}&alt=sse"
 
     contents = []
     for msg in history:
         contents.append({
-            "role": "model" if msg.get('role') == 'ai' else "user",
-            "parts": [{"text": msg.get('content')}]
+            "role": "model" if msg.get('role') in ('ai', 'model') else "user",
+            "parts": [{"text": msg.get('content', '')}]
         })
-    
     contents.append({
         "role": "user",
         "parts": [{"text": user_message}]
@@ -262,8 +306,7 @@ def raktadata_helpher_stream():
         "You are Raktadata Helpher, an ultimate doctor, nurse, and HA (Health Assistant) module for Raktadata Nepal. "
         "Your primary role is to answer queries ONLY about health-related problems, blood donation, healthy habits, medical guidance, and pre/post donation tips. "
         "Provide complete, thorough, comprehensive, and clear medical guidance. DO NOT truncate or cut off your advice prematurely. "
-        "Structure your answers neatly with markdown headings, bullet points, and clear sections. "
-        "If a user asks about anything outside of health, medical topics, or blood donation, politely decline and redirect them to health topics."
+        "Structure your answers neatly with markdown headings, bullet points, and clear sections."
     )
 
     payload = {
@@ -278,15 +321,38 @@ def raktadata_helpher_stream():
     }
 
     def generate():
-        try:
-            with requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, stream=True, timeout=30) as response:
-                response.raise_for_status()
-                for line in response.iter_lines():
-                    if line:
-                        decoded_line = line.decode('utf-8')
-                        yield decoded_line + '\n\n'
-        except Exception as e:
-            yield f'data: {json.dumps({"error": str(e)})}\n\n'
+        success = False
+
+        for model_name in GEMINI_CANDIDATE_MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?key={api_key}&alt=sse"
+            try:
+                with requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, stream=True, timeout=15) as response:
+                    if response.status_code == 200:
+                        has_data = False
+                        for line in response.iter_lines():
+                            if line:
+                                decoded_line = line.decode('utf-8')
+                                if decoded_line.startswith('data:'):
+                                    has_data = True
+                                yield decoded_line + '\n\n'
+                        if has_data:
+                            success = True
+                            break
+            except Exception:
+                continue
+
+        if not success:
+            fallback_text = _get_medical_fallback_response(user_message)
+            chunk = {
+                "candidates": [{
+                    "content": {
+                        "parts": [{"text": fallback_text}]
+                    }
+                }]
+            }
+            yield f'data: {json.dumps(chunk)}\n\n'
+            yield 'data: [DONE]\n\n'
 
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
 
