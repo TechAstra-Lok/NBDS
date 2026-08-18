@@ -446,10 +446,12 @@ def donors():
     )
 
 
+@admin_bp.route('/donors/export')
 @admin_bp.route('/donors/export-csv')
 @permission_required('manage_donors')
-def export_donors_csv():
-    """Export all or filtered donors as a downloadable CSV file."""
+def export_donors():
+    """Export all or filtered donors as CSV, Excel (.xlsx), or PDF (.pdf)."""
+    fmt = request.args.get('format', request.args.get('fmt', 'csv')).lower()
     search      = request.args.get('q', '')
     blood_group = request.args.get('bg', '')
     status      = request.args.get('status', '')
@@ -472,29 +474,27 @@ def export_donors_csv():
         
     donors_list = query.order_by(desc(Donor.created_at)).all()
     
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    writer.writerow([
+    HEADERS = [
         'Donor ID', 'Full Name', 'Email', 'Primary Phone', 'Secondary Phone',
         'Blood Group', 'Age', 'Gender', 'Weight (kg)', 'Donor Type',
         'Availability Status', 'Last Donation Date', 'Current Province',
         'Current District', 'Current Local Level', 'Current Ward', 'Current Tole',
         'Permanent Province', 'Permanent District', 'Permanent Local Level',
         'Registered Date'
-    ])
-    
+    ]
+
+    rows = []
     for d in donors_list:
-        writer.writerow([
+        rows.append([
             d.donor_id or '',
             d.full_name or '',
             d.email or '',
             d.phone1 or '',
             d.phone2 or '',
             d.blood_group or '',
-            d.age or '',
+            str(d.age) if d.age else '',
             d.gender or '',
-            d.weight or '',
+            str(d.weight) if d.weight else '',
             d.donor_type or 'regular',
             d.availability_status or 'available',
             d.last_donation_date.strftime('%Y-%m-%d') if d.last_donation_date else '',
@@ -508,7 +508,164 @@ def export_donors_csv():
             d.perm_local_level or '',
             d.created_at.strftime('%Y-%m-%d %H:%M:%S') if d.created_at else ''
         ])
-        
+
+    if fmt in ('xlsx', 'excel'):
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            flash('openpyxl is required for Excel export.', 'danger')
+            return redirect(url_for('admin.donors'))
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Blood Donors'
+
+        header_fill = PatternFill('solid', fgColor='DC2626')
+        header_font = Font(bold=True, color='FFFFFF', size=11)
+        thin = Side(style='thin', color='D1D5DB')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        ws.append(HEADERS)
+        for col_idx in range(1, len(HEADERS) + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = border
+        ws.row_dimensions[1].height = 30
+
+        for r_data in rows:
+            ws.append(r_data)
+            r = ws.max_row
+            for col_idx in range(1, len(HEADERS) + 1):
+                ws.cell(row=r, column=col_idx).border = border
+
+        for col_idx, header in enumerate(HEADERS, 1):
+            max_len = max((len(str(r[col_idx-1])) for r in rows), default=0)
+            ws.column_dimensions[get_column_letter(col_idx)].width = min(max(len(header), max_len) + 3, 35)
+
+        ws.freeze_panes = 'A2'
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return Response(
+            buf.read(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': 'attachment; filename=nepal_blood_donors.xlsx'}
+        )
+
+    if fmt == 'pdf':
+        try:
+            from reportlab.lib.pagesizes import landscape, A4
+            from reportlab.lib import colors
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            flash('reportlab is required for PDF export.', 'danger')
+            return redirect(url_for('admin.donors'))
+
+        class NumberedCanvas(canvas.Canvas):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self._saved_page_states = []
+            def showPage(self):
+                self._saved_page_states.append(dict(self.__dict__))
+                self._startPage()
+            def save(self):
+                num_pages = len(self._saved_page_states)
+                for state in self._saved_page_states:
+                    self.__dict__.update(state)
+                    self.draw_page_number(num_pages)
+                    super().showPage()
+                super().save()
+            def draw_page_number(self, page_count):
+                self.saveState()
+                self.setFont('Helvetica', 8)
+                self.setFillColor(colors.HexColor('#6B7280'))
+                self.drawRightString(self._pagesize[0] - 30, 20, f'Page {self._pageNumber} of {page_count}')
+                self.drawString(30, 20, 'Raktadata — Nepali Blood Donors Society | Registered Donors Export')
+                self.setStrokeColor(colors.HexColor('#E5E7EB'))
+                self.setLineWidth(0.5)
+                self.line(30, 32, self._pagesize[0] - 30, 32)
+                self.restoreState()
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=40)
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=15, textColor=colors.HexColor('#DC2626'), spaceAfter=4)
+        sub_style = ParagraphStyle('DocSub', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#4B5563'), spaceAfter=10)
+        cell_style = ParagraphStyle('CellText', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor('#1F2937'))
+        header_cell_style = ParagraphStyle('HeaderCellText', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, leading=11, textColor=colors.whitesmoke)
+
+        filters_used = []
+        if search: filters_used.append(f'Search: "{search}"')
+        if blood_group: filters_used.append(f'Group: {blood_group}')
+        if status: filters_used.append(f'Status: {status}')
+        if donor_type: filters_used.append(f'Type: {donor_type}')
+        filter_str = (' | '.join(filters_used)) if filters_used else 'All Donors'
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        elements = [
+            Paragraph('NEPALI BLOOD DONORS SOCIETY — REGISTERED DONORS DIRECTORY', title_style),
+            Paragraph(f'Exported on: {now_str} | Filters: {filter_str} | Total Records: {len(donors_list)}', sub_style),
+            Spacer(1, 4)
+        ]
+
+        pdf_headers = ['Donor ID', 'Full Name', 'Blood Group', 'Phone', 'Location', 'Donor Type', 'Status', 'Last Donated']
+        table_data = [[Paragraph(h, header_cell_style) for h in pdf_headers]]
+
+        for d in donors_list:
+            loc = f"{d.curr_district or 'N/A'}"
+            if d.curr_local_level:
+                loc += f", {d.curr_local_level}"
+            ld_date = d.last_donation_date.strftime('%Y-%m-%d') if d.last_donation_date else 'N/A'
+            table_data.append([
+                Paragraph(d.donor_id or 'N/A', cell_style),
+                Paragraph(d.full_name or 'N/A', cell_style),
+                Paragraph(d.blood_group or 'N/A', cell_style),
+                Paragraph(d.phone1 or 'N/A', cell_style),
+                Paragraph(loc, cell_style),
+                Paragraph((d.donor_type or 'regular').capitalize(), cell_style),
+                Paragraph((d.availability_status or 'available').capitalize(), cell_style),
+                Paragraph(ld_date, cell_style),
+            ])
+
+        col_widths = [65, 140, 60, 95, 150, 80, 80, 90]
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        t_style = [
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#DC2626')),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 6),
+            ('TOPPADDING', (0,0), (-1,0), 6),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E5E7EB')),
+        ]
+        for r_i in range(1, len(table_data)):
+            bg = colors.HexColor('#F9FAFB') if r_i % 2 == 0 else colors.white
+            t_style.append(('BACKGROUND', (0, r_i), (-1, r_i), bg))
+            t_style.append(('TOPPADDING', (0, r_i), (-1, r_i), 4))
+            t_style.append(('BOTTOMPADDING', (0, r_i), (-1, r_i), 4))
+
+        t.setStyle(TableStyle(t_style))
+        elements.append(t)
+        doc.build(elements, canvasmaker=NumberedCanvas)
+
+        buf.seek(0)
+        return Response(
+            buf.read(),
+            mimetype='application/pdf',
+            headers={'Content-Disposition': 'attachment; filename=nepal_blood_donors.pdf'}
+        )
+
+    # Default CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(HEADERS)
+    writer.writerows(rows)
     output.seek(0)
     return Response(
         output.getvalue(),
@@ -549,37 +706,118 @@ def sample_donors_csv():
     )
 
 
+@admin_bp.route('/donors/sample-excel')
+@permission_required('manage_donors')
+def sample_donors_excel():
+    """Generate and return a sample Excel (.xlsx) template for bulk donor upload."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        flash('openpyxl is required.', 'danger')
+        return redirect(url_for('admin.donors'))
+
+    HEADERS = [
+        'Full Name', 'Current Age', 'Current Weight', 'Permanent Address',
+        'Current Address', 'Phone number 1', 'Phone number 2', 'Blood Group',
+        'Previous Blood Donation Date (if any)', 'Previous Blood Donation Location',
+        'Type of Donor', 'Social Medial Profile Link(e.g Facebook, Instagram)'
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Sample Donor Import'
+    ws.append(HEADERS)
+
+    header_fill = PatternFill('solid', fgColor='DC2626')
+    header_font = Font(bold=True, color='FFFFFF')
+    for col_idx in range(1, len(HEADERS) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    ws.append([
+        'Ram Bahadur Shrestha', '28', '65', 'Kavre',
+        'Kathmandu', '9841234567', '9801234567', 'O+',
+        '2025-10-15', 'Bir Hospital',
+        'regular', 'https://facebook.com/ram'
+    ])
+    ws.append([
+        'Sita Kumari Thapa', '24', '55', 'Kaski',
+        'Pokhara', '9841987654', '', 'A+',
+        '', '',
+        'emergency', 'https://instagram.com/sita'
+    ])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return Response(
+        buf.read(),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': 'attachment; filename=sample_blood_donors_import.xlsx'}
+    )
+
+
 @admin_bp.route('/donors/import-csv', methods=['POST'])
+@admin_bp.route('/donors/bulk-import', methods=['POST'])
 @permission_required('manage_donors')
 def import_donors_csv():
-    """Bulk import blood donors from a CSV file with duplicate handling (skip or override)."""
-    if 'csv_file' not in request.files:
-        flash('No file part uploaded.', 'danger')
+    """Bulk import blood donors from a CSV or Excel (.xlsx) file with duplicate handling (skip or override)."""
+    file_field = 'csv_file' if 'csv_file' in request.files else ('excel_file' if 'excel_file' in request.files else 'file')
+    if file_field not in request.files:
+        flash('No file uploaded.', 'danger')
         return redirect(url_for('admin.donors'))
         
-    file = request.files['csv_file']
+    file = request.files[file_field]
     if not file or file.filename == '':
-        flash('No CSV file selected for upload.', 'danger')
+        flash('No file selected for upload.', 'danger')
         return redirect(url_for('admin.donors'))
         
-    if not file.filename.lower().endswith('.csv'):
-        flash('Invalid file format. Please upload a .csv file.', 'danger')
+    filename = file.filename.lower()
+    if not (filename.endswith('.csv') or filename.endswith('.xlsx') or filename.endswith('.xls')):
+        flash('Invalid file format. Please upload a .csv or .xlsx file.', 'danger')
         return redirect(url_for('admin.donors'))
         
     duplicate_action = request.form.get('duplicate_action', 'skip').strip().lower()
     
     try:
         raw_bytes = file.stream.read()
-        stream = io.StringIO(raw_bytes.decode('utf-8-sig', errors='replace'))
-        
-        # Auto-detect delimiter (handles CSV, TSV, semicolon, pipe, etc.)
-        sample = stream.read(8192)
-        stream.seek(0)
-        try:
-            dialect = csv.Sniffer().sniff(sample, delimiters=',\t;|')
-            csv_reader = csv.DictReader(stream, dialect=dialect)
-        except csv.Error:
-            csv_reader = csv.DictReader(stream)  # fallback to comma
+        rows_data = []
+
+        if filename.endswith('.xlsx') or filename.endswith('.xls'):
+            try:
+                from openpyxl import load_workbook
+            except ImportError:
+                flash('openpyxl is required for Excel files.', 'danger')
+                return redirect(url_for('admin.donors'))
+
+            wb = load_workbook(io.BytesIO(raw_bytes), read_only=True, data_only=True)
+            ws = wb.active
+            raw_grid = list(ws.values)
+            if not raw_grid:
+                flash('Uploaded file is empty.', 'danger')
+                return redirect(url_for('admin.donors'))
+
+            headers = [str(h).strip() if h is not None else '' for h in raw_grid[0]]
+            for r_vals in raw_grid[1:]:
+                row_dict = {}
+                for h_col, val in zip(headers, r_vals):
+                    if h_col:
+                        row_dict[h_col] = str(val).strip() if val is not None else ''
+                rows_data.append(row_dict)
+        else:
+            # CSV parsing
+            stream = io.StringIO(raw_bytes.decode('utf-8-sig', errors='replace'))
+            sample = stream.read(8192)
+            stream.seek(0)
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',\t;|')
+                csv_reader = csv.DictReader(stream, dialect=dialect)
+            except csv.Error:
+                csv_reader = csv.DictReader(stream)
+            rows_data = list(csv_reader)  # fallback to comma
         
         imported_count = 0
         updated_count = 0
@@ -733,7 +971,7 @@ def import_donors_csv():
                     return cand_no_space
             return 'O+'
 
-        for idx, row in enumerate(csv_reader, start=2):
+        for idx, row in enumerate(rows_data, start=2):
             try:
                 with db.session.begin_nested():
                     row_data = _normalize_row(row)
@@ -1231,6 +1469,99 @@ def export_blood_banks():
         response = make_response(output.getvalue())
         response.headers['Content-Type'] = 'text/csv; charset=utf-8'
         response.headers['Content-Disposition'] = 'attachment; filename=blood_banks.csv'
+        return response
+
+    if fmt == 'pdf':
+        try:
+            from reportlab.lib.pagesizes import landscape, A4
+            from reportlab.lib import colors
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.pdfgen import canvas
+        except ImportError:
+            flash('reportlab is required for PDF export.', 'danger')
+            return redirect(url_for('admin.blood_banks'))
+
+        class NumberedCanvas(canvas.Canvas):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self._saved_page_states = []
+            def showPage(self):
+                self._saved_page_states.append(dict(self.__dict__))
+                self._startPage()
+            def save(self):
+                num_pages = len(self._saved_page_states)
+                for state in self._saved_page_states:
+                    self.__dict__.update(state)
+                    self.draw_page_number(num_pages)
+                    super().showPage()
+                super().save()
+            def draw_page_number(self, page_count):
+                self.saveState()
+                self.setFont('Helvetica', 8)
+                self.setFillColor(colors.HexColor('#6B7280'))
+                self.drawRightString(self._pagesize[0] - 30, 20, f'Page {self._pageNumber} of {page_count}')
+                self.drawString(30, 20, 'Raktadata — Nepali Blood Donors Society | Blood Banks Directory')
+                self.setStrokeColor(colors.HexColor('#E5E7EB'))
+                self.setLineWidth(0.5)
+                self.line(30, 32, self._pagesize[0] - 30, 32)
+                self.restoreState()
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=40)
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=15, textColor=colors.HexColor('#DC2626'), spaceAfter=4)
+        sub_style = ParagraphStyle('DocSub', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#4B5563'), spaceAfter=10)
+        cell_style = ParagraphStyle('CellText', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=10, textColor=colors.HexColor('#1F2937'))
+        header_cell_style = ParagraphStyle('HeaderCellText', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, leading=11, textColor=colors.whitesmoke)
+
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        elements = [
+            Paragraph('NEPALI BLOOD DONORS SOCIETY — BLOOD BANKS DIRECTORY', title_style),
+            Paragraph(f'Exported on: {now_str} | Total Records: {len(banks)}', sub_style),
+            Spacer(1, 4)
+        ]
+
+        pdf_headers = ['Name', 'Service Type', 'Province', 'District', 'City', 'Phone', 'Emergency', 'Status']
+        table_data = [[Paragraph(h, header_cell_style) for h in pdf_headers]]
+
+        for b in banks:
+            table_data.append([
+                Paragraph(b.display_name or b.name, cell_style),
+                Paragraph(b.service_type or 'Blood Bank', cell_style),
+                Paragraph(b.province or 'N/A', cell_style),
+                Paragraph(b.district or 'N/A', cell_style),
+                Paragraph(b.city or 'N/A', cell_style),
+                Paragraph(b.contact_number or 'N/A', cell_style),
+                Paragraph('Yes' if (b.is_emergency_panel or b.emergency_available) else 'No', cell_style),
+                Paragraph('Active' if b.is_active else 'Inactive', cell_style),
+            ])
+
+        col_widths = [160, 90, 95, 95, 95, 100, 65, 60]
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        t_style = [
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#DC2626')),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 6),
+            ('TOPPADDING', (0,0), (-1,0), 6),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E5E7EB')),
+        ]
+        for r_i in range(1, len(table_data)):
+            bg = colors.HexColor('#F9FAFB') if r_i % 2 == 0 else colors.white
+            t_style.append(('BACKGROUND', (0, r_i), (-1, r_i), bg))
+            t_style.append(('TOPPADDING', (0, r_i), (-1, r_i), 4))
+            t_style.append(('BOTTOMPADDING', (0, r_i), (-1, r_i), 4))
+
+        t.setStyle(TableStyle(t_style))
+        elements.append(t)
+        doc.build(elements, canvasmaker=NumberedCanvas)
+
+        buf.seek(0)
+        response = make_response(buf.read())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=blood_banks.pdf'
         return response
 
     # Default: Excel

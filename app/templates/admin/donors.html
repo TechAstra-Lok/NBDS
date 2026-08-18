@@ -11,9 +11,29 @@
     </p>
   </div>
   <div class="d-flex gap-2">
-    <a href="{{ url_for('admin.export_donors_csv', q=search, bg=selected_bg, status=selected_status, type=selected_type) }}" class="btn btn-outline-secondary fw-semibold">
-      <i class="fas fa-download me-2"></i>Export CSV
-    </a>
+    <!-- Export Dropdown -->
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary fw-semibold dropdown-toggle" type="button" id="donorExportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-download me-2"></i>Export
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="donorExportDropdown">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('admin.export_donors', format='xlsx', q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">
+            <i class="fas fa-file-excel text-success me-2"></i>Export as Excel (.xlsx)
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('admin.export_donors', format='csv', q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">
+            <i class="fas fa-file-csv text-primary me-2"></i>Export as CSV (.csv)
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('admin.export_donors', format='pdf', q=search, bg=selected_bg, status=selected_status, type=selected_type) }}">
+            <i class="fas fa-file-pdf text-danger me-2"></i>Export as PDF (.pdf)
+          </a>
+        </li>
+      </ul>
+    </div>
     <button type="button" class="btn btn-outline-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
       <i class="fas fa-file-upload me-2"></i>Bulk Upload
     </button>
@@ -35,11 +55,11 @@
         </div>
         <div class="modal-body pb-0">
           <p class="text-muted small mb-3">
-            Upload a CSV file to bulk import donors. Download the sample template to see the required format.
+            Upload a CSV or Excel (.xlsx) file to bulk import donors. Download a sample template below to see the required format.
           </p>
           <div class="mb-3">
-            <label for="csvFile" class="form-label fw-semibold">Select CSV File</label>
-            <input class="form-control" type="file" id="csvFile" name="csv_file" accept=".csv" required>
+            <label for="csvFile" class="form-label fw-semibold">Select File (.csv or .xlsx)</label>
+            <input class="form-control" type="file" id="csvFile" name="csv_file" accept=".csv, .xlsx, .xls" required>
           </div>
 
           <div class="mb-3 p-3 bg-light rounded-3 border">
@@ -53,14 +73,17 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" name="duplicate_action" id="dupOverride" value="override">
               <label class="form-check-label text-secondary small" for="dupOverride">
-                <strong class="text-dark">Override / Update existing records</strong> — Update existing donor with new CSV data
+                <strong class="text-dark">Override / Update existing records</strong> — Update existing donor with new file data
               </label>
             </div>
           </div>
 
-          <div class="mb-2">
+          <div class="d-flex flex-wrap gap-3 mb-2">
+            <a href="{{ url_for('admin.sample_donors_excel') }}" class="text-decoration-none small">
+              <i class="fas fa-file-excel text-success me-1"></i>Download Sample Excel Template
+            </a>
             <a href="{{ url_for('admin.sample_donors_csv') }}" class="text-decoration-none small">
-              <i class="fas fa-file-csv me-1"></i>Download Sample CSV Template
+              <i class="fas fa-file-csv text-primary me-1"></i>Download Sample CSV Template
             </a>
           </div>
         </div>
