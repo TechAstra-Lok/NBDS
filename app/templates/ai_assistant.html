@@ -78,8 +78,8 @@
 </div>
 
 <script>
-const IS_DONOR = {{ 'true' if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else 'false' }};
-const DONOR_ID = "{{ current_user.id if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else '' }}";
+const IS_DONOR = ("{% if current_user.is_authenticated and current_user.__class__.__name__ == 'Donor' %}true{% else %}false{% endif %}" === "true");
+const DONOR_ID = "{% if current_user.is_authenticated and current_user.__class__.__name__ == 'Donor' %}{{ current_user.id }}{% endif %}";
 const STORAGE_KEY = IS_DONOR ? `raktadata_chat_history_donor_${DONOR_ID}` : 'raktadata_chat_history_guest';
 const storageEngine = IS_DONOR ? localStorage : sessionStorage;
 
