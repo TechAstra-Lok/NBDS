@@ -40,12 +40,17 @@
             <span class="spinner-grow spinner-grow-sm text-light" role="status"></span>
             <span class="fw-bold">Raktadata Health AI Doctor</span>
           </div>
-          <span class="badge bg-white text-danger fw-semibold">24/7 Online</span>
+          <div class="d-flex align-items-center gap-2">
+            <button id="clearHistoryBtn" class="btn btn-sm btn-outline-light rounded-pill px-2 py-0 border-0" title="Clear Chat History" style="font-size:0.8rem;">
+              <i class="fas fa-trash-alt me-1"></i>Clear Chat
+            </button>
+            <span class="badge bg-white text-danger fw-semibold">24/7 Online</span>
+          </div>
         </div>
 
         <div class="card-body p-4 bg-light" id="chatBox" style="height:420px; overflow-y:auto; scroll-behavior:smooth;">
           <!-- Default Bot Welcome -->
-          <div class="d-flex align-items-start gap-3 mb-4">
+          <div class="d-flex align-items-start gap-3 mb-4" id="defaultWelcomeMsg">
             <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
               <i class="fas fa-robot"></i>
             </div>
@@ -73,7 +78,67 @@
 </div>
 
 <script>
-function appendMessage(sender, text, isHtml = false) {
+const IS_DONOR = {{ 'true' if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else 'false' }};
+const DONOR_ID = "{{ current_user.id if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else '' }}";
+const STORAGE_KEY = IS_DONOR ? `raktadata_chat_history_donor_${DONOR_ID}` : 'raktadata_chat_history_guest';
+const storageEngine = IS_DONOR ? localStorage : sessionStorage;
+
+// UNREGISTERED VISITORS: reset/clear conversation history on page refresh/reload or tab close
+if (!IS_DONOR) {
+  sessionStorage.removeItem(STORAGE_KEY);
+}
+
+let pageChatHistory = [];
+
+function loadPageHistory() {
+  const chatBox = document.getElementById('chatBox');
+  try {
+    const saved = storageEngine.getItem(STORAGE_KEY);
+    if (saved) {
+      pageChatHistory = JSON.parse(saved) || [];
+      if (pageChatHistory.length > 0) {
+        chatBox.innerHTML = '';
+        pageChatHistory.forEach(msg => {
+          const sender = (msg.role === 'ai' || msg.role === 'model') ? 'bot' : 'user';
+          appendMessage(sender, msg.content, true);
+        });
+      }
+    }
+  } catch (e) {
+    console.error("Error loading chat history:", e);
+  }
+}
+
+function savePageHistory() {
+  try {
+    storageEngine.setItem(STORAGE_KEY, JSON.stringify(pageChatHistory));
+  } catch (e) {
+    console.error("Error saving chat history:", e);
+  }
+}
+
+document.getElementById('clearHistoryBtn')?.addEventListener('click', function() {
+  if (confirm('Clear chat history?')) {
+    pageChatHistory = [];
+    storageEngine.removeItem(STORAGE_KEY);
+    const chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML = `
+      <div class="d-flex align-items-start gap-3 mb-4" id="defaultWelcomeMsg">
+        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="bg-white p-3 rounded-4 shadow-sm border max-w-80">
+          <h6 class="fw-bold text-danger mb-1"><i class="fas fa-stethoscope me-1"></i>Raktadata Health AI</h6>
+          <p class="mb-0 text-dark small" style="line-height:1.5;">
+            Namaste! I am your AI Health & Blood Guidance Assistant. Ask me anything about <strong>blood donation eligibility, blood group compatibility, iron-rich diets, or pre/post donation care</strong>. How can I assist your health today?
+          </p>
+        </div>
+      </div>
+    `;
+  }
+});
+
+function appendMessage(sender, text, isLoaded = false) {
   const chatBox = document.getElementById('chatBox');
   const isUser = sender === 'user';
   const wrapper = document.createElement('div');
@@ -87,11 +152,13 @@ function appendMessage(sender, text, isHtml = false) {
   const bgClass = isUser ? 'bg-danger text-white' : 'bg-white text-dark border shadow-sm';
   const senderTitle = isUser ? '' : '<h6 class="fw-bold text-danger mb-1"><i class="fas fa-stethoscope me-1"></i>Raktadata Health AI</h6>';
 
-  const formattedText = text
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  const formattedText = (typeof marked !== 'undefined' && !isUser) 
+    ? marked.parse(text)
+    : text
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
   wrapper.innerHTML = `
     ${!isUser ? avatar : ''}
@@ -103,6 +170,7 @@ function appendMessage(sender, text, isHtml = false) {
 
   chatBox.appendChild(wrapper);
   chatBox.scrollTop = chatBox.scrollHeight;
+  return wrapper;
 }
 
 function sendQuickPrompt(promptText) {
@@ -114,8 +182,14 @@ async function handleChatSubmit(e) {
   e.preventDefault();
   const input = document.getElementById('userInput');
   const sendBtn = document.getElementById('sendBtn');
-  const message = input.value.strip ? input.value.strip() : input.value.trim();
+  const message = input.value.trim();
   if (!message) return;
+
+  // Clear default welcome if present
+  const defaultWelcome = document.getElementById('defaultWelcomeMsg');
+  if (defaultWelcome && pageChatHistory.length === 0) {
+    defaultWelcome.remove();
+  }
 
   appendMessage('user', message);
   input.value = '';
@@ -141,21 +215,65 @@ async function handleChatSubmit(e) {
 
   try {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-    const res = await fetch('/api/v1/ai-chat', {
+    const response = await fetch('/api/v1/raktadata-helpher/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-      body: JSON.stringify({ message: message })
+      body: JSON.stringify({ message: message, history: pageChatHistory })
     });
-    const data = await res.json();
-    document.getElementById(typingId).remove();
 
-    if (data.success && data.reply) {
-      appendMessage('bot', data.reply);
-    } else {
-      appendMessage('bot', data.error || 'Sorry, I am unable to process your request right now.');
+    document.getElementById(typingId)?.remove();
+
+    if (!response.ok) {
+      appendMessage('bot', 'I am sorry, I encountered an error. Please try again.');
+      return;
     }
+
+    const botWrapper = appendMessage('bot', '');
+    const contentDiv = botWrapper.querySelector('.small');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let aiFullText = "";
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.trim().startsWith('data: ')) {
+          const dataStr = line.replace('data: ', '').trim();
+          if (!dataStr || dataStr === '[DONE]') continue;
+          try {
+            const jsonData = JSON.parse(dataStr);
+            if (jsonData.error) {
+              aiFullText += "\n\nError: " + jsonData.error;
+            } else if (jsonData.candidates && jsonData.candidates.length > 0) {
+              const parts = jsonData.candidates[0].content?.parts;
+              if (parts && parts.length > 0) {
+                aiFullText += parts[0].text;
+              }
+            }
+            contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(aiFullText) : aiFullText;
+            chatBox.scrollTop = chatBox.scrollHeight;
+          } catch (err) {
+            console.error("Parse error:", err);
+          }
+        }
+      }
+    }
+
+    pageChatHistory.push({ role: 'user', content: message });
+    pageChatHistory.push({ role: 'ai', content: aiFullText });
+    if (pageChatHistory.length > 20) pageChatHistory = pageChatHistory.slice(pageChatHistory.length - 20);
+    savePageHistory();
+
   } catch (err) {
-    if (document.getElementById(typingId)) document.getElementById(typingId).remove();
+    document.getElementById(typingId)?.remove();
     appendMessage('bot', 'Network error. Please check your connection and try again.');
   } finally {
     input.disabled = false;
@@ -163,5 +281,8 @@ async function handleChatSubmit(e) {
     input.focus();
   }
 }
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadPageHistory);
 </script>
 {% endblock %}

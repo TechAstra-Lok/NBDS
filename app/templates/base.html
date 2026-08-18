@@ -817,7 +817,12 @@
           <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Raktadata Helpher</h5>
           <small>AI Health Assistant</small>
         </div>
-        <button id="helpher-close" class="btn btn-sm text-white"><i class="fas fa-times"></i></button>
+        <div class="d-flex align-items-center gap-2">
+          <button id="helpher-clear" class="btn btn-sm text-white border-0 bg-transparent opacity-75 opacity-100-hover" title="Clear Chat History">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+          <button id="helpher-close" class="btn btn-sm text-white"><i class="fas fa-times"></i></button>
+        </div>
       </div>
       
       <div id="helpher-messages" class="helpher-messages">
@@ -1000,12 +1005,49 @@
     document.addEventListener('DOMContentLoaded', function() {
       const toggleBtn = document.getElementById('helpher-toggle');
       const closeBtn = document.getElementById('helpher-close');
+      const clearBtn = document.getElementById('helpher-clear');
       const windowEl = document.getElementById('helpher-window');
       const form = document.getElementById('helpher-form');
       const input = document.getElementById('helpher-input');
       const messagesContainer = document.getElementById('helpher-messages');
       
+      const IS_DONOR = {{ 'true' if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else 'false' }};
+      const DONOR_ID = "{{ current_user.id if (current_user.is_authenticated and current_user.__class__.__name__ == 'Donor') else '' }}";
+      const STORAGE_KEY = IS_DONOR ? `raktadata_chat_history_donor_${DONOR_ID}` : 'raktadata_chat_history_guest';
+      const storageEngine = IS_DONOR ? localStorage : sessionStorage;
+
+      // UNREGISTERED VISITORS: reset/clear conversation history on page refresh/reload or tab close
+      if (!IS_DONOR) {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+
       let chatHistory = [];
+
+      function loadHistory() {
+        try {
+          const saved = storageEngine.getItem(STORAGE_KEY);
+          if (saved) {
+            chatHistory = JSON.parse(saved) || [];
+            if (chatHistory.length > 0) {
+              messagesContainer.innerHTML = '';
+              chatHistory.forEach(msg => {
+                const role = msg.role === 'ai' || msg.role === 'model' ? 'ai' : 'user';
+                addMessage(msg.content, role, true);
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Error loading chat history:", e);
+        }
+      }
+
+      function saveHistory() {
+        try {
+          storageEngine.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+        } catch (e) {
+          console.error("Error saving chat history:", e);
+        }
+      }
 
       function toggleWindow() {
         windowEl.classList.toggle('d-none');
@@ -1017,13 +1059,27 @@
       toggleBtn.addEventListener('click', toggleWindow);
       closeBtn.addEventListener('click', toggleWindow);
 
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          if (confirm('Clear chat history?')) {
+            chatHistory = [];
+            storageEngine.removeItem(STORAGE_KEY);
+            messagesContainer.innerHTML = `
+              <div class="message ai-message">
+                <div class="msg-content">Hello! I am Raktadata Helpher, your ultimate medical AI assistant. I can help answer queries about health, medical tips, and blood donation. How can I assist you today?</div>
+              </div>
+            `;
+          }
+        });
+      }
+
       function addMessage(text, role, isHtml = false) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${role}-message`;
         const contentDiv = document.createElement('div');
         contentDiv.className = 'msg-content';
-        if (isHtml) {
-          contentDiv.innerHTML = text;
+        if (role === 'ai' || isHtml) {
+          contentDiv.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
         } else {
           contentDiv.textContent = text;
         }
@@ -1048,6 +1104,9 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return msgDiv;
       }
+
+      // Initial load
+      loadHistory();
 
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -1126,7 +1185,8 @@
           
           chatHistory.push({ role: 'user', content: text });
           chatHistory.push({ role: 'ai', content: aiFullText });
-          if (chatHistory.length > 10) chatHistory = chatHistory.slice(chatHistory.length - 10);
+          if (chatHistory.length > 20) chatHistory = chatHistory.slice(chatHistory.length - 20);
+          saveHistory();
         } catch (err) {
           typingEl?.remove();
           addMessage("Network error. Please try again.", 'ai');
