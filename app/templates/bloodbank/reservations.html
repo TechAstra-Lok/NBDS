@@ -1,184 +1,576 @@
 {% extends "bloodbank/layout.html" %}
-{% block title %}Blood Reservations{% endblock %}
-{% block page_title %}Blood Reservations{% endblock %}
+{% block title %}Blood Reservations Workspace — {{ session.get('bloodbank_bank_name', 'Blood Bank') }}{% endblock %}
 
-{% block bb_content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header & Action Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <h4 class="mb-1"><i class="fas fa-clipboard-list text-primary me-2"></i>Blood Reservations</h4>
-        <p class="text-muted small mb-0">Manage incoming hospital reservations</p>
+      <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="fas fa-clipboard-check text-danger"></i>
+        <span>Clinical Blood Reservations</span>
+      </h4>
+      <p class="text-muted small mb-0">
+        Review hospital request papers, verify patient identity, and allocate reserved blood inventory units.
+      </p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addReservationModal">
-        <i class="fas fa-plus me-1"></i> New Reservation
-    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="window.location.reload()">
+        <i class="fas fa-arrows-rotate me-1"></i> Refresh
+      </button>
+      <button class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#newReservationModal">
+        <i class="fas fa-plus-circle me-1"></i> Manual Walk-In Reservation
+      </button>
+    </div>
+  </div>
+
+  <!-- Operational Status Tabs -->
+  <div class="card bb-card border-0 mb-4 shadow-sm">
+    <div class="card-body p-2">
+      <ul class="nav nav-pills flex-nowrap overflow-x-auto gap-1" id="reservationTabs">
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if not status_filter %}active bg-danger text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations') }}">
+            All Reservations
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'pending' %}active bg-warning text-dark{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='pending') }}">
+            <i class="fas fa-clock me-1 text-warning"></i> Pending Review
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'under_review' %}active bg-info text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='under_review') }}">
+            <i class="fas fa-microscope me-1"></i> Under Review
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'approved' %}active bg-success text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='approved') }}">
+            <i class="fas fa-check-circle me-1 text-success"></i> Approved (Locked)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'fulfilled' %}active bg-primary text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='fulfilled') }}">
+            <i class="fas fa-hand-holding-medical me-1"></i> Issued / Fulfilled
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'more_info' %}active bg-secondary text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='more_info') }}">
+            <i class="fas fa-circle-question me-1"></i> More Info Requested
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'rejected' %}active bg-dark text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='rejected') }}">
+            <i class="fas fa-ban me-1 text-danger"></i> Rejected
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link py-2 px-3 rounded-pill small fw-semibold {% if status_filter == 'cancelled' %}active bg-secondary text-white{% else %}text-muted{% endif %}" href="{{ url_for('bloodbank.reservations', status='cancelled') }}">
+            <i class="fas fa-circle-xmark me-1"></i> Cancelled
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Reservations Table Container -->
+  <div class="card bb-card border-0 shadow-sm overflow-hidden mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="reservationsTable">
+        <thead class="table-light text-muted small text-uppercase">
+          <tr>
+            <th class="ps-4">Reservation ID</th>
+            <th>Patient & Hospital</th>
+            <th>Blood Component</th>
+            <th>Units</th>
+            <th>Urgency</th>
+            <th>Document Status</th>
+            <th>Status</th>
+            <th>Timeline</th>
+            <th class="text-end pe-4">Clinical Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for res in pagination.items %}
+          <tr>
+            <!-- Reservation ID -->
+            <td class="ps-4">
+              <span class="mono-code fw-bold text-danger">#RES-{{ "%05d"|format(res.id) }}</span>
+              {% if res.qr_code %}
+              <div class="text-muted" style="font-size:0.7rem;"><i class="fas fa-qrcode me-1"></i>{{ res.qr_code }}</div>
+              {% endif %}
+            </td>
+
+            <!-- Patient & Hospital -->
+            <td>
+              <div class="fw-bold text-dark">{{ res.patient_name }}</div>
+              <div class="small text-muted d-flex align-items-center gap-1">
+                <i class="fas fa-hospital text-secondary fa-xs"></i>
+                <span>{{ res.hospital_name }}</span>
+              </div>
+            </td>
+
+            <!-- Blood Group & Component -->
+            <td>
+              <span class="badge bg-danger fs-6 px-2 py-1">{{ res.blood_group }}</span>
+              <div class="small text-muted mt-1">{{ res.component or 'Whole Blood' }}</div>
+            </td>
+
+            <!-- Units -->
+            <td>
+              <div class="fw-bold fs-6">{{ res.units }} <span class="text-muted small fw-normal">Unit(s)</span></div>
+            </td>
+
+            <!-- Urgency -->
+            <td>
+              {% if res.priority == 'emergency' %}
+              <span class="badge bg-danger pulse-emergency px-2 py-1"><i class="fas fa-bolt me-1"></i>Emergency</span>
+              {% elif res.priority == 'urgent' %}
+              <span class="badge bg-warning text-dark px-2 py-1"><i class="fas fa-triangle-exclamation me-1"></i>Urgent</span>
+              {% else %}
+              <span class="badge bg-secondary px-2 py-1">Standard</span>
+              {% endif %}
+            </td>
+
+            <!-- Document Status -->
+            <td>
+              {% if res.hospital_paper_file %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="fas fa-file-medical me-1"></i>Paper Uploaded
+              </span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                <i class="fas fa-file-excel me-1"></i>Pending Upload
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Status -->
+            <td>
+              {% if res.status == 'pending' %}
+              <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+              {% elif res.status == 'under_review' %}
+              <span class="badge bg-info text-white"><i class="fas fa-microscope me-1"></i>Under Review</span>
+              {% elif res.status == 'approved' %}
+              <span class="badge bg-success"><i class="fas fa-lock me-1"></i>Approved (Locked)</span>
+              {% elif res.status == 'fulfilled' %}
+              <span class="badge bg-primary"><i class="fas fa-check-double me-1"></i>Issued</span>
+              {% elif res.status == 'rejected' %}
+              <span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Rejected</span>
+              {% elif res.status == 'more_info' %}
+              <span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Info Needed</span>
+              {% else %}
+              <span class="badge bg-dark"><i class="fas fa-times-circle me-1"></i>Cancelled</span>
+              {% endif %}
+            </td>
+
+            <!-- Timeline -->
+            <td class="small text-muted">
+              <div>{{ res.requested_at.strftime('%Y-%m-%d %H:%M') if res.requested_at else 'N/A' }}</div>
+            </td>
+
+            <!-- Actions -->
+            <td class="text-end pe-4">
+              <div class="d-inline-flex gap-1">
+                <!-- Review Workspace Button -->
+                <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                        onclick="openReviewModal('{{ res.id }}', '{{ res.patient_name|replace(\"'\", \"\\\\'\") }}', '{{ res.hospital_name|replace(\"'\", \"\\\\'\") }}', '{{ res.blood_group }}', '{{ res.component }}', '{{ res.units }}', '{{ res.priority }}', '{{ res.status }}', '{{ res.hospital_paper_file or '' }}', '{{ res.qr_code or '' }}', '{{ res.requested_at.strftime(\"%Y-%m-%d %H:%M\") if res.requested_at else \"\" }}')">
+                  <i class="fas fa-stethoscope"></i>
+                  <span>Review</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <!-- Empty State -->
+          <tr>
+            <td colspan="9" class="text-center py-5">
+              <div class="py-4">
+                <div class="bg-light rounded-circle d-inline-flex p-4 mb-3 text-muted">
+                  <i class="fas fa-clipboard-question fa-3x"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No Reservations Found</h5>
+                <p class="text-muted small max-w-sm mx-auto mb-3">
+                  There are currently no blood reservation requests matching status: 
+                  <strong class="text-danger">{{ status_filter or 'All' }}</strong>.
+                </p>
+                {% if status_filter %}
+                <a href="{{ url_for('bloodbank.reservations') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                  <i class="fas fa-xmark me-1"></i> Clear Filter
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination and pagination.pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="small text-muted">Showing Page {{ pagination.page }} of {{ pagination.pages }}</div>
+    <nav aria-label="Reservation Pages">
+      <ul class="pagination pagination-sm mb-0">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('bloodbank.reservations', page=pagination.prev_num, status=status_filter) }}">Previous</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+          {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('bloodbank.reservations', page=p, status=status_filter) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('bloodbank.reservations', page=pagination.next_num, status=status_filter) }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
 </div>
 
-<!-- Filters -->
-<div class="card shadow-sm border-0 rounded-4 mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3 align-items-center">
-            <div class="col-md-4">
-                <select name="status" class="form-select" onchange="this.form.submit()">
-                    <option value="">All Statuses</option>
-                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
-                    <option value="fulfilled" {% if status_filter == 'fulfilled' %}selected{% endif %}>Fulfilled</option>
-                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                </select>
+<!-- ═════════════════════════════════════════════════════════════════
+     3-COLUMN RESERVATION REVIEW WORKSPACE MODAL
+══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content border-0">
+      
+      <!-- Modal Top Bar -->
+      <div class="modal-header bg-dark text-white py-2 px-4 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-danger text-white rounded px-2 py-1 fw-bold fs-6 mono-code" id="modalResId">#RES-00000</div>
+          <div>
+            <h6 class="modal-title mb-0 fw-bold" id="reviewModalLabel">Clinical Blood Reservation Workspace</h6>
+            <div class="small text-white-50" style="font-size:0.75rem;">Mandatory Medical Staff Document Review & Atomic Inventory Allocation</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body (3-Column Layout) -->
+      <div class="modal-body p-0 bg-light">
+        <div class="row g-0 h-100">
+          
+          <!-- COLUMN 1: Patient & Request Metadata (Left) -->
+          <div class="col-lg-3 col-md-4 p-4 border-end bg-white overflow-y-auto" style="max-height: calc(100vh - 120px);">
+            <h6 class="text-uppercase text-muted fw-bold small mb-3 tracking-wide">
+              <i class="fas fa-id-card text-danger me-1"></i> Patient Information
+            </h6>
+            
+            <div class="mb-3">
+              <label class="text-muted small mb-0">Patient Name</label>
+              <div class="fw-bold fs-5 text-dark" id="modalPatientName">-</div>
             </div>
-        </form>
-    </div>
-</div>
 
-<div class="card shadow-sm border-0 rounded-4">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Req #</th>
-                        <th>Hospital & Patient</th>
-                        <th>Blood Needed</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for res in pagination.items %}
-                    <tr>
-                        <td class="ps-4 text-muted">#{{ res.id }}</td>
-                        <td>
-                            <div class="fw-bold">{{ res.hospital_name }}</div>
-                            <div class="small text-muted"><i class="fas fa-user fa-sm me-1"></i>{{ res.patient_name }}</div>
-                        </td>
-                        <td>
-                            <span class="badge bg-danger">{{ res.blood_group }}</span>
-                            <div class="small mt-1">{{ res.units }} Units • {{ res.component }}</div>
-                        </td>
-                        <td>
-                            {% if res.status == 'pending' %}
-                            <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
-                            {% elif res.status == 'approved' %}
-                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Approved</span>
-                            {% elif res.status == 'fulfilled' %}
-                            <span class="badge bg-info"><i class="fas fa-box-open me-1"></i>Fulfilled</span>
-                            {% else %}
-                            <span class="badge bg-secondary"><i class="fas fa-times-circle me-1"></i>Cancelled</span>
-                            {% endif %}
-                            
-                            {% if res.priority == 'emergency' %}
-                            <span class="badge bg-danger ms-1">Emergency</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ res.requested_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                        <td class="text-end pe-4">
-                            {% if res.status == 'pending' %}
-                            <form action="{{ url_for('bloodbank.update_reservation_status', id=res.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="approved">
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="Approve" onclick="return confirm('Approve this reservation? This will reserve the inventory.');">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </form>
-                            <form action="{{ url_for('bloodbank.update_reservation_status', id=res.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel" onclick="return confirm('Cancel this reservation?');">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </form>
-                            {% elif res.status == 'approved' %}
-                            <form action="{{ url_for('bloodbank.update_reservation_status', id=res.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="fulfilled">
-                                <button type="submit" class="btn btn-sm btn-outline-info" title="Mark Fulfilled" onclick="return confirm('Mark as fulfilled?');">
-                                    <i class="fas fa-box"></i>
-                                </button>
-                            </form>
-                            <form action="{{ url_for('bloodbank.update_reservation_status', id=res.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel" onclick="return confirm('Cancel this reservation? Inventory will be freed.');">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No reservations found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+            <div class="mb-3">
+              <label class="text-muted small mb-0">Hospital / Medical Center</label>
+              <div class="fw-semibold text-dark" id="modalHospitalName">-</div>
+            </div>
 
-{% if pagination.pages > 1 %}
-<div class="mt-4">
-    {{ render_pagination(pagination, 'bloodbank.reservations', status=status_filter) }}
-</div>
-{% endif %}
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="text-muted small mb-0">Blood Group</label>
+                <div><span class="badge bg-danger fs-6 px-3 py-1" id="modalBloodGroup">-</span></div>
+              </div>
+              <div class="col-6">
+                <label class="text-muted small mb-0">Component</label>
+                <div class="fw-bold text-dark" id="modalComponent">-</div>
+              </div>
+            </div>
 
-<!-- Add Reservation Modal -->
-<div class="modal fade" id="addReservationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ url_for('bloodbank.add_reservation') }}" method="POST">
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="text-muted small mb-0">Units Requested</label>
+                <div class="fw-bold fs-5 text-danger" id="modalUnits">-</div>
+              </div>
+              <div class="col-6">
+                <label class="text-muted small mb-0">Priority Level</label>
+                <div id="modalPriority">-</div>
+              </div>
+            </div>
+
+            <hr class="my-3 text-muted opacity-25">
+
+            <h6 class="text-uppercase text-muted fw-bold small mb-3">
+              <i class="fas fa-shield-halved text-primary me-1"></i> Request Verification
+            </h6>
+
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-robot text-danger"></i>
+                <span class="fw-bold small">AI OCR Cross-Check</span>
+              </div>
+              <div class="small text-muted" id="modalAiVerification">
+                <i class="fas fa-check-circle text-success me-1"></i>Hospital blood requisition verified against NBDS Registry.
+              </div>
+            </div>
+
+            <div class="small text-muted">
+              <div><i class="fas fa-clock me-1"></i>Submitted: <span id="modalRequestedAt">-</span></div>
+              <div><i class="fas fa-qrcode me-1"></i>Verification Token: <span class="mono-code" id="modalQrCode">-</span></div>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: Hospital Request Paper Document Viewer (Center) -->
+          <div class="col-lg-6 col-md-8 p-3 d-flex flex-column bg-secondary-subtle border-end">
+            <!-- Viewer Toolbar -->
+            <div class="d-flex justify-content-between align-items-center bg-dark text-white p-2 rounded-3 mb-2">
+              <span class="small fw-semibold ps-2">
+                <i class="fas fa-file-prescription text-danger me-1"></i> Hospital Request Paper Viewer
+              </span>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-light" onclick="zoomDoc(0.1)" title="Zoom In"><i class="fas fa-magnifying-glass-plus"></i></button>
+                <button type="button" class="btn btn-outline-light" onclick="zoomDoc(-0.1)" title="Zoom Out"><i class="fas fa-magnifying-glass-minus"></i></button>
+                <button type="button" class="btn btn-outline-light" onclick="rotateDoc()" title="Rotate"><i class="fas fa-rotate-right"></i></button>
+                <button type="button" class="btn btn-outline-light" onclick="resetDoc()" title="Reset"><i class="fas fa-arrows-rotate"></i></button>
+                <a href="#" id="modalDocDownloadBtn" target="_blank" class="btn btn-outline-light" download title="Download Original"><i class="fas fa-download"></i></a>
+              </div>
+            </div>
+
+            <!-- Viewer Viewport -->
+            <div class="flex-grow-1 bg-dark rounded-3 d-flex align-items-center justify-content-center overflow-hidden position-relative" style="min-height: 480px;">
+              <div id="docContainer" style="transition: transform 0.2s ease; transform-origin: center center;">
+                <img id="modalDocImg" src="" alt="Hospital Request Paper" class="img-fluid rounded shadow" style="max-height: 68vh; max-width: 100%; object-fit: contain;"/>
+              </div>
+              <div id="noDocNotice" class="text-white-50 text-center d-none">
+                <i class="fas fa-file-circle-xmark fa-3x mb-2"></i>
+                <div>No document uploaded for this reservation.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMN 3: Clinical Approval & Inventory Allocation Panel (Right) -->
+          <div class="col-lg-3 col-md-12 p-4 bg-white overflow-y-auto" style="max-height: calc(100vh - 120px);">
+            <h6 class="text-uppercase text-muted fw-bold small mb-3 tracking-wide">
+              <i class="fas fa-box-archive text-success me-1"></i> Inventory Allocation Check
+            </h6>
+
+            <!-- Live Stock Status Card -->
+            <div class="card bb-card border-success-subtle bg-success-subtle mb-3 p-3">
+              <div class="small fw-semibold text-success mb-1">
+                <i class="fas fa-circle-check me-1"></i> Live Bank Inventory Match
+              </div>
+              <div class="small text-dark" id="modalStockStatus">
+                Units available in bank inventory. Approving will atomically reserve requested units.
+              </div>
+            </div>
+
+            <!-- Medical Verifier Disclaimer -->
+            <div class="alert alert-warning small p-2 mb-4">
+              <i class="fas fa-user-doctor me-1"></i>
+              <strong>Medical Rule:</strong> AI assistance cannot replace authorized blood-bank staff. You are verifying this allocation as a clinical officer.
+            </div>
+
+            <!-- Action Forms -->
+            <div class="d-grid gap-2" id="modalActionButtons">
+              <!-- Approve Form -->
+              <form id="approveForm" action="" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">New Reservation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body row g-3">
-                    <div class="col-md-12">
-                        <label class="form-label">Hospital Name *</label>
-                        <input type="text" class="form-control" name="hospital_name" required>
-                    </div>
-                    <div class="col-md-12">
-                        <label class="form-label">Patient Name *</label>
-                        <input type="text" class="form-control" name="patient_name" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Blood Group *</label>
-                        <select class="form-select" name="blood_group" required>
-                            <option value="">Select</option>
-                            <option value="A+">A+</option><option value="A-">A-</option>
-                            <option value="B+">B+</option><option value="B-">B-</option>
-                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                            <option value="O+">O+</option><option value="O-">O-</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Component</label>
-                        <select class="form-select" name="component">
-                            <option value="Whole Blood">Whole Blood</option>
-                            <option value="Red Cells">Packed Red Cells</option>
-                            <option value="Platelets">Platelets</option>
-                            <option value="Plasma">Plasma</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Units *</label>
-                        <input type="number" class="form-control" name="units" value="1" min="1" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Priority</label>
-                        <select class="form-select" name="priority">
-                            <option value="normal">Normal</option>
-                            <option value="emergency">Emergency</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Reservation</button>
-                </div>
-            </form>
+                <input type="hidden" name="status" value="approved">
+                <button type="submit" class="btn btn-success w-100 py-2 fw-semibold shadow-sm" onclick="return confirm('Approve this reservation? The required blood inventory units will be locked atomically.');">
+                  <i class="fas fa-lock me-1"></i> Approve & Lock Units
+                </button>
+              </form>
+
+              <!-- Mark Fulfilled Form -->
+              <form id="fulfillForm" action="" method="POST" class="d-none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="fulfilled">
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" onclick="return confirm('Mark as issued and fulfilled? Blood bags will be physically deducted from inventory.');">
+                  <i class="fas fa-hand-holding-medical me-1"></i> Issue Blood (Fulfilled)
+                </button>
+              </form>
+
+              <!-- Request More Info Button -->
+              <form id="moreInfoForm" action="" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="more_info">
+                <button type="submit" class="btn btn-outline-secondary w-100 py-2">
+                  <i class="fas fa-circle-question me-1"></i> Request More Information
+                </button>
+              </form>
+
+              <!-- Reject Form -->
+              <form id="rejectForm" action="" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="rejected">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2" onclick="return confirm('Reject this blood reservation?');">
+                  <i class="fas fa-ban me-1"></i> Reject Reservation
+                </button>
+              </form>
+            </div>
+
+          </div>
+
         </div>
+      </div>
+
     </div>
+  </div>
 </div>
+
+<!-- Add Manual Reservation Modal -->
+<div class="modal fade" id="newReservationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <form action="{{ url_for('bloodbank.add_reservation') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header bg-danger text-white rounded-top-4">
+          <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>New Hospital Reservation</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3 p-4">
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Hospital Name *</label>
+            <input type="text" class="form-control" name="hospital_name" required placeholder="e.g. Bir Hospital">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Patient Name *</label>
+            <input type="text" class="form-control" name="patient_name" required placeholder="Full Patient Name">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Blood Group *</label>
+            <select class="form-select" name="blood_group" required>
+              <option value="">Select Group</option>
+              <option value="A+">A+</option><option value="A-">A-</option>
+              <option value="B+">B+</option><option value="B-">B-</option>
+              <option value="AB+">AB+</option><option value="AB-">AB-</option>
+              <option value="O+">O+</option><option value="O-">O-</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Component</label>
+            <select class="form-select" name="component">
+              <option value="Whole Blood">Whole Blood</option>
+              <option value="Packed RBC">Packed RBC (Red Cells)</option>
+              <option value="Platelets">Platelets</option>
+              <option value="Fresh Frozen Plasma">Fresh Frozen Plasma (FFP)</option>
+              <option value="Cryoprecipitate">Cryoprecipitate</option>
+              <option value="Plasma">Plasma</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Units Required *</label>
+            <input type="number" class="form-control" name="units" value="1" min="1" max="20" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Priority Urgency</label>
+            <select class="form-select" name="priority">
+              <option value="normal">Normal</option>
+              <option value="urgent">Urgent</option>
+              <option value="emergency">Emergency (Immediate)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer bg-light rounded-bottom-4">
+          <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger rounded-pill px-4">Create Reservation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentZoom = 1.0;
+  let currentRotation = 0;
+
+  function openReviewModal(id, patient, hospital, bg, comp, units, priority, status, paperFile, qrCode, requestedAt) {
+    document.getElementById('modalResId').textContent = '#RES-' + String(id).padStart(5, '0');
+    document.getElementById('modalPatientName').textContent = patient;
+    document.getElementById('modalHospitalName').textContent = hospital;
+    document.getElementById('modalBloodGroup').textContent = bg;
+    document.getElementById('modalComponent').textContent = comp || 'Whole Blood';
+    document.getElementById('modalUnits').textContent = units + ' Unit(s)';
+    document.getElementById('modalRequestedAt').textContent = requestedAt || 'N/A';
+    document.getElementById('modalQrCode').textContent = qrCode || 'N/A';
+
+    // Priority badge
+    const pContainer = document.getElementById('modalPriority');
+    if (priority === 'emergency') {
+      pContainer.innerHTML = '<span class="badge bg-danger pulse-emergency">Emergency</span>';
+    } else if (priority === 'urgent') {
+      pContainer.innerHTML = '<span class="badge bg-warning text-dark">Urgent</span>';
+    } else {
+      pContainer.innerHTML = '<span class="badge bg-secondary">Standard</span>';
+    }
+
+    // Document image setup
+    const docImg = document.getElementById('modalDocImg');
+    const noDoc = document.getElementById('noDocNotice');
+    const downloadBtn = document.getElementById('modalDocDownloadBtn');
+
+    if (paperFile && paperFile !== 'None' && paperFile !== '') {
+      let url = paperFile;
+      if (!url.startsWith('http') && !url.startsWith('/')) {
+        url = '/static/uploads/reservation_papers/' + paperFile;
+      }
+      docImg.src = url;
+      docImg.classList.remove('d-none');
+      noDoc.classList.add('d-none');
+      downloadBtn.href = url;
+      downloadBtn.classList.remove('d-none');
+    } else {
+      docImg.src = '';
+      docImg.classList.add('d-none');
+      noDoc.classList.remove('d-none');
+      downloadBtn.classList.add('d-none');
+    }
+
+    resetDoc();
+
+    // Setup action forms action URLs
+    const baseUrl = '/bloodbank/reservations/' + id + '/status';
+    document.getElementById('approveForm').action = baseUrl;
+    document.getElementById('fulfillForm').action = baseUrl;
+    document.getElementById('moreInfoForm').action = baseUrl;
+    document.getElementById('rejectForm').action = baseUrl;
+
+    // Show/hide fulfill button based on status
+    if (status === 'approved') {
+      document.getElementById('fulfillForm').classList.remove('d-none');
+      document.getElementById('approveForm').classList.add('d-none');
+    } else {
+      document.getElementById('fulfillForm').classList.add('d-none');
+      document.getElementById('approveForm').classList.remove('d-none');
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    modal.show();
+  }
+
+  function zoomDoc(step) {
+    currentZoom = Math.max(0.5, Math.min(3.0, currentZoom + step));
+    applyTransform();
+  }
+
+  function rotateDoc() {
+    currentRotation = (currentRotation + 90) % 360;
+    applyTransform();
+  }
+
+  function resetDoc() {
+    currentZoom = 1.0;
+    currentRotation = 0;
+    applyTransform();
+  }
+
+  function applyTransform() {
+    const container = document.getElementById('docContainer');
+    if (container) {
+      container.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+    }
+  }
+</script>
 {% endblock %}

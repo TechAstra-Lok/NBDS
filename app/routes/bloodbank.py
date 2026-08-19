@@ -256,51 +256,110 @@ def add_reservation():
 @bloodbank_bp.route('/reservations/<int:id>/status', methods=['POST'])
 @bloodbank_login_required
 def update_reservation_status(id):
-    from app.models import BloodReservation, BloodInventory
+    from app.models import BloodReservation, BloodInventory, BloodInventoryMovement, AuditLog
     from app.services.inventory_service import InventoryService
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     
     reservation = BloodReservation.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
-    new_status = request.form.get('status')
+    new_status = request.form.get('status', '').strip().lower()
     
-    if new_status not in ['approved', 'cancelled', 'fulfilled']:
-        flash('Invalid status.', 'danger')
+    allowed_statuses = ['approved', 'rejected', 'more_info', 'cancelled', 'fulfilled', 'under_review']
+    if new_status not in allowed_statuses:
+        flash('Invalid reservation status requested.', 'danger')
         return redirect(url_for('bloodbank.reservations'))
         
     if reservation.status == new_status:
         flash('Reservation is already in that status.', 'info')
         return redirect(url_for('bloodbank.reservations'))
         
-    # Logic for inventory update if approved or cancelled after approval
-    inventory = BloodInventory.query.filter_by(blood_bank_id=account.blood_bank_id, blood_group=reservation.blood_group, component=reservation.component).first()
+    # Transactional inventory locking
+    inventory = BloodInventory.query.filter_by(
+        blood_bank_id=account.blood_bank_id, 
+        blood_group=reservation.blood_group, 
+        component=reservation.component
+    ).with_for_update().first()
     
-    if new_status == 'approved' and reservation.status == 'pending':
+    old_status = reservation.status
+
+    if new_status == 'approved' and old_status in ['pending', 'under_review', 'more_info']:
         if not inventory or inventory.available_units < reservation.units:
-            flash(f'Not enough available units of {reservation.blood_group} {reservation.component} to approve.', 'danger')
+            avail = inventory.available_units if inventory else 0
+            flash(f'Stock Conflict: Insufficient stock of {reservation.blood_group} ({reservation.component}). Available: {avail}, Requested: {reservation.units}. Cannot approve.', 'danger')
             return redirect(url_for('bloodbank.reservations'))
         
-        # Mark units as reserved (subtract from available via units_reserved)
+        # Atomically reserve inventory units
         inventory.units_reserved += reservation.units
+        inventory.last_updated = datetime.utcnow()
         
-    elif new_status == 'cancelled' and reservation.status == 'approved':
+        # Log inventory movement
+        movement = BloodInventoryMovement(
+            inventory_id=inventory.id,
+            movement_type='reservation_lock',
+            units=reservation.units,
+            note=f"Locked for Reservation #{reservation.id} ({reservation.patient_name})",
+            created_at=datetime.utcnow()
+        )
+        db.session.add(movement)
+        
+    elif new_status in ['cancelled', 'rejected'] and old_status == 'approved':
         if inventory:
             # Free up the reserved units
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
+            inventory.last_updated = datetime.utcnow()
             
-    elif new_status == 'fulfilled' and reservation.status == 'approved':
+            movement = BloodInventoryMovement(
+                inventory_id=inventory.id,
+                movement_type='reservation_release',
+                units=reservation.units,
+                note=f"Released from Reservation #{reservation.id} (Status changed to {new_status})",
+                created_at=datetime.utcnow()
+            )
+            db.session.add(movement)
+            
+    elif new_status == 'fulfilled' and old_status == 'approved':
         if inventory:
-            # Consume the reserved units — physically remove from stock
+            # Physically deduct from stock and release reservation lock
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
             inventory.units_available = max(0, inventory.units_available - reservation.units)
+            inventory.last_updated = datetime.utcnow()
+            
+            movement = BloodInventoryMovement(
+                inventory_id=inventory.id,
+                movement_type='issue_fulfilled',
+                units=reservation.units,
+                note=f"Issued & Dispensed for Reservation #{reservation.id} ({reservation.hospital_name})",
+                created_at=datetime.utcnow()
+            )
+            db.session.add(movement)
             
     reservation.status = new_status
+    reservation.updated_at = datetime.utcnow()
+
+    # Create immutable audit log
+    audit = AuditLog(
+        action=f"reservation_{new_status}",
+        entity_id=reservation.id,
+        details=f"Reservation #{reservation.id} changed from '{old_status}' to '{new_status}' by {account.login_id}",
+        actor=account.login_id
+    )
+    db.session.add(audit)
     db.session.commit()
     
     # Sync public cache if inventory changed
-    if new_status in ['approved', 'cancelled', 'fulfilled'] and inventory:
-        InventoryService.sync_public_cache(account.blood_bank_id)
+    if inventory:
+        try:
+            InventoryService.sync_public_cache(account.blood_bank_id)
+        except Exception:
+            pass
         
-    flash(f'Reservation #{reservation.id} status updated to {new_status}.', 'success')
+    status_labels = {
+        'approved': 'Approved and units locked',
+        'fulfilled': 'Marked as Issued & Fulfilled',
+        'rejected': 'Rejected',
+        'more_info': 'Marked as More Information Required',
+        'cancelled': 'Cancelled'
+    }
+    flash(f'Reservation #{reservation.id} successfully {status_labels.get(new_status, new_status)}.', 'success')
     return redirect(url_for('bloodbank.reservations'))
 
 

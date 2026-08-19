@@ -1,0 +1,82 @@
+<!-- Digital Raktadata / Raktadan Card Partial -->
+<div class="py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-id-card text-danger me-2"></i>Official Digital Blood Donor ID Card</h6>
+      <small class="text-muted">National Blood Donor System Nepal (NBDS) • Verified Identity</small>
+    </div>
+    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="window.print()">
+      <i class="fas fa-print me-1"></i> Print / Download Card
+    </button>
+  </div>
+
+  <!-- Digital Card Front -->
+  <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 mx-auto" style="max-width: 520px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; position: relative;">
+    
+    <!-- Top Decorative Header Strip -->
+    <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom border-secondary border-opacity-25" style="background: rgba(220, 38, 38, 0.15);">
+      <div class="d-flex align-items-center gap-2">
+        <div class="bg-danger text-white rounded-2 p-2 d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+          <i class="fas fa-droplet fa-sm"></i>
+        </div>
+        <div>
+          <div class="fw-bold text-white small lh-1">RAKTADATA NEPAL</div>
+          <div class="text-white-50" style="font-size:0.65rem;">National Blood Donor System</div>
+        </div>
+      </div>
+      <span class="badge bg-danger fs-6 px-3 py-1 fw-bold">{{ donor.blood_group }}</span>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body p-4">
+      <div class="row align-items-center g-3">
+        <!-- Photo & Blood Badge -->
+        <div class="col-4 text-center">
+          <div class="position-relative d-inline-block">
+            <div class="bg-white rounded-circle p-1 shadow-sm d-inline-block border border-2 border-danger">
+              <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-danger" style="width:85px;height:85px;">
+                <i class="fas fa-user-heart fa-2x"></i>
+              </div>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2" style="font-size:0.68rem;">
+              <i class="fas fa-shield-check me-1"></i>Verified Donor
+            </span>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="col-8">
+          <h5 class="fw-bold text-white mb-1">{{ donor.full_name }}</h5>
+          <div class="text-white-50 small mb-2 mono-code" style="font-size:0.75rem;">ID: {{ donor.donor_id }}</div>
+
+          <div class="row g-2 text-start small">
+            <div class="col-6">
+              <span class="text-white-50 d-block" style="font-size:0.7rem;">District</span>
+              <span class="fw-semibold text-white">{{ donor.curr_district }}</span>
+            </div>
+            <div class="col-6">
+              <span class="text-white-50 d-block" style="font-size:0.7rem;">Total Donations</span>
+              <span class="fw-bold text-danger">{{ donor.total_donations or donor.donation_times or 0 }} Times</span>
+            </div>
+            <div class="col-6">
+              <span class="text-white-50 d-block" style="font-size:0.7rem;">Last Donated</span>
+              <span class="fw-semibold text-white">{{ donor.last_donation_date.strftime('%Y-%m-%d') if donor.last_donation_date else 'First Time' }}</span>
+            </div>
+            <div class="col-6">
+              <span class="text-white-50 d-block" style="font-size:0.7rem;">Status</span>
+              <span class="fw-bold text-success">{{ donor.availability_status|capitalize }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Strip with QR Verification -->
+    <div class="px-4 py-2 bg-dark bg-opacity-50 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center" style="font-size:0.7rem;">
+      <span class="text-white-50"><i class="fas fa-lock me-1"></i>Official NBDS Medical Identification</span>
+      <span class="text-white-50 mono-code">VERIFIED: {{ donor.donor_id }}</span>
+    </div>
+  </div>
+</div>

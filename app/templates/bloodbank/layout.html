@@ -1,89 +1,517 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex, nofollow"/>
   <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}"/>
-  <title>{% block title %}Blood Bank Portal{% endblock %} — NBD</title>
+  <title>{% block title %}Operations Dashboard{% endblock %} — NBDS Blood Bank Portal</title>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <!-- Google Fonts & Bootstrap 5 & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   {% block extra_css %}{% endblock %}
 
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f0f2f5; min-height: 100vh; }
-    .bb-navbar { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-    .bb-navbar .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
-    .bb-card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    .bb-hero-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    :root {
+      --bb-navy: #0f172a;
+      --bb-navy-light: #1e293b;
+      --bb-sidebar-bg: #0b1329;
+      --bb-primary: #1e40af;
+      --bb-primary-hover: #1d4ed8;
+      --bb-blood: #dc2626;
+      --bb-blood-hover: #b91c1c;
+      --bb-blood-subtle: #fef2f2;
+      --bb-emerald: #059669;
+      --bb-amber: #d97706;
+      --bb-body-bg: #f8fafc;
+      --bb-card-bg: #ffffff;
+      --bb-text: #1e293b;
+      --bb-text-muted: #64748b;
+      --bb-border: #e2e8f0;
+      --sidebar-width: 260px;
+    }
+
+    [data-bs-theme="dark"] {
+      --bb-body-bg: #090e17;
+      --bb-card-bg: #111827;
+      --bb-sidebar-bg: #070c18;
+      --bb-text: #f1f5f9;
+      --bb-text-muted: #94a3b8;
+      --bb-border: #1f293d;
+      --bb-blood-subtle: #450a0a;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bb-body-bg);
+      color: var(--bb-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Enterprise App Wrapper */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Left Sidebar */
+    .bb-sidebar {
+      width: var(--sidebar-width);
+      background: var(--bb-sidebar-bg);
+      color: #94a3b8;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1040;
+      transition: all 0.25s ease;
+    }
+
+    .bb-sidebar-brand {
+      padding: 1.25rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #ffffff;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .bb-sidebar-brand .logo-badge {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+    }
+
+    .sidebar-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      padding: 1rem 1.25rem 0.4rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      padding: 0 0.75rem;
+      margin: 0;
+    }
+
+    .sidebar-nav .nav-item {
+      margin-bottom: 0.2rem;
+    }
+
+    .sidebar-nav .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      color: #94a3b8;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-nav .nav-link i {
+      font-size: 1rem;
+      width: 20px;
+      text-align: center;
+      color: #64748b;
+      transition: color 0.15s;
+    }
+
+    .sidebar-nav .nav-link:hover {
+      color: #ffffff;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .sidebar-nav .nav-link:hover i {
+      color: #ef4444;
+    }
+
+    .sidebar-nav .nav-link.active {
+      color: #ffffff;
+      background: linear-gradient(90deg, rgba(220,38,38,0.2) 0%, rgba(220,38,38,0.08) 100%);
+      border-left: 3px solid #dc2626;
+      font-weight: 600;
+    }
+
+    .sidebar-nav .nav-link.active i {
+      color: #dc2626;
+    }
+
+    .sidebar-nav .badge-counter {
+      margin-left: auto;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* Main Area */
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    /* Top Header */
+    .bb-topbar {
+      background: var(--bb-card-bg);
+      border-bottom: 1px solid var(--bb-border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      backdrop-filter: blur(8px);
+    }
+
+    .bb-card {
+      background: var(--bb-card-bg);
+      border: 1px solid var(--bb-border);
+      border-radius: 14px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .bb-card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    }
+
+    .pulse-emergency {
+      animation: pulseAlert 1.8s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+
+    .mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    @media (max-width: 991.98px) {
+      .bb-sidebar {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bb-navbar sticky-top">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('bloodbank.dashboard') }}">
-        <div class="bg-danger rounded-2 d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
-          <i class="fas fa-hospital text-white" style="font-size:0.9rem;"></i>
-        </div>
-        <span>Blood Bank Portal</span>
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#bbNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="bbNav">
-        <ul class="navbar-nav ms-auto align-items-center gap-2">
-          {% if session.get('bloodbank_account_id') %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('bloodbank.dashboard') }}"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('bloodbank.inventory') }}"><i class="fas fa-boxes-stacked me-1"></i> Inventory</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('bloodbank.reservations') }}"><i class="fas fa-clipboard-list me-1"></i> Reservations</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('bloodbank.staff') }}"><i class="fas fa-users me-1"></i> Staff</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('bloodbank.change_password') }}"><i class="fas fa-key me-1"></i> Change Password</a>
-          </li>
-          <li class="nav-item ms-lg-2">
-            <span class="text-white-50 small me-2"><i class="fas fa-user-circle me-1"></i>{{ session.get('bloodbank_bank_name', 'Blood Bank') }}</span>
-          </li>
-          <li class="nav-item">
-            <a class="btn btn-sm btn-outline-light" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
-          </li>
+<div class="app-container">
+  {% if session.get('bloodbank_account_id') %}
+  <!-- ═════════════════════════════════════════════════════
+       DESKTOP SIDEBAR
+  ══════════════════════════════════════════════════════ -->
+  <aside class="bb-sidebar">
+    <a href="{{ url_for('bloodbank.dashboard') }}" class="bb-sidebar-brand">
+      <div class="logo-badge">
+        <i class="fas fa-heart-pulse"></i>
+      </div>
+      <div>
+        <div class="fw-bold fs-6 lh-sm">NBDS Blood Bank</div>
+        <div class="text-white-50" style="font-size:0.7rem;">Clinical Operations Portal</div>
+      </div>
+    </a>
+
+    <!-- Operations Menu -->
+    <div class="sidebar-section-title">Operations</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.dashboard') }}" class="nav-link {% if request.endpoint == 'bloodbank.dashboard' %}active{% endif %}">
+          <i class="fas fa-gauge-high"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.inventory') }}" class="nav-link {% if 'inventory' in request.endpoint %}active{% endif %}">
+          <i class="fas fa-boxes-stacked"></i>
+          <span>Live Inventory</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.reservations') }}" class="nav-link {% if 'reservation' in request.endpoint %}active{% endif %}">
+          <i class="fas fa-clipboard-check"></i>
+          <span>Reservations</span>
+          {% if pending_reservations_count is defined and pending_reservations_count > 0 %}
+          <span class="badge bg-warning text-dark badge-counter">{{ pending_reservations_count }}</span>
           {% endif %}
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('public.blood_request_board') }}" target="_blank" class="nav-link">
+          <i class="fas fa-hand-holding-droplet"></i>
+          <span>Blood Requests</span>
+          <span class="badge bg-danger badge-counter">Live</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.staff') }}" class="nav-link {% if 'staff' in request.endpoint %}active{% endif %}">
+          <i class="fas fa-user-doctor"></i>
+          <span>Staff & Shifts</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Directories & Public Network -->
+    <div class="sidebar-section-title">Network & Public</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item">
+        <a href="{{ url_for('public.blood_banks') }}" target="_blank" class="nav-link">
+          <i class="fas fa-hospital"></i>
+          <span>Blood Bank Network</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('public.find_donors') }}" target="_blank" class="nav-link">
+          <i class="fas fa-users-viewfinder"></i>
+          <span>Donor Directory</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('public.ai_assistant') }}" target="_blank" class="nav-link">
+          <i class="fas fa-robot"></i>
+          <span>AI Health Assistant</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Account & Security -->
+    <div class="sidebar-section-title">Account</div>
+    <ul class="sidebar-nav mb-4">
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.change_password') }}" class="nav-link {% if request.endpoint == 'bloodbank.change_password' %}active{% endif %}">
+          <i class="fas fa-shield-halved"></i>
+          <span>Change Password</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.logout') }}" class="nav-link text-danger">
+          <i class="fas fa-arrow-right-from-bracket text-danger"></i>
+          <span>Sign Out</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Bank Footer Card in Sidebar -->
+    <div class="mt-auto p-3 m-2 rounded-3" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">
+      <div class="d-flex align-items-center gap-2">
+        <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width:32px;height:32px;">
+          <i class="fas fa-building-shield fa-sm"></i>
+        </div>
+        <div class="overflow-hidden">
+          <div class="text-white small fw-bold text-truncate">{{ session.get('bloodbank_bank_name', 'Blood Bank Unit') }}</div>
+          <div class="text-white-50" style="font-size:0.72rem;"><i class="fas fa-circle text-success me-1 fa-2xs"></i>Operational</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+
+  <!-- ═════════════════════════════════════════════════════
+       MAIN VIEWPORT
+  ══════════════════════════════════════════════════════ -->
+  <div class="app-main">
+    
+    {% if session.get('bloodbank_account_id') %}
+    <!-- Top Header -->
+    <header class="bb-topbar">
+      <div class="d-flex align-items-center gap-2">
+        <!-- Mobile Sidebar Toggle Button -->
+        <button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Toggle Navigation">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <div>
+          <h5 class="mb-0 fw-bold d-flex align-items-center gap-2 fs-6">
+            <span>{{ session.get('bloodbank_bank_name', 'Blood Bank Portal') }}</span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size:0.7rem;">
+              <i class="fas fa-shield-heart me-1"></i>Active Verified
+            </span>
+          </h5>
+          <div class="text-muted small" style="font-size:0.75rem;">
+            <span><i class="fas fa-clock me-1"></i>24/7 Emergency Blood Reserve System</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Action Items -->
+      <div class="d-flex align-items-center gap-2">
+        <!-- Emergency Indicator -->
+        <a href="{{ url_for('bloodbank.reservations') }}?status=pending" class="btn btn-sm btn-outline-danger d-none d-sm-inline-flex align-items-center gap-1 pulse-emergency" title="Emergency Operations">
+          <i class="fas fa-truck-medical"></i>
+          <span class="fw-semibold">Emergency Desk</span>
+        </a>
+
+        <!-- Dark / Light Theme Toggle -->
+        <button id="themeToggleBtn" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;" title="Toggle Theme" onclick="toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-light border dropdown-toggle d-flex align-items-center gap-2 rounded-pill px-3 py-1" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-user-shield text-danger"></i>
+            <span class="small fw-semibold d-none d-md-inline">{{ session.get('bloodbank_login_id', 'Staff Account') }}</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+            <li class="dropdown-header small text-muted">Signed in as</li>
+            <li class="px-3 py-1 fw-bold small text-dark">{{ session.get('bloodbank_bank_name') }}</li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item small" href="{{ url_for('bloodbank.change_password') }}"><i class="fas fa-key me-2 text-muted"></i>Change Password</a></li>
+            <li><a class="dropdown-item small" href="{{ url_for('public.blood_banks') }}" target="_blank"><i class="fas fa-globe me-2 text-muted"></i>View Public Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item small text-danger" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+    {% endif %}
+
+    <!-- ═════════════════════════════════════════════════════
+         MOBILE OFFCANVAS SIDEBAR
+    ══════════════════════════════════════════════════════ -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar" style="width:280px;">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <div class="d-flex align-items-center gap-2">
+          <div class="bg-danger p-2 rounded-2 text-white">
+            <i class="fas fa-heart-pulse"></i>
+          </div>
+          <div>
+            <h6 class="mb-0 fw-bold">NBDS Blood Bank</h6>
+            <small class="text-white-50">Operations Portal</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body p-0">
+        <div class="sidebar-section-title text-secondary">Operations</div>
+        <ul class="sidebar-nav p-2">
+          <li class="nav-item">
+            <a href="{{ url_for('bloodbank.dashboard') }}" class="nav-link text-white-50 {% if request.endpoint == 'bloodbank.dashboard' %}active text-white{% endif %}">
+              <i class="fas fa-gauge-high me-2"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('bloodbank.inventory') }}" class="nav-link text-white-50 {% if 'inventory' in request.endpoint %}active text-white{% endif %}">
+              <i class="fas fa-boxes-stacked me-2"></i> Live Inventory
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('bloodbank.reservations') }}" class="nav-link text-white-50 {% if 'reservation' in request.endpoint %}active text-white{% endif %}">
+              <i class="fas fa-clipboard-check me-2"></i> Reservations
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('bloodbank.staff') }}" class="nav-link text-white-50 {% if 'staff' in request.endpoint %}active text-white{% endif %}">
+              <i class="fas fa-user-doctor me-2"></i> Staff & Shifts
+            </a>
+          </li>
+          <li class="nav-item mt-3">
+            <a href="{{ url_for('bloodbank.change_password') }}" class="nav-link text-white-50">
+              <i class="fas fa-key me-2"></i> Change Password
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url_for('bloodbank.logout') }}" class="nav-link text-danger">
+              <i class="fas fa-sign-out-alt me-2"></i> Logout
+            </a>
+          </li>
         </ul>
       </div>
     </div>
-  </nav>
 
-  <!-- Flash Messages -->
-  <div class="container mt-3">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <!-- Flash Alerts Container -->
+    <div class="container-fluid px-4 mt-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show rounded-3 shadow-sm border-0 d-flex align-items-center justify-content-between p-3" role="alert">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-info-circle fa-lg"></i>
+              <div>{{ message }}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Page Body Block -->
+    <main class="flex-grow-1 px-3 px-md-4 py-3">
+      {% block content %}{% endblock %}
+      {% block bb_content %}{% endblock %}
+    </main>
+
+    <!-- App Footer -->
+    <footer class="mt-auto py-3 px-4 text-center text-muted small border-top" style="background: var(--bb-card-bg);">
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <span>&copy; {{ now.year if now else '2026' }} National Blood Donor System Nepal (NBDS) • Clinical Blood Bank Operations</span>
+        <span class="text-muted"><i class="fas fa-heartbeat text-danger me-1"></i>Emergency Hotline: 102 / 1145</span>
+      </div>
+    </footer>
+
   </div>
+</div>
 
-  <!-- Content -->
-  <main class="container py-4">
-    {% block content %}{% endblock %}
-  </main>
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  {% block extra_js %}{% endblock %}
+<!-- Theme Handler JS -->
+<script>
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+      icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    localStorage.setItem('nbds_portal_theme', theme);
+  }
+
+  function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('nbds_portal_theme') || 'light';
+    applyTheme(savedTheme);
+  });
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

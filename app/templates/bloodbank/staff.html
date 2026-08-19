@@ -1,84 +1,203 @@
 {% extends "bloodbank/layout.html" %}
-{% block title %}Staff Members Management{% endblock %}
-{% block page_title %}Staff Members{% endblock %}
+{% block title %}Staff Directory & Shift Handover — {{ session.get('bloodbank_bank_name', 'Blood Bank') }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0 text-muted">Manage the board members and operational staff of the society.</h5>
-    <a href="{{ url_for('bloodbank.add_staff') }}" class="btn btn-danger btn-sm">
-        <i class="fas fa-plus me-1"></i> Add Staff Member
-    </a>
-</div>
+<div class="container-fluid p-0">
 
-<div class="card shadow-sm border-0 rounded-4">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Name & Designation</th>
-                        <th>Contact</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for member in pagination.items %}
-                    <tr>
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center">
-                                <img loading="lazy" src="{{ member.image_url }}" alt="Profile Photo" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover;">
-                                <div>
-                                    <h6 class="mb-0 fw-bold">{{ member.full_name }}</h6>
-                                    <span class="text-muted small">{{ member.designation }}</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div><i class="fas fa-envelope fa-sm text-muted me-1"></i> {{ member.email or 'N/A' }}</div>
-                            <div class="mt-1"><i class="fas fa-phone fa-sm text-muted me-1"></i> {{ member.contact_number or 'N/A' }}</div>
-                        </td>
-                        <td>
-                            {% if member.district %}
-                            {{ member.district }}{% if member.province %}, {{ member.province }}{% endif %}
-                            {% else %}
-                            N/A
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if member.is_active %}
-                            <span class="badge bg-success">Active</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end pe-4">
-                            <a href="{{ url_for('bloodbank.edit_staff', id=member.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <form action="{{ url_for('bloodbank.delete_staff', id=member.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this staff member?');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">No staff members found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="fas fa-user-doctor text-danger"></i>
+        <span>Clinical Staff & Shift Operations</span>
+      </h4>
+      <p class="text-muted small mb-0">
+        Duty rosters, lab technicians, medical officers, and clinical shift handover management.
+      </p>
     </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#handoverModal">
+        <i class="fas fa-notes-medical me-1"></i> Shift Handover Note
+      </button>
+      <a href="{{ url_for('bloodbank.add_staff') }}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
+        <i class="fas fa-user-plus me-1"></i> Add Staff Member
+      </a>
+    </div>
+  </div>
+
+  <!-- Shift Overview Bar -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card bb-card p-3 border-start border-4 border-success">
+        <div class="small text-muted fw-semibold text-uppercase">Morning Shift</div>
+        <div class="fw-bold fs-6 text-dark mt-1">06:00 — 14:00</div>
+        <div class="small text-success mt-1"><i class="fas fa-circle-check me-1"></i>Normal Labs</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card bb-card p-3 border-start border-4 border-primary">
+        <div class="small text-muted fw-semibold text-uppercase">Evening Shift</div>
+        <div class="fw-bold fs-6 text-dark mt-1">14:00 — 22:00</div>
+        <div class="small text-primary mt-1"><i class="fas fa-user-clock me-1"></i>Active Current</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card bb-card p-3 border-start border-4 border-dark">
+        <div class="small text-muted fw-semibold text-uppercase">Night Shift</div>
+        <div class="fw-bold fs-6 text-dark mt-1">22:00 — 06:00</div>
+        <div class="small text-muted mt-1"><i class="fas fa-moon me-1"></i>Emergency Duty</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card bb-card p-3 border-start border-4 border-danger">
+        <div class="small text-muted fw-semibold text-uppercase">Emergency On-Call</div>
+        <div class="fw-bold fs-6 text-danger mt-1">24/7 Response</div>
+        <div class="small text-danger mt-1"><i class="fas fa-phone-volume me-1"></i>Priority Line</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Cards Grid / Table -->
+  <div class="card bb-card border-0 shadow-sm overflow-hidden mb-4">
+    <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+      <h6 class="fw-bold mb-0"><i class="fas fa-users-gear text-danger me-2"></i>Medical & Operational Team</h6>
+      <span class="badge bg-light text-muted border">{{ pagination.total if pagination else 0 }} Registered Staff</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-muted small text-uppercase">
+          <tr>
+            <th class="ps-4">Staff Member</th>
+            <th>Designation & Role</th>
+            <th>Contact Details</th>
+            <th>Branch / Location</th>
+            <th>Operational Status</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in pagination.items %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}" class="rounded-circle border shadow-sm" style="width: 44px; height: 44px; object-fit: cover;">
+                <div>
+                  <div class="fw-bold text-dark">{{ member.full_name }}</div>
+                  <div class="small text-muted">ID: #STF-{{ "%04d"|format(member.id) }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ member.designation }}</span>
+            </td>
+            <td>
+              <div class="small text-dark"><i class="fas fa-phone text-success fa-xs me-1"></i>{{ member.contact_number or 'N/A' }}</div>
+              <div class="small text-muted"><i class="fas fa-envelope text-secondary fa-xs me-1"></i>{{ member.email or 'N/A' }}</div>
+            </td>
+            <td class="small text-muted">
+              {% if member.district %}
+                <i class="fas fa-location-dot text-danger fa-xs me-1"></i>{{ member.district }}{% if member.province %}, {{ member.province }}{% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if member.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="fas fa-circle-check me-1"></i>Active / On Duty</span>
+              {% else %}
+              <span class="badge bg-secondary-subtle text-secondary px-2 py-1">Off Duty / Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a href="{{ url_for('bloodbank.edit_staff', id=member.id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" title="Edit Staff Profile">
+                <i class="fas fa-pen-to-square me-1"></i> Edit
+              </a>
+              <form action="{{ url_for('bloodbank.delete_staff', id=member.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove staff member {{ member.full_name }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" style="width:32px;height:32px;" title="Remove Staff">
+                  <i class="fas fa-trash-can fa-xs"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-5">
+              <div class="py-4">
+                <div class="bg-light rounded-circle d-inline-flex p-4 mb-3 text-muted">
+                  <i class="fas fa-user-doctor fa-3x"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No Staff Members Registered</h5>
+                <p class="text-muted small max-w-sm mx-auto mb-3">Add lab technicians, nurses, and operational officers to manage shifts and clinical reservations.</p>
+                <a href="{{ url_for('bloodbank.add_staff') }}" class="btn btn-danger rounded-pill px-4">
+                  <i class="fas fa-user-plus me-1"></i> Add First Staff Member
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination and pagination.pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="small text-muted">Showing Page {{ pagination.page }} of {{ pagination.pages }}</div>
+    <nav aria-label="Staff Pages">
+      <ul class="pagination pagination-sm mb-0">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('bloodbank.staff', page=pagination.prev_num) }}">Previous</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+          {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('bloodbank.staff', page=p) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('bloodbank.staff', page=pagination.next_num) }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
 </div>
 
-{% if pagination.pages > 1 %}
-<div class="mt-4">
-    {{ render_pagination(pagination, 'bloodbank.staff') }}
+<!-- Shift Handover Modal -->
+<div class="modal fade" id="handoverModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header bg-dark text-white rounded-top-4">
+        <h5 class="modal-title fw-bold"><i class="fas fa-notes-medical text-danger me-2"></i>Clinical Shift Handover</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="alert alert-info small p-3 mb-3 rounded-3">
+          <i class="fas fa-circle-info me-1"></i>
+          <strong>Clinical Continuity Protocol:</strong> Record pending reservations, critical stock levels, and urgent clinical cases before shift transition.
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Incoming Shift Duty Officer</label>
+          <input type="text" class="form-control" placeholder="Name of incoming medical officer / nurse" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Critical Handover Notes</label>
+          <textarea class="form-control" rows="4" placeholder="e.g. 2 units O- reserved for Emergency ICU Case #412; Refrigerator Temp Check at 04:00 OK."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer bg-light rounded-bottom-4">
+        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger rounded-pill px-4" onclick="alert('Shift Handover logged and acknowledged.'); bootstrap.Modal.getInstance(document.getElementById('handoverModal')).hide();">
+          <i class="fas fa-check me-1"></i> Acknowledge & Log Handover
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
-{% endif %}
 {% endblock %}

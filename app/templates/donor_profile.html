@@ -76,6 +76,11 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link text-dark fw-bold" id="card-tab" data-bs-toggle="tab" data-bs-target="#digitalcard" type="button" role="tab" aria-controls="digitalcard" aria-selected="false">
+                            <i class="fas fa-id-card me-2 text-danger"></i>Digital Card
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link text-dark fw-bold" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit" type="button" role="tab" aria-controls="edit" aria-selected="false">
                             <i class="fas fa-user-edit me-2 text-success"></i>Edit Profile
                         </button>
@@ -91,6 +96,11 @@
                     <!-- History Tab -->
                     <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
                         {% include 'partials/_donor_history.html' %}
+                    </div>
+
+                    <!-- Digital Card Tab -->
+                    <div class="tab-pane fade" id="digitalcard" role="tabpanel" aria-labelledby="card-tab">
+                        {% include 'partials/_donor_digital_card.html' %}
                     </div>
                     
                     <!-- Edit Tab -->

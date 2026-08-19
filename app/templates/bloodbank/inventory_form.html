@@ -1,151 +1,176 @@
 {% extends 'bloodbank/layout.html' %}
-{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Inventory — {{ bank.resolved_display_name }}{% endblock %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Register' }} Inventory — {{ bank.resolved_display_name }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-8">
+<div class="container-fluid p-0">
 
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('bloodbank.dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('bloodbank.inventory') }}">Inventory</a></li>
-        <li class="breadcrumb-item active">{{ 'Edit' if mode == 'edit' else 'Add New' }}</li>
-      </ol>
-    </nav>
+  <!-- Breadcrumbs -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('bloodbank.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('bloodbank.inventory') }}" class="text-decoration-none">Inventory</a></li>
+      <li class="breadcrumb-item active">{{ 'Adjust Stock' if mode == 'edit' else 'Register Component' }}</li>
+    </ol>
+  </nav>
 
-    <div class="card bb-card">
-      <div class="card-header bg-white py-3">
-        <h5 class="fw-bold mb-0">
-          {% if mode == 'edit' %}
-          <i class="fas fa-edit text-primary me-2"></i>Update Stock — <span class="badge bg-danger">{{ item.blood_group }}</span> {{ item.component }}
-          {% else %}
-          <i class="fas fa-plus-circle text-success me-2"></i>Add New Blood Group
-          {% endif %}
-        </h5>
-      </div>
-      <div class="card-body">
+  <div class="row g-4">
+    
+    <!-- Left Column: Form -->
+    <div class="col-lg-6">
+      <div class="card bb-card border-0 shadow-sm p-4">
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+          <div class="bg-danger text-white rounded-3 p-3 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+            <i class="fas fa-cubes-stacked fa-lg"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">
+              {% if mode == 'edit' %}
+              Adjust Stock: <span class="badge bg-danger fs-6">{{ item.blood_group }}</span> {{ item.component }}
+              {% else %}
+              Register New Blood Component
+              {% endif %}
+            </h5>
+            <small class="text-muted">Clinical inventory transaction ledger entry</small>
+          </div>
+        </div>
+
         <form method="POST" action="{{ url_for('bloodbank.edit_inventory', id=item.id) if mode == 'edit' else url_for('bloodbank.add_inventory') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <div class="row g-3">
             {% if mode == 'add' %}
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Blood Group <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold small">Blood Group <span class="text-danger">*</span></label>
               <select class="form-select" name="blood_group" required>
-                <option value="">Select Blood Group</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
+                <option value="">Select ABO / Rh</option>
+                <option value="A+">A+</option><option value="A-">A-</option>
+                <option value="B+">B+</option><option value="B-">B-</option>
+                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                <option value="O+">O+</option><option value="O-">O-</option>
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Component</label>
-              <select class="form-select" name="component">
+              <label class="form-label fw-semibold small">Component Type <span class="text-danger">*</span></label>
+              <select class="form-select" name="component" required>
                 <option value="Whole Blood">Whole Blood</option>
-                <option value="Packed Red Cells">Packed Red Cells</option>
+                <option value="Packed RBC">Packed RBC (Red Cells)</option>
                 <option value="Platelets">Platelets</option>
-                <option value="Fresh Frozen Plasma">Fresh Frozen Plasma</option>
+                <option value="Fresh Frozen Plasma">Fresh Frozen Plasma (FFP)</option>
                 <option value="Cryoprecipitate">Cryoprecipitate</option>
+                <option value="Plasma">Plasma</option>
               </select>
             </div>
             {% endif %}
 
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Units Available <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-tint"></i></span>
-                <input type="number" class="form-control form-control-lg" name="units_available"
+            <div class="col-md-12">
+              <label class="form-label fw-semibold small">Total Physical Units in Stock <span class="text-danger">*</span></label>
+              <div class="input-group input-group-lg">
+                <span class="input-group-text bg-light"><i class="fas fa-boxes-stacked text-danger"></i></span>
+                <input type="number" class="form-control fw-bold fs-4" name="units_available"
                        value="{{ item.units_available if mode == 'edit' else 0 }}" min="0" required>
+                <span class="input-group-text bg-light text-muted">Units</span>
               </div>
               {% if mode == 'edit' %}
-              <div class="small text-muted mt-1">Current: {{ item.units_available }} units</div>
+              <div class="d-flex justify-content-between small text-muted mt-2 p-2 bg-light rounded">
+                <span>Current Total: <strong>{{ item.units_available }}</strong></span>
+                <span>Locked Reserved: <strong>{{ item.units_reserved }}</strong></span>
+                <span>Available for Issue: <strong class="text-success">{{ item.available_units }}</strong></span>
+              </div>
               {% endif %}
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Minimum Stock Level</label>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Minimum Threshold Alert</label>
               <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-arrow-down text-warning"></i></span>
+                <span class="input-group-text"><i class="fas fa-triangle-exclamation text-warning"></i></span>
                 <input type="number" class="form-control" name="minimum_stock"
                        value="{{ item.minimum_stock if mode == 'edit' else 4 }}" min="0">
               </div>
-              <div class="small text-muted mt-1">Alert when stock falls below this</div>
+              <div class="form-text small">Alert triggers when stock drops below this</div>
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Maximum Stock Level</label>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Maximum Capacity Limit</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-arrow-up text-info"></i></span>
                 <input type="number" class="form-control" name="maximum_stock"
                        value="{{ item.maximum_stock if mode == 'edit' else 20 }}" min="0">
               </div>
-              <div class="small text-muted mt-1">Capacity limit</div>
+              <div class="form-text small">Storage refrigerator limit</div>
             </div>
 
             {% if mode == 'edit' %}
             <div class="col-12">
-              <label class="form-label fw-semibold">Reason for Change</label>
-              <input type="text" class="form-control" name="note" placeholder="e.g. Received donation, Issued to patient, Expired units removed">
+              <label class="form-label fw-semibold small">Mandatory Ledger Reason / Note <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="note" required placeholder="e.g. Donation camp batch received, Expired units discarded, Physical inventory reconciliation">
+              <div class="form-text small">Every stock change is permanently logged into the immutable audit ledger.</div>
             </div>
             {% endif %}
           </div>
 
-          <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="btn btn-danger px-4">
-              <i class="fas fa-save me-1"></i> {{ 'Update Stock' if mode == 'edit' else 'Add to Inventory' }}
+          <div class="d-flex gap-2 mt-4 pt-3 border-top">
+            <button type="submit" class="btn btn-danger rounded-pill px-4">
+              <i class="fas fa-save me-1"></i> {{ 'Save Ledger Entry' if mode == 'edit' else 'Register Stock Item' }}
             </button>
-            <a href="{{ url_for('bloodbank.inventory') }}" class="btn btn-outline-secondary">
-              <i class="fas fa-arrow-left me-1"></i> Cancel
+            <a href="{{ url_for('bloodbank.inventory') }}" class="btn btn-outline-secondary rounded-pill px-3">
+              Cancel
             </a>
           </div>
         </form>
       </div>
     </div>
 
-    {% if mode == 'edit' and movements %}
-    <!-- Movement History -->
-    <div class="card bb-card mt-4">
-      <div class="card-header bg-white py-3">
-        <h5 class="fw-bold mb-0"><i class="fas fa-history text-muted me-2"></i>Recent Stock Movements</h5>
-      </div>
-      <div class="card-body p-0">
+    <!-- Right Column: Recent Movement Ledger History -->
+    <div class="col-lg-6">
+      <div class="card bb-card border-0 shadow-sm p-4 h-100">
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+          <i class="fas fa-clock-rotate-left text-muted"></i>
+          <span>Immutable Stock Movement History</span>
+        </h6>
+
+        {% if mode == 'edit' and movements %}
         <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead class="table-light">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light small text-muted text-uppercase">
               <tr>
-                <th class="ps-4">Type</th>
+                <th class="ps-3">Type</th>
                 <th>Units</th>
-                <th>Note</th>
-                <th>Date</th>
+                <th>Note / Reason</th>
+                <th class="pe-3">Timestamp</th>
               </tr>
             </thead>
             <tbody>
               {% for m in movements %}
               <tr>
-                <td class="ps-4">
-                  {% if m.movement_type == 'addition' %}
+                <td class="ps-3">
+                  {% if 'add' in m.movement_type %}
                   <span class="badge bg-success"><i class="fas fa-plus me-1"></i>Addition</span>
-                  {% elif m.movement_type == 'removal' %}
-                  <span class="badge bg-danger"><i class="fas fa-minus me-1"></i>Removal</span>
+                  {% elif 'lock' in m.movement_type %}
+                  <span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>Lock</span>
+                  {% elif 'release' in m.movement_type %}
+                  <span class="badge bg-info text-white"><i class="fas fa-unlock me-1"></i>Release</span>
+                  {% elif 'issue' in m.movement_type %}
+                  <span class="badge bg-primary"><i class="fas fa-hand-holding-medical me-1"></i>Issued</span>
                   {% else %}
                   <span class="badge bg-secondary">{{ m.movement_type }}</span>
                   {% endif %}
                 </td>
                 <td class="fw-bold">{{ m.units }}</td>
-                <td class="text-muted">{{ m.note or '—' }}</td>
-                <td class="text-muted small">{{ m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else 'N/A' }}</td>
+                <td class="small text-muted">{{ m.note or '—' }}</td>
+                <td class="small text-muted pe-3">{{ m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else 'N/A' }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-scroll fa-2x mb-2 d-block opacity-50"></i>
+          <div class="small">Movement logs will appear here once adjustments or reservations take place.</div>
+        </div>
+        {% endif %}
       </div>
     </div>
-    {% endif %}
 
   </div>
 </div>
