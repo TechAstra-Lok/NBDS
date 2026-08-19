@@ -1,38 +1,33 @@
-from flask import session
 import os
-from datetime import datetime, timedelta
-from datetime import datetime, timezone
-from difflib import SequenceMatcher
-
 import math
+from datetime import datetime, timedelta, timezone
+from difflib import SequenceMatcher
 
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, abort, current_app, Response, jsonify
+    url_for, flash, abort, current_app, Response, jsonify, session
 )
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import desc, or_
-from flask_login import login_required, current_user  # एडमिन सुरक्षाका लागि थपिएको
+from flask_login import login_required, current_user, login_user, logout_user
 
 from app import db
 from app.models import (
     Donor, BloodRequest, News, Notice, Advertisement, 
-    Contact, SuccessStory, Volunteer, BloodBank, BloodInventory, BloodReservation
+    Contact, SuccessStory, Volunteer, BloodBank, BloodReservation
 )
 from app.forms import (
     BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm,
     DonorLoginForm, VolunteerRegistrationForm, VolunteerLoginForm,
     DonorProfileEditForm, DonationHistoryForm
 )
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, logout_user
 from app.utils import paginate_query, get_blood_group_stats, rate_limit, generate_qr_code
 from app.tasks import alert_matching_donors
 
 try:
-    # pyrefly: ignore [missing-import]
     import nepali_datetime
-except ImportError:  # pragma: no cover - optional dependency in test/dev environments
+except ImportError:
     nepali_datetime = None
 
 # ब्लुप्रिन्ट परिभाषा
@@ -99,7 +94,7 @@ def is_image_safe(image_path):
             return False, "समुदाय निर्देशिका उल्लंघन (नग्नता, अश्लीलता, वा हिंसात्मक सामग्री फेला पर्यो)।"
         
         return True, "Safe"
-    except Exception as e:
+    except Exception:
         # यदि Google Cloud Credentials कन्फिगर गरिएको छैन भने सुरक्षा बाइपास (वैकल्पिक)
         return True, "Skipped"
 
@@ -726,9 +721,8 @@ def blood_request_form():
         # Handle hospital paper upload
         if form.hospital_paper.data:
             paper_file = form.hospital_paper.data
-            from werkzeug.utils import secure_filename
             import uuid
-            ext = paper_file.filename.rsplit('.', 1)[-1].lower()
+            ext = paper_file.filename.rsplit('.', 1)[-1].lower() if '.' in (paper_file.filename or '') else 'jpg'
             filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
             upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
             os.makedirs(upload_dir, exist_ok=True)
@@ -1034,7 +1028,7 @@ def become_volunteer():
         db.session.commit()
         
         login_user(volunteer)
-        flash(f'🎉 Thank you for registering as a Volunteer! Your account is pending approval.', 'success')
+        flash('🎉 Thank you for registering as a Volunteer! Your account is pending approval.', 'success')
         return redirect(url_for('public.index'))
     
     return render_template('become_volunteer.html', form=form, districts=ALL_DISTRICTS)
@@ -1175,9 +1169,7 @@ def donor_availability_api(donor_id):
 
 
 
-from datetime import datetime
-from sqlalchemy import or_, desc
-from flask import request, current_app, render_template
+
 
 # ════════════════════════════════════════════
 #    NEWS & NOTICES

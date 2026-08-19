@@ -15,7 +15,7 @@ from app.models import (
 from app.utils import generate_qr_code
 from app.services.auth_service import AuthService
 from app.forms import (
-    AdminLoginForm, DonorRegistrationForm, DonorAdminCreateForm, DonorEditForm,
+    AdminLoginForm, DonorAdminCreateForm, DonorEditForm,
     NewsForm, NoticeForm, AdvertisementForm, AdminUserForm,
     StaffMemberForm, PartnerForm
 )
@@ -1115,7 +1115,7 @@ def import_donors_csv():
                     donation_times = 0
                     dt_str = row_data.get('donation_times', '').strip()
                     if dt_str:
-                        import re
+
                         match = re.search(r'\d+', dt_str)
                         if match:
                             donation_times = int(match.group())
@@ -2706,7 +2706,7 @@ def users():
 @admin_bp.route('/users/add', methods=['GET', 'POST'])
 @superadmin_required
 def add_user():
-    from app.forms import AdminUserForm
+
     form = AdminUserForm()
     
     if form.validate_on_submit():
@@ -2729,7 +2729,7 @@ def add_user():
 @admin_bp.route('/users/<int:id>/edit', methods=['GET', 'POST'])
 @superadmin_required
 def edit_user(id):
-    from app.forms import AdminUserForm
+
     user = User.query.get_or_404(id)
     if user.id == current_user.id:
         flash("You cannot edit your own role here. Use profile settings.", "warning")

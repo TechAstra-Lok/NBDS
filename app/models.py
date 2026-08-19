@@ -346,8 +346,6 @@ class BloodInventoryTransaction(db.Model):
     reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-
 
 class BloodReservation(db.Model):
     __tablename__ = 'blood_reservations'
