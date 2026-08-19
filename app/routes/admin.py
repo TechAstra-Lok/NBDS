@@ -1311,6 +1311,32 @@ def delete_donor(id):
     return redirect(url_for('admin.donors'))
 
 
+@admin_bp.route('/donors/<int:id>/reset-pin', methods=['POST'])
+@permission_required('manage_donors')
+def reset_donor_pin(id):
+    """Reset a donor's 4-digit login PIN to the default temporary value (1234).
+    The donor must change it on next login via their profile.
+    """
+    donor = Donor.query.get_or_404(id)
+    temp_pin = '1234'
+    donor.set_pin(temp_pin)
+    db.session.commit()
+
+    log_audit_event(
+        'RESET_DONOR_PIN', donor.id,
+        f'PIN reset for donor {donor.donor_id} ({donor.full_name})',
+        actor=current_user.username
+    )
+
+    flash(
+        f'PIN for donor <strong>{donor.full_name}</strong> ({donor.donor_id}) '
+        f'has been reset to <code>1234</code>. '
+        f'Please notify the donor to change their PIN on next login.',
+        'success'
+    )
+    return redirect(url_for('admin.donors'))
+
+
 @admin_bp.route('/donors/<int:id>/toggle-status', methods=['POST'])
 @permission_required('manage_donors')
 def toggle_donor_status(id):
@@ -2720,6 +2746,37 @@ def delete_user(id):
     db.session.commit()
     flash('Admin user deleted successfully.', 'warning')
     return redirect(url_for('admin.users'))
+
+
+@admin_bp.route('/users/<int:id>/reset-password', methods=['POST'])
+@superadmin_required
+def reset_admin_password(id):
+    """Admin-side password reset for system admin/moderator accounts.
+    Generates a secure temporary password, forces change on next login.
+    """
+    user = User.query.get_or_404(id)
+    if user.id == current_user.id:
+        flash("Use your profile settings to change your own password.", "warning")
+        return redirect(url_for('admin.users'))
+
+    new_password = AuthService.generate_secure_password()
+    user.set_password(new_password)
+    db.session.commit()
+
+    log_audit_event(
+        'RESET_ADMIN_PASSWORD', user.id,
+        f'Admin password reset for user: {user.username}',
+        actor=current_user.username
+    )
+
+    flash(
+        f'Password for <strong>{user.username}</strong> has been reset. '
+        f'New temporary password: <code>{new_password}</code> — '
+        f'Please share it securely and ask them to change it on next login.',
+        'success'
+    )
+    return redirect(url_for('admin.users'))
+
 
 # ════════════════════════════════════════════
 #   VOLUNTEER APPROVALS MANAGEMENT

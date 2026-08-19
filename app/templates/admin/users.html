@@ -3,6 +3,16 @@
 {% block page_title %}Admin User Management{% endblock %}
 
 {% block content %}
+{# Flash messages — render markup=true so code/strong tags display correctly #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show rounded-3 mb-3" role="alert">
+    {{ msg | safe }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
   <div>
     <h5 class="mb-0 text-muted">Manage system administrators, moderators, and content managers.</h5>
@@ -61,15 +71,49 @@
             </td>
             <td class="text-end pe-4">
               {% if user.id != current_user.id %}
-              <a href="{{ url_for('admin.edit_user', id=user.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                <i class="fas fa-edit"></i>
-              </a>
-              <form action="{{ url_for('admin.delete_user', id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this admin user?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                  <i class="fas fa-trash"></i>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.edit_user', id=user.id) }}" class="btn btn-outline-primary" title="Edit User">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <button type="button"
+                        class="btn btn-outline-warning"
+                        title="Reset Password"
+                        data-bs-toggle="modal"
+                        data-bs-target="#resetPwdModal{{ user.id }}">
+                  <i class="fas fa-key"></i>
                 </button>
-              </form>
+                <form action="{{ url_for('admin.delete_user', id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this admin user?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+
+              {# Reset Password Confirmation Modal #}
+              <div class="modal fade" id="resetPwdModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                  <div class="modal-content border-0 shadow rounded-4">
+                    <div class="modal-header border-0">
+                      <h6 class="modal-title fw-bold"><i class="fas fa-key text-warning me-2"></i>Reset Password</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center py-2">
+                      <p class="mb-1">Reset password for <strong>{{ user.username }}</strong>?</p>
+                      <p class="text-muted small mb-0">A new secure temporary password will be generated and shown to you once.</p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 justify-content-center">
+                      <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                      <form action="{{ url_for('admin.reset_admin_password', id=user.id) }}" method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-warning btn-sm px-3">
+                          <i class="fas fa-sync-alt me-1"></i>Reset
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
               {% else %}
               <span class="text-muted small">Current User</span>
               {% endif %}
