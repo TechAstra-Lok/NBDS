@@ -169,12 +169,21 @@
               <div>{{ res.requested_at.strftime('%Y-%m-%d %H:%M') if res.requested_at else 'N/A' }}</div>
             </td>
 
-            <!-- Actions -->
             <td class="text-end pe-4">
               <div class="d-inline-flex gap-1">
                 <!-- Review Workspace Button -->
-                <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
-                        onclick="openReviewModal('{{ res.id }}', '{{ res.patient_name|replace(\"'\", \"\\\\'\") }}', '{{ res.hospital_name|replace(\"'\", \"\\\\'\") }}', '{{ res.blood_group }}', '{{ res.component }}', '{{ res.units }}', '{{ res.priority }}', '{{ res.status }}', '{{ res.hospital_paper_file or '' }}', '{{ res.qr_code or '' }}', '{{ res.requested_at.strftime(\"%Y-%m-%d %H:%M\") if res.requested_at else \"\" }}')">
+                <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 btn-review-res"
+                        data-id="{{ res.id }}"
+                        data-patient="{{ res.patient_name }}"
+                        data-hospital="{{ res.hospital_name }}"
+                        data-blood-group="{{ res.blood_group }}"
+                        data-component="{{ res.component }}"
+                        data-units="{{ res.units }}"
+                        data-priority="{{ res.priority }}"
+                        data-status="{{ res.status }}"
+                        data-paper="{{ res.hospital_paper_file or '' }}"
+                        data-qr="{{ res.qr_code or '' }}"
+                        data-requested="{{ res.requested_at.strftime('%Y-%m-%d %H:%M') if res.requested_at else '' }}">
                   <i class="fas fa-stethoscope"></i>
                   <span>Review</span>
                 </button>
@@ -485,6 +494,15 @@
 <script>
   let currentZoom = 1.0;
   let currentRotation = 0;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.btn-review-res').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = btn.dataset;
+        openReviewModal(d.id, d.patient, d.hospital, d.bloodGroup, d.component, d.units, d.priority, d.status, d.paper, d.qr, d.requested);
+      });
+    });
+  });
 
   function openReviewModal(id, patient, hospital, bg, comp, units, priority, status, paperFile, qrCode, requestedAt) {
     document.getElementById('modalResId').textContent = '#RES-' + String(id).padStart(5, '0');
