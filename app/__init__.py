@@ -295,6 +295,34 @@ def _ensure_legacy_schema_columns(app):
                         db.session.rollback()
                         print(f"[WARN] Failed to add column {column.name} to {table_name}: {col_err}")
 
+        # Ensure donors.email is nullable on PostgreSQL and SQLite
+        if 'donors' in existing_tables:
+            try:
+                if db.engine.name == 'postgresql':
+                    db.session.execute(text("ALTER TABLE donors ALTER COLUMN email DROP NOT NULL;"))
+                    db.session.commit()
+                elif db.engine.name == 'sqlite':
+                    cols = inspector.get_columns('donors')
+                    email_col = next((c for c in cols if c['name'] == 'email'), None)
+                    if email_col and not email_col.get('nullable', True):
+                        import re
+                        db.session.execute(text("PRAGMA foreign_keys=OFF;"))
+                        create_sql = db.session.execute(text("SELECT sql FROM sqlite_master WHERE type='table' AND name='donors'")).scalar()
+                        if create_sql:
+                            new_sql = re.sub(r'email\s+VARCHAR\(\d+\)\s+NOT\s+NULL', 'email VARCHAR(120)', create_sql, flags=re.IGNORECASE)
+                            new_sql = re.sub(r'email\s+VARCHAR\s+NOT\s+NULL', 'email VARCHAR(120)', new_sql, flags=re.IGNORECASE)
+                            new_sql = new_sql.replace('CREATE TABLE donors', 'CREATE TABLE donors_migrated', 1).replace('CREATE TABLE "donors"', 'CREATE TABLE "donors_migrated"', 1)
+                            db.session.execute(text(new_sql))
+                            db.session.execute(text("INSERT INTO donors_migrated SELECT * FROM donors;"))
+                            db.session.execute(text("DROP TABLE donors;"))
+                            db.session.execute(text("ALTER TABLE donors_migrated RENAME TO donors;"))
+                            db.session.execute(text("PRAGMA foreign_keys=ON;"))
+                            db.session.commit()
+                            print("[SCHEMA] Successfully migrated SQLite donors table to make email nullable.")
+            except Exception as e:
+                db.session.rollback()
+                print(f"[WARN] Failed to make donors.email nullable: {e}")
+
     except Exception as exc:
         db.session.rollback()
         print(f"[WARN] Failed to ensure legacy schema columns: {exc}")
