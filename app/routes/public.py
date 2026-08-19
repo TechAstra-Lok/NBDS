@@ -1167,6 +1167,11 @@ def donor_guidelines():
     return render_template('donor_guidelines.html')
 
 
+@public_bp.route('/ai-assistant')
+def ai_assistant():
+    return render_template('ai_assistant.html')
+
+
 @public_bp.route('/faq')
 def faq():
     return render_template('faq.html')
