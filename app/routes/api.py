@@ -171,10 +171,10 @@ from flask import Response, stream_with_context, current_app
 
 # Try fastest/best model first
 GEMINI_CANDIDATE_MODELS = [
-    'gemini-2.5-flash',
+    'gemini-3.6-flash',
+    'gemini-2.5-flash-preview-05-20',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
-    'gemini-1.5-pro',
 ]
 
 SYSTEM_INSTRUCTION = (
@@ -338,7 +338,7 @@ def raktadata_helper():
             res = requests.post(
                 url, json=payload,
                 headers={'Content-Type': 'application/json'},
-                timeout=12
+                timeout=30
             )
             if res.status_code == 200:
                 res_data = res.json()
@@ -383,7 +383,7 @@ def raktadata_helper_stream():
                 with requests.post(
                     url, json=payload,
                     headers={'Content-Type': 'application/json'},
-                    stream=True, timeout=15
+                    stream=True, timeout=30
                 ) as response:
                     if response.status_code == 200:
                         has_data = False
