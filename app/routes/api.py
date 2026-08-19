@@ -402,4 +402,5 @@ def raktadata_helper_stream():
         yield f'data: {json.dumps({"candidates": [{"content": {"parts": [{"text": fallback_text}]}}]})}\n\n'
         yield 'data: [DONE]\n\n'
 
+    # pyrefly: ignore [bad-argument-type]
     return Response(stream_with_context(generate()), mimetype='text/event-stream')

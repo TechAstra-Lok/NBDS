@@ -172,6 +172,7 @@ def test_public_blood_bank_and_reservation_flow(client, app):
     """Phase 7 & 9: Public blood bank view and reservation page availability."""
     with app.app_context():
         bank = BloodBank.query.first()
+        # pyrefly: ignore [missing-attribute]
         bank_id = bank.id
 
     # 1. Directory

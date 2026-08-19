@@ -179,6 +179,7 @@ def change_password():
         account.set_password(new_password)
         account.temp_password = None
         account.password_change_required = False
+        # pyrefly: ignore [deprecated, missing-attribute]
         account.password_changed_at = datetime.utcnow()
 
         history = BloodBankPasswordHistory(
