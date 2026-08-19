@@ -805,17 +805,17 @@
   </script>
   {% endif %}
 
-  <!-- Raktadata Helpher Chat Widget -->
+  <!-- Raktadata Helper Chat Widget -->
   <div id="helpher-widget" class="helpher-widget-container">
-    <button id="helpher-toggle" class="helpher-btn shadow-lg" aria-label="Open AI Assistant">
+    <button id="helpher-toggle" class="helpher-btn shadow-lg" aria-label="Open Raktadata Helper AI Assistant">
       <i class="fas fa-user-md"></i>
     </button>
     
     <div id="helpher-window" class="helpher-window shadow-xl d-none">
       <div class="helpher-header">
         <div>
-          <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Raktadata Helpher</h5>
-          <small>AI Health Assistant</small>
+          <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Raktadata Helper</h5>
+          <small>24/7 AI Medical & Health Doctor</small>
         </div>
         <div class="d-flex align-items-center gap-2">
           <button id="helpher-clear" class="btn btn-sm text-white border-0 bg-transparent opacity-75 opacity-100-hover" title="Clear Chat History">
@@ -827,13 +827,13 @@
       
       <div id="helpher-messages" class="helpher-messages">
         <div class="message ai-message">
-          <div class="msg-content">Hello! I am Raktadata Helpher, your ultimate medical AI assistant. I can help answer queries about health, medical tips, and blood donation. How can I assist you today?</div>
+          <div class="msg-content">Hello! I am <strong>Raktadata Helper</strong>, your 24/7 AI Medical Doctor and health assistant. You can ask me <strong>any question about health, symptoms, medical guidelines, diseases, pre/post donation tips, and blood compatibility</strong>. How can I help you today?</div>
         </div>
       </div>
       
       <div class="helpher-input-area">
         <form id="helpher-form" class="d-flex w-100">
-          <input type="text" id="helpher-input" class="form-control me-2" placeholder="Ask a health question..." required autocomplete="off">
+          <input type="text" id="helpher-input" class="form-control me-2" placeholder="Ask any health or blood question..." required autocomplete="off">
           <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i></button>
         </form>
       </div>
@@ -1066,7 +1066,7 @@
             storageEngine.removeItem(STORAGE_KEY);
             messagesContainer.innerHTML = `
               <div class="message ai-message">
-                <div class="msg-content">Hello! I am Raktadata Helpher, your ultimate medical AI assistant. I can help answer queries about health, medical tips, and blood donation. How can I assist you today?</div>
+                <div class="msg-content">Hello! I am <strong>Raktadata Helper</strong>, your 24/7 AI Medical Doctor and health assistant. You can ask me <strong>any question about health, symptoms, medical guidelines, diseases, pre/post donation tips, and blood compatibility</strong>. How can I help you today?</div>
               </div>
             `;
           }
@@ -1121,7 +1121,7 @@
 
         try {
           const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-          const response = await fetch('/api/v1/raktadata-helpher/stream', {
+          const response = await fetch('/api/v1/raktadata-helper/stream', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
