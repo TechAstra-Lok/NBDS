@@ -4,49 +4,232 @@
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-lg-8">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h1 class="h3 fw-bold text-danger mb-2">Reserve Blood from {{ blood_bank.display_name }}</h1>
-          <p class="text-muted">Submit a reservation request for a hospital or patient.</p>
+    <div class="col-lg-9 col-xl-8">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="rounded-circle bg-danger-soft text-danger d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+              <i class="fas fa-hand-holding-droplet fa-lg"></i>
+            </div>
+            <div>
+              <h1 class="h3 fw-bold text-danger mb-0">Reserve Blood from {{ blood_bank.display_name or blood_bank.name }}</h1>
+              <p class="text-muted small mb-0">Submit an official clinical reservation request for a hospital or patient.</p>
+            </div>
+          </div>
 
           {% if inventory_items %}
-          <div class="table-responsive mb-4 mt-3">
-            <h5 class="fw-bold mb-2">Current Available Inventory</h5>
-            <table class="table table-sm table-bordered align-middle mb-0">
-              <thead class="table-light"><tr><th>Blood Group</th><th>Component</th><th>Available</th></tr></thead>
-              <tbody>
-                {% for item in inventory_items %}
-                <tr>
-                  <td class="fw-bold text-danger">{{ item.blood_group }}</td>
-                  <td>{{ item.component }}</td>
-                  <td><span class="badge bg-success">{{ item.available_units }} units</span></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% endif %}
-          <form method="post" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <div class="row g-3">
-              <div class="col-md-6"><label class="form-label">Hospital Name</label><input class="form-control" name="hospital_name" required></div>
-              <div class="col-md-6"><label class="form-label">Patient Name</label><input class="form-control" name="patient_name" required></div>
-              <div class="col-md-6"><label class="form-label">Blood Group</label><input class="form-control" name="blood_group" placeholder="O+" required></div>
-              <div class="col-md-6"><label class="form-label">Component</label><input class="form-control" name="component" value="Whole Blood"></div>
-              <div class="col-md-6"><label class="form-label">Units</label><input class="form-control" type="number" name="units" value="1" min="1"></div>
-              <div class="col-md-6"><label class="form-label">Priority</label><select class="form-select" name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-              <div class="col-12">
-                <label class="form-label text-danger fw-bold">Hospital's Blood Request Paper *</label>
-                <input class="form-control" type="file" name="hospital_paper" accept=".jpg,.jpeg,.png" required>
-                <div class="form-text">Please upload a clear photo or scan of the official hospital request form (JPG, PNG).</div>
+          <div class="card bg-light border rounded-3 p-3 mb-4 mt-2">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">
+                  <i class="fas fa-boxes-stacked text-danger me-2"></i>Current Available Inventory
+                </h6>
+                <small class="text-muted">Select an available blood unit to pre-fill the reservation form.</small>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <label for="tableBgFilter" class="form-label small fw-semibold mb-0 text-nowrap">Filter Group:</label>
+                <select id="tableBgFilter" class="form-select form-select-sm" style="min-width: 140px;">
+                  <option value="all">All Blood Groups</option>
+                  {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                  <option value="{{ bg }}">{{ bg }}</option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
-            <button class="btn btn-danger mt-4">Submit Reservation</button>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-hover bg-white border align-middle mb-0 rounded-2" id="inventoryTable">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3 py-2">Blood Group</th>
+                    <th class="py-2">Component</th>
+                    <th class="py-2">Available Units</th>
+                    <th class="text-end pe-3 py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in inventory_items %}
+                  <tr class="inventory-row" data-bg="{{ item.blood_group }}">
+                    <td class="ps-3">
+                      <span class="badge bg-danger fw-bold" style="font-size: 0.9rem; min-width: 42px;">{{ item.blood_group }}</span>
+                    </td>
+                    <td>{{ item.component }}</td>
+                    <td>
+                      <span class="badge bg-success fw-semibold">
+                        <i class="fas fa-circle-check me-1"></i>{{ item.available_units }} units
+                      </span>
+                    </td>
+                    <td class="text-end pe-3">
+                      <button type="button" class="btn btn-sm btn-outline-danger select-unit-btn py-1 px-3"
+                              data-bg="{{ item.blood_group }}"
+                              data-component="{{ item.component }}">
+                        <i class="fas fa-check me-1"></i>Select
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+
+          <form method="post" enctype="multipart/form-data" id="reservationForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Hospital Name <span class="text-danger">*</span></label>
+                <input class="form-control" name="hospital_name" placeholder="e.g. Bir Hospital, Teaching Hospital" required>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Patient Name <span class="text-danger">*</span></label>
+                <input class="form-control" name="patient_name" placeholder="e.g. Ramesh Sharma" required>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Required Blood Group <span class="text-danger">*</span></label>
+                <div class="d-flex flex-wrap gap-1 mb-2" id="quickBgSelector">
+                  {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                  <button type="button" class="btn btn-sm btn-outline-danger fw-bold quick-bg-btn"
+                          data-bg="{{ bg }}" style="min-width: 40px; font-size: 0.8rem;">
+                    {{ bg }}
+                  </button>
+                  {% endfor %}
+                </div>
+                <select class="form-select" name="blood_group" id="bloodGroupField" required>
+                  <option value="">-- Choose Blood Group --</option>
+                  {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                  <option value="{{ bg }}">{{ bg }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Required Component</label>
+                <select class="form-select" name="component" id="componentField">
+                  <option value="Whole Blood">Whole Blood</option>
+                  <option value="Packed Red Blood Cells (PRBC)">Packed Red Blood Cells (PRBC)</option>
+                  <option value="Platelets / Platelet Concentrate">Platelets / Platelet Concentrate</option>
+                  <option value="Fresh Frozen Plasma (FFP)">Fresh Frozen Plasma (FFP)</option>
+                  <option value="Cryoprecipitate">Cryoprecipitate</option>
+                  <option value="Plasma">Plasma</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Units Required <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input class="form-control" type="number" name="units" id="unitsField" value="1" min="1" max="10" required>
+                  <span class="input-group-text">Unit(s)</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Priority Urgency <span class="text-danger">*</span></label>
+                <select class="form-select" name="priority">
+                  <option value="normal">Normal (Routine Surgery / Treatment)</option>
+                  <option value="high">High (Urgent Requirement within 6 hours)</option>
+                  <option value="urgent">Urgent / Emergency (Immediate)</option>
+                </select>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label text-danger fw-bold">
+                  <i class="fas fa-file-prescription me-1"></i>Hospital Blood Requisition Slip / Doctor's Paper *
+                </label>
+                <input class="form-control" type="file" name="hospital_paper" accept=".jpg,.jpeg,.png,.pdf" required>
+                <div class="form-text">
+                  Please upload a clear photo or scan of the signed hospital requisition order (JPG, PNG, PDF).
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+              <a href="{{ url_for('public.blood_bank_detail', bank_id=blood_bank.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Blood Bank
+              </a>
+              <button type="submit" class="btn btn-danger px-4 fw-semibold">
+                <i class="fas fa-paper-plane me-1"></i>Submit Reservation
+              </button>
+            </div>
           </form>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const bgFilter = document.getElementById('tableBgFilter');
+  const bgField = document.getElementById('bloodGroupField');
+  const compField = document.getElementById('componentField');
+  const quickBtns = document.querySelectorAll('.quick-bg-btn');
+  const selectUnitBtns = document.querySelectorAll('.select-unit-btn');
+  const rows = document.querySelectorAll('.inventory-row');
+
+  // Filter Table by Blood Group
+  if (bgFilter) {
+    bgFilter.addEventListener('change', function() {
+      const selected = this.value;
+      rows.forEach(row => {
+        if (selected === 'all' || row.dataset.bg === selected) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  // Quick BG Selector buttons
+  quickBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const bg = this.dataset.bg;
+      setBloodGroup(bg);
+    });
+  });
+
+  // Table Select Unit buttons
+  selectUnitBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const bg = this.dataset.bg;
+      const comp = this.dataset.component;
+      setBloodGroup(bg);
+      if (comp && comp !== 'Any / Whole Blood') {
+        compField.value = comp;
+      }
+      document.getElementById('reservationForm').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Change select box directly
+  if (bgField) {
+    bgField.addEventListener('change', function() {
+      updateQuickButtons(this.value);
+    });
+  }
+
+  function setBloodGroup(bg) {
+    if (bgField) {
+      bgField.value = bg;
+      updateQuickButtons(bg);
+    }
+  }
+
+  function updateQuickButtons(activeBg) {
+    quickBtns.forEach(b => {
+      if (b.dataset.bg === activeBg) {
+        b.classList.remove('btn-outline-danger');
+        b.classList.add('btn-danger', 'text-white');
+      } else {
+        b.classList.remove('btn-danger', 'text-white');
+        b.classList.add('btn-outline-danger');
+      }
+    });
+  }
+});
+</script>
 {% endblock %}
