@@ -1,7 +1,7 @@
 import re
 import string
 import secrets
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 from app.models import BloodBankAccount, BloodBankPasswordHistory, BloodBank
 from app import db
 from datetime import datetime

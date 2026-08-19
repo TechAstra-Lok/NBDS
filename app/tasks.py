@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime, timedelta
-from app.models import Donor, BloodRequest
+from datetime import datetime
+from app.models import Donor
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +11,6 @@ def update_donor_availability(app):
     """
     with app.app_context():
         from app import db
-        today = datetime.utcnow().date()
-        
         donors = Donor.query.filter_by(is_active=True).all()
         updated_count = 0
         

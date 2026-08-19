@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import g, current_app
+from flask import current_app
 from app import db
 from app.models import BloodBag, LabTestResult, BloodInventoryTransaction, BloodInventory, PublicBloodBankCache
 

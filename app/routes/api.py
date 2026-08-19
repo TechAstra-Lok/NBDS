@@ -166,7 +166,6 @@ def track_impression(ad_id):
 import os
 import requests
 import json
-import time
 from flask import Response, stream_with_context, current_app
 
 # Try fastest/best model first

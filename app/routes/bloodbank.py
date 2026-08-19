@@ -7,7 +7,6 @@ from flask import (
     Blueprint, render_template, request, redirect,
     url_for, flash, session
 )
-from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import BloodBankAccount, BloodBankLoginHistory, BloodBankPasswordHistory
 from app.services.auth_service import AuthService
@@ -220,7 +219,7 @@ def reservations():
 @bloodbank_bp.route('/reservations/add', methods=['POST'])
 @bloodbank_login_required
 def add_reservation():
-    from app.models import BloodReservation, BloodInventory
+    from app.models import BloodReservation
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     
     hospital_name = request.form.get('hospital_name', '').strip()

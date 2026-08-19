@@ -12,7 +12,6 @@ Scores and ranks donors against a BloodRequest using:
 """
 import logging
 from datetime import datetime, timedelta
-from app import db
 from app.models import Donor, BloodRequest, Notification
 
 logger = logging.getLogger(__name__)

@@ -12,9 +12,9 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, session, redirect, url_for, flash, render_template
 from app import db
 from app.models import (
-    Notification, NotificationDeliveryLog,
+    Notification,
     DonorNotificationPreference, PushSubscription,
-    NotificationQueue, DonorResponse, BloodRequest, Donor,
+    DonorResponse, BloodRequest, Donor,
 )
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/notifications')

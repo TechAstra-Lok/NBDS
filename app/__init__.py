@@ -122,7 +122,7 @@ def create_app(config_name=None):
     try:
         scheduler.init_app(app)
         scheduler.start()
-    except Exception as e:
+    except Exception:
         # Ignore if scheduler is already running (e.g. in auto-reloader or CLI)
         pass
 
@@ -131,7 +131,7 @@ def create_app(config_name=None):
     
     with app.app_context():
         # मोडेलहरू इम्पोर्ट गर्ने (डाटाबेस माइग्रेसनको लागि अनिवार्य)
-        from app import models  # noqa: F401
+        from app import models as _models  # noqa: F401 — side-effect import to register all ORM models
         
         db.create_all()
         _ensure_legacy_schema_columns(app)

@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import g, current_app
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
 from app import db
 from app.models import BloodBank
 

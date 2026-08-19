@@ -12,13 +12,10 @@ Architecture:
 import json
 import logging
 from datetime import datetime, timedelta
-from flask import current_app
-
 from app import db
 from app.models import (
-    Donor, BloodRequest, Notification,
+    Donor, Notification,
     NotificationDeliveryLog, NotificationQueue,
-    DonorNotificationPreference,
 )
 from app.services.donor_matching_service import DonorMatchingService
 from app.services.providers.email import get_email_provider
