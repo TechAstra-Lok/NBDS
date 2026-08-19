@@ -932,7 +932,7 @@ def become_donor():
 
         donor = Donor(
             full_name           = form.full_name.data.strip(),
-            email               = form.email.data.strip(),
+            email               = form.email.data.strip() if form.email.data and form.email.data.strip() else None,
             pin_hash            = generate_password_hash(form.pin.data),
             age                 = form.age.data,
             weight              = form.weight.data,

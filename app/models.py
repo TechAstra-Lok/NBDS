@@ -588,7 +588,7 @@ class Donor(UserMixin, db.Model):
     id                      = db.Column(db.Integer, primary_key=True)
     donor_id                = db.Column(db.String(20), unique=True, nullable=False, index=True)
     full_name               = db.Column(db.String(150), nullable=False, index=True)
-    email                   = db.Column(db.String(120), unique=True, nullable=False)
+    email                   = db.Column(db.String(120), unique=True, nullable=True)
     phone1                  = db.Column(db.String(15), unique=True, nullable=False, index=True)
     phone2                  = db.Column(db.String(15))
     pin_hash                = db.Column(db.String(255), nullable=False)

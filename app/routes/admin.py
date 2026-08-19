@@ -15,7 +15,7 @@ from app.models import (
 from app.utils import generate_qr_code
 from app.services.auth_service import AuthService
 from app.forms import (
-    AdminLoginForm, DonorRegistrationForm, DonorEditForm,
+    AdminLoginForm, DonorRegistrationForm, DonorAdminCreateForm, DonorEditForm,
     NewsForm, NoticeForm, AdvertisementForm, AdminUserForm,
     StaffMemberForm, PartnerForm
 )
@@ -1239,34 +1239,48 @@ def import_donors_csv():
 @admin_bp.route('/donors/add', methods=['GET', 'POST'])
 @permission_required('manage_donors')
 def add_donor():
-    form = DonorRegistrationForm()
+    form = DonorAdminCreateForm()
     
-    if form.validate_on_submit():
-        donor = Donor(
-            full_name           = form.full_name.data.strip(),
-            email               = form.email.data.strip() if hasattr(form, 'email') and form.email.data else f"{form.phone1.data}@nbd.local",
-            pin_hash            = generate_password_hash(form.pin.data) if hasattr(form, 'pin') and form.pin.data else generate_password_hash('0000'),
-            age                 = form.age.data,
-            weight              = form.weight.data,
-            perm_province       = form.perm_province.data or None,
-            perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
-            perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
-            curr_province       = form.curr_province.data,
-            curr_district       = form.curr_district.data.strip(),
-            curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
-            phone1              = form.phone1.data.strip(),
-            phone2              = form.phone2.data.strip() if form.phone2.data else None,
-            blood_group         = form.blood_group.data,
-            last_donation_date  = form.last_donation_date.data,
-            donation_times      = form.donation_times.data or 0,
-            donor_type          = form.donor_type.data,
-            social_link         = form.social_link.data.strip() if form.social_link.data else None,
-        )
-        db.session.add(donor)
-        db.session.commit()
-        
-        flash(f'✅ Donor added! ID: {donor.donor_id}', 'success')
-        return redirect(url_for('admin.donors'))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            email_val = form.email.data.strip() if form.email.data and form.email.data.strip() else None
+            donor = Donor(
+                full_name           = form.full_name.data.strip(),
+                email               = email_val,
+                pin_hash            = generate_password_hash('1234'),
+                age                 = form.age.data,
+                weight              = form.weight.data,
+                perm_province       = form.perm_province.data or None,
+                perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
+                perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
+                perm_ward           = form.perm_ward.data.strip() if hasattr(form, 'perm_ward') and form.perm_ward.data else None,
+                perm_tole           = form.perm_tole.data.strip() if hasattr(form, 'perm_tole') and form.perm_tole.data else None,
+                curr_province       = form.curr_province.data,
+                curr_district       = form.curr_district.data.strip(),
+                curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
+                curr_ward           = form.curr_ward.data.strip() if hasattr(form, 'curr_ward') and form.curr_ward.data else None,
+                curr_tole           = form.curr_tole.data.strip() if hasattr(form, 'curr_tole') and form.curr_tole.data else None,
+                phone1              = form.phone1.data.strip(),
+                phone2              = form.phone2.data.strip() if form.phone2.data else None,
+                blood_group         = form.blood_group.data,
+                last_donation_date  = form.last_donation_date.data,
+                donation_times      = form.donation_times.data or 0,
+                donor_type          = form.donor_type.data,
+                social_link         = form.social_link.data.strip() if form.social_link.data else None,
+                is_active           = True,
+                is_public           = True,
+            )
+            donor.recalculate_and_save()
+            db.session.add(donor)
+            db.session.commit()
+            
+            flash(f'✅ Donor {donor.donor_id} ({donor.full_name}) added successfully!', 'success')
+            return redirect(url_for('admin.donors'))
+        else:
+            for field_name, errors in form.errors.items():
+                label = getattr(form, field_name).label.text if hasattr(form, field_name) and hasattr(getattr(form, field_name), 'label') else field_name
+                for error in errors:
+                    flash(f'⚠️ {label}: {error}', 'danger')
     
     return render_template('admin/donor_form.html', form=form, action='Add')
 
@@ -1284,19 +1298,18 @@ def edit_donor(id):
     
     if request.method == 'POST':
         if form.validate_on_submit():
-            original_email = donor.email
             form.populate_obj(donor)
-            # Preserve email if template doesn't have the field
-            if not form.email.data:
-                donor.email = original_email
+            donor.email = form.email.data.strip() if form.email.data and form.email.data.strip() else None
             donor.updated_at = datetime.utcnow()
+            donor.recalculate_and_save()
             db.session.commit()
-            flash('✅ Donor updated successfully!', 'success')
+            flash(f'✅ Donor {donor.donor_id} ({donor.full_name}) updated successfully!', 'success')
             return redirect(url_for('admin.donors'))
         else:
             for field_name, errors in form.errors.items():
+                label = getattr(form, field_name).label.text if hasattr(form, field_name) and hasattr(getattr(form, field_name), 'label') else field_name
                 for error in errors:
-                    flash(f'⚠️ {field_name}: {error}', 'danger')
+                    flash(f'⚠️ {label}: {error}', 'danger')
     
     return render_template('admin/donor_form.html', form=form, donor=donor, action='Edit')
 

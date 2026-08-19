@@ -94,7 +94,7 @@ class AdminLoginForm(FlaskForm):
 # ─── Donor Forms ─────────────────────────────
 class DonorRegistrationForm(FlaskForm):
     full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
-    email               = StringField('Email Address *', validators=[DataRequired(), Email(), Length(max=120)])
+    email               = StringField('Email Address (Optional)', validators=[Optional(), Email(), Length(max=120)])
     phone1              = StringField('Primary Mobile *', validators=[DataRequired(), validate_nepal_mobile])
     phone2              = StringField('Secondary Mobile (Optional)', validators=[Optional(), validate_nepal_mobile])
     
@@ -134,18 +134,63 @@ class DonorRegistrationForm(FlaskForm):
     submit              = SubmitField('Register as Blood Donor')
     
     def validate_phone1(self, field):
-        if Donor.query.filter_by(phone1=field.data).first():
+        if field.data and Donor.query.filter_by(phone1=field.data.strip()).first():
             raise ValidationError(f'Phone {field.data} is already registered.')
             
     def validate_email(self, field):
-        if Donor.query.filter_by(email=field.data).first():
-            raise ValidationError(f'Email {field.data} is already registered.')
+        if field.data and field.data.strip():
+            if Donor.query.filter_by(email=field.data.strip()).first():
+                raise ValidationError(f'Email {field.data} is already registered.')
+
+
+class DonorAdminCreateForm(FlaskForm):
+    """Admin-specific form for adding new donors from the admin dashboard."""
+    full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
+    email               = StringField('Email Address (Optional)', validators=[Optional(), Email(), Length(max=120)])
+    phone1              = StringField('Primary Mobile *', validators=[DataRequired(), validate_nepal_mobile])
+    phone2              = StringField('Secondary Mobile (Optional)', validators=[Optional(), validate_nepal_mobile])
+    
+    age                 = IntegerField('Age *', validators=[DataRequired(), NumberRange(min=18, max=65)])
+    weight              = FloatField('Weight (kg) *', validators=[DataRequired(), NumberRange(min=45, max=150)])
+    
+    # Permanent Address
+    perm_province       = SelectField('Province', choices=PROVINCE_CHOICES, validators=[Optional()])
+    perm_district       = StringField('District', validators=[Optional(), Length(max=80)])
+    perm_local_level    = StringField('Local Level / Municipality', validators=[Optional(), Length(max=100)])
+    perm_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
+    perm_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    
+    # Current Address
+    curr_province       = SelectField('Province *', choices=PROVINCE_CHOICES, validators=[DataRequired()])
+    curr_district       = StringField('District *', validators=[DataRequired(), Length(max=80)])
+    curr_local_level    = StringField('Local Level / Municipality *', validators=[DataRequired(), Length(max=100)])
+    curr_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
+    curr_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    
+    # Blood Info
+    blood_group         = SelectField('Blood Group *', choices=BLOOD_GROUP_CHOICES, validators=[DataRequired()])
+    last_donation_date  = DateField('Last Donation Date', format='%Y-%m-%d', validators=[Optional()])
+    donation_times      = IntegerField('Total Previous Donations', default=0, validators=[Optional(), NumberRange(min=0, max=500)])
+    
+    donor_type          = SelectField('Donor Type *', choices=DONOR_TYPE_CHOICES, validators=[DataRequired()])
+    social_link         = StringField('Social Media Link (Optional)', validators=[Optional(), Length(max=300)])
+    
+    submit              = SubmitField('Add Blood Donor')
+    
+    def validate_phone1(self, field):
+        if field.data and Donor.query.filter_by(phone1=field.data.strip()).first():
+            raise ValidationError(f'Phone number {field.data} is already registered.')
+            
+    def validate_email(self, field):
+        if field.data and field.data.strip():
+            if Donor.query.filter_by(email=field.data.strip()).first():
+                raise ValidationError(f'Email {field.data} is already registered.')
 
 
 class DonorEditForm(FlaskForm):
     record_id           = IntegerField(widget=HiddenInput())
     full_name           = StringField('Full Name *', validators=[DataRequired(), Length(min=3, max=150)])
-    email               = StringField('Email Address', validators=[Optional(), Email(), Length(max=120)])
+    email               = StringField('Email Address (Optional)', validators=[Optional(), Email(), Length(max=120)])
     phone1              = StringField('Primary Mobile *', validators=[DataRequired(), validate_nepal_mobile])
     phone2              = StringField('Secondary Mobile', validators=[Optional(), validate_nepal_mobile])
     age                 = IntegerField('Age *', validators=[DataRequired(), NumberRange(min=18, max=65)])
@@ -173,17 +218,29 @@ class DonorEditForm(FlaskForm):
     
     # Address
     curr_province       = SelectField('Province *', choices=PROVINCE_CHOICES, validators=[DataRequired()])
-    curr_district       = SelectField('District *', choices=[('', '-- Select District --')], validate_choice=False, validators=[DataRequired()])
-    curr_local_level    = SelectField('Local Level *', choices=[('', '-- Select Municipality --')], validate_choice=False, validators=[DataRequired()])
+    curr_district       = StringField('District *', validators=[DataRequired(), Length(max=80)])
+    curr_local_level    = StringField('Local Level *', validators=[DataRequired(), Length(max=100)])
     curr_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
     curr_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
     perm_province       = SelectField('Province', choices=PROVINCE_CHOICES, validators=[Optional()])
-    perm_district       = SelectField('District', choices=[('', '-- Select District --')], validate_choice=False)
-    perm_local_level    = SelectField('Local Level', choices=[('', '-- Select Municipality --')], validate_choice=False)
+    perm_district       = StringField('District', validators=[Optional(), Length(max=80)])
+    perm_local_level    = StringField('Local Level', validators=[Optional(), Length(max=100)])
     perm_ward           = StringField('Ward No', validators=[Optional(), Length(max=10)])
     perm_tole           = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
     
     submit = SubmitField('Update Donor Profile')
+
+    def validate_phone1(self, field):
+        if field.data and field.data.strip():
+            existing = Donor.query.filter_by(phone1=field.data.strip()).first()
+            if existing and existing.id != self.record_id.data:
+                raise ValidationError(f'Phone {field.data} is already registered to another donor.')
+
+    def validate_email(self, field):
+        if field.data and field.data.strip():
+            existing = Donor.query.filter_by(email=field.data.strip()).first()
+            if existing and existing.id != self.record_id.data:
+                raise ValidationError(f'Email {field.data} is already registered to another donor.')
 
 
 class DonorProfileEditForm(FlaskForm):
