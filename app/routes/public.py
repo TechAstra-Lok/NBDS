@@ -386,49 +386,128 @@ def blood_banks():
         province_districts_map=province_districts_map
     )
 
+NEPAL_DISTRICT_COORDINATES = {
+    'Achham': (29.1126, 81.3000), 'Arghakhanchi': (27.9000, 83.1500), 'Baglung': (28.2667, 83.6000),
+    'Baitadi': (29.5333, 80.4500), 'Bajhang': (29.5833, 81.2000), 'Bajura': (29.5000, 81.5000),
+    'Banke': (28.1667, 81.6500), 'Bara': (27.0500, 85.0500), 'Bardiya': (28.3333, 81.3333),
+    'Bhaktapur': (27.6710, 85.4298), 'Bhojpur': (27.1667, 87.0500), 'Chitwan': (27.6000, 84.4500),
+    'Dadeldhura': (29.3000, 80.5833), 'Dailekh': (28.8333, 81.7167), 'Dang': (28.0000, 82.3000),
+    'Darchula': (29.8500, 80.5333), 'Dhading': (27.8667, 84.9000), 'Dhankuta': (26.9833, 87.3333),
+    'Dhanusha': (26.7333, 85.9167), 'Dolakha': (27.7833, 86.0833), 'Dolpa': (29.0014, 82.6812),
+    'Doti': (29.2500, 80.9500), 'Gorkha': (28.0000, 84.6333), 'Gulmi': (28.0833, 83.2500),
+    'Humla': (29.9667, 81.8333), 'Ilam': (26.9089, 87.9281), 'Jajarkot': (28.7000, 82.2000),
+    'Jhapa': (26.6343, 87.9961), 'Jumla': (29.2748, 82.1837), 'Kailali': (28.6847, 80.5921),
+    'Kalikot': (29.1333, 81.7333), 'Kanchanpur': (28.8333, 80.2500), 'Kapilvastu': (27.5500, 83.0500),
+    'Kaski': (28.2120, 83.9912), 'Kathmandu': (27.7018, 85.3184), 'Kavrepalanchok': (27.5500, 85.5500),
+    'Khotang': (27.2000, 86.8000), 'Lalitpur': (27.6775, 85.3167), 'Lamjung': (28.2333, 84.4000),
+    'Mahottari': (26.8333, 85.8000), 'Makwanpur': (27.4500, 85.0333), 'Manang': (28.6667, 84.0167),
+    'Morang': (26.6500, 87.4500), 'Mugu': (29.6000, 82.1667), 'Mustang': (28.7845, 83.7215),
+    'Myagdi': (28.3500, 83.5667), 'Nawalpur': (27.6500, 84.1500), 'Nawalparasi': (27.6000, 83.8000),
+    'Nuwakot': (27.9167, 85.1667), 'Okhaldhunga': (27.3167, 86.5000), 'Palpa': (27.8667, 83.5500),
+    'Panchthar': (27.2000, 87.8333), 'Parasi': (27.5333, 83.6667), 'Parbat': (28.2000, 83.6833),
+    'Parsa': (27.1500, 84.8500), 'Pyuthan': (28.1000, 82.8500), 'Ramechhap': (27.3333, 86.0833),
+    'Rasuwa': (28.1167, 85.3000), 'Rautahat': (26.9500, 85.3000), 'Rolpa': (28.3333, 82.6667),
+    'Rukum East': (28.6333, 82.7833), 'Rukum West': (28.6333, 82.4833), 'Rupandehi': (27.7006, 83.4661),
+    'Salyan': (28.3667, 82.1667), 'Sankhuwasabha': (27.5833, 87.2167), 'Saptari': (26.5412, 86.7521),
+    'Sarlahi': (26.9667, 85.5500), 'Sindhuli': (27.2500, 85.9667), 'Sindhupalchok': (27.9500, 85.7000),
+    'Siraha': (26.6500, 86.2000), 'Solukhumbu': (27.7000, 86.7167), 'Sunsari': (26.7000, 87.1500),
+    'Surkhet': (28.6000, 81.6333), 'Syangja': (28.1000, 83.8667), 'Tanahun': (27.9500, 84.2500),
+    'Taplejung': (27.3500, 87.6667), 'Terhathum': (27.1333, 87.5500), 'Udayapur': (26.9000, 86.5167),
+}
+
+
 def haversine(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth radius in kilometers
+    """Calculate the great circle distance between two points on the earth (specified in decimal degrees)"""
+    try:
+        lat1, lon1, lat2, lon2 = float(lat1), float(lon1), float(lat2), float(lon2)
+    except (TypeError, ValueError):
+        return float('inf')
+    R = 6371.0  # Earth radius in kilometers
     d_lat = math.radians(lat2 - lat1)
     d_lon = math.radians(lon2 - lon1)
-    a = math.sin(d_lat/2) * math.sin(d_lat/2) + \
-        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
-        math.sin(d_lon/2) * math.sin(d_lon/2)
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    a = math.sin(d_lat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
+
 
 @public_bp.route('/api/nearest-blood-bank')
 def nearest_blood_bank():
-    try:
-        lat = float(request.args.get('lat'))
-        lng = float(request.args.get('lng'))
-    except (TypeError, ValueError):
-        return jsonify({'error': 'Invalid coordinates'}), 400
+    lat_str = request.args.get('lat')
+    lng_str = request.args.get('lng')
+    district_param = (request.args.get('district') or '').strip()
 
-    banks = BloodBank.query.filter(BloodBank.latitude.isnot(None), BloodBank.longitude.isnot(None), BloodBank.is_active == True).all()
-    
+    user_lat = None
+    user_lng = None
+
+    if lat_str and lng_str:
+        try:
+            user_lat = float(lat_str)
+            user_lng = float(lng_str)
+        except (TypeError, ValueError):
+            user_lat = None
+            user_lng = None
+
+    # If GPS coordinates are not provided, use the district centroid
+    if (user_lat is None or user_lng is None) and district_param:
+        for dist_name, coords in NEPAL_DISTRICT_COORDINATES.items():
+            if dist_name.lower() == district_param.lower():
+                user_lat, user_lng = coords
+                break
+
+    # If still no coordinates, default to Kathmandu centroid
+    if user_lat is None or user_lng is None:
+        user_lat, user_lng = 27.7018, 85.3184
+
+    banks = BloodBank.query.filter(
+        BloodBank.latitude.isnot(None),
+        BloodBank.longitude.isnot(None),
+        BloodBank.is_active != False
+    ).all()
+
     if not banks:
-        return jsonify({'error': 'No blood banks with coordinates found'}), 404
+        return jsonify({'error': 'No blood banks found in directory'}), 404
 
-    nearest = None
-    min_dist = float('inf')
-    
+    calculated = []
     for bank in banks:
-        dist = haversine(lat, lng, bank.latitude, bank.longitude)
-        if dist < min_dist:
-            min_dist = dist
-            nearest = bank
-            
-    if nearest:
-        return jsonify({
-            'id': nearest.id,
-            'name': nearest.display_name or nearest.name,
-            'distance_km': round(min_dist, 1),
-            'address': f"{nearest.district or ''}, {nearest.province or ''}".strip(', '),
-            'phone': nearest.contact_number or nearest.phone or '',
-            'url': url_for('public.blood_bank_detail', bank_id=nearest.id),
-            'maps_url': nearest.google_maps_url
+        dist = haversine(user_lat, user_lng, bank.latitude, bank.longitude)
+        is_same_district = bool(
+            district_param and bank.district and
+            district_param.lower() in bank.district.lower()
+        )
+        calculated.append({
+            'id': bank.id,
+            'name': bank.resolved_display_name,
+            'district': bank.district or '',
+            'province': bank.province or '',
+            'distance_km': round(dist, 1),
+            'is_same_district': is_same_district,
+            'address': f"{bank.district or ''}, {bank.province or ''}".strip(', '),
+            'phone': bank.contact_number or bank.phone or '',
+            'emergency_available': bool(bank.is_emergency_panel or bank.emergency_available),
+            'url': url_for('public.blood_bank_detail', bank_id=bank.id),
+            'reserve_url': url_for('public.reserve_blood', bank_id=bank.id),
+            'maps_url': bank.google_maps_url or bank.maps_url or ''
         })
-    return jsonify({'error': 'No blood bank found'}), 404
+
+    # Sort: 1) Same district first, 2) Closest distance in km
+    calculated.sort(key=lambda b: (not b['is_same_district'], b['distance_km']))
+
+    nearest = calculated[0]
+    return jsonify({
+        'id': nearest['id'],
+        'name': nearest['name'],
+        'district': nearest['district'],
+        'province': nearest['province'],
+        'distance_km': nearest['distance_km'],
+        'address': nearest['address'],
+        'phone': nearest['phone'],
+        'emergency_available': nearest['emergency_available'],
+        'url': nearest['url'],
+        'reserve_url': nearest['reserve_url'],
+        'maps_url': nearest['maps_url'],
+        'query_district': district_param,
+        'nearby_banks': calculated[:5]
+    })
 
 
 @public_bp.route('/blood-banks/<int:bank_id>')

@@ -430,20 +430,49 @@
 
 <!-- Nearest Blood Bank Modal -->
 <div class="modal fade" id="nearestBloodBankModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-danger text-white border-0">
-        <h5 class="modal-title fw-bold"><i class="fas fa-hospital me-2"></i> Nearest Blood Bank</h5>
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-danger text-white border-0 py-3">
+        <h5 class="modal-title fw-bold mb-0">
+          <i class="fas fa-hospital-user me-2"></i>Nearest Blood Banks & Transfusion Centers
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-4 text-center" id="nearestBloodBankContent">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
+
+      <div class="p-3 bg-light border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="small fw-bold text-muted"><i class="fas fa-location-dot text-danger me-1"></i>Search Location:</span>
+          <select id="modalDistrictSelect" class="form-select form-select-sm" style="min-width: 180px;">
+            <option value="">— Auto-Detect / GPS —</option>
+            {% for dist in [
+              'Achham','Arghakhanchi','Baglung','Baitadi','Bajhang','Bajura','Banke','Bara','Bardiya','Bhaktapur',
+              'Bhojpur','Chitwan','Dadeldhura','Dailekh','Dang','Darchula','Dhading','Dhankuta','Dhanusha','Dolakha',
+              'Dolpa','Doti','Gorkha','Gulmi','Humla','Ilam','Jajarkot','Jhapa','Jumla','Kailali','Kalikot','Kanchanpur',
+              'Kapilvastu','Kaski','Kathmandu','Kavrepalanchok','Khotang','Lalitpur','Lamjung','Mahottari','Makwanpur',
+              'Manang','Morang','Mugu','Mustang','Myagdi','Nawalpur','Nawalparasi','Nuwakot','Okhaldhunga','Palpa',
+              'Panchthar','Parasi','Parbat','Parsa','Pyuthan','Ramechhap','Rasuwa','Rautahat','Rolpa','Rukum East',
+              'Rukum West','Rupandehi','Salyan','Sankhuwasabha','Saptari','Sarlahi','Sindhuli','Sindhupalchok',
+              'Siraha','Solukhumbu','Sunsari','Surkhet','Syangja','Tanahun','Taplejung','Terhathum','Udayapur'
+            ] %}
+            <option value="{{ dist }}">{{ dist }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <p class="mt-2 text-muted">Locating nearest facility...</p>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="modalRefreshGpsBtn">
+          <i class="fas fa-crosshairs me-1"></i>Re-scan GPS
+        </button>
       </div>
-      <div class="modal-footer border-0 justify-content-center">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+
+      <div class="modal-body p-3 p-md-4" id="nearestBloodBankContent">
+        <div class="text-center py-4">
+          <div class="spinner-border text-danger" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3 text-muted">Locating closest blood banks and computing real-time distances...</p>
+        </div>
+      </div>
+      <div class="modal-footer border-0 justify-content-end bg-light py-2">
+        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -502,59 +531,175 @@
     });
   }
 
-  // Nearest Blood Bank Logic
+  // Nearest Blood Bank Logic with GPS + District Priority
+  let userGpsCoords = null;
   const btnNearest = document.getElementById('btnNearestBloodBank');
-  if (btnNearest) {
-    btnNearest.addEventListener('click', function () {
-      if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser.');
-        return;
-      }
+  const modalDistrictSelect = document.getElementById('modalDistrictSelect');
+  const modalRefreshGpsBtn = document.getElementById('modalRefreshGpsBtn');
 
-      const modal = new bootstrap.Modal(document.getElementById('nearestBloodBankModal'));
-      modal.show();
-
-      const content = document.getElementById('nearestBloodBankContent');
-      content.innerHTML = `
+  function fetchNearestBanks(lat, lng, district) {
+    const content = document.getElementById('nearestBloodBankContent');
+    content.innerHTML = `
+      <div class="text-center py-4">
         <div class="spinner-border text-danger" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="mt-3 text-muted">Waiting for location permission and calculating distance...</p>
-      `;
+        <p class="mt-3 text-muted">Calculating distance to verified blood banks...</p>
+      </div>
+    `;
 
-      navigator.geolocation.getCurrentPosition(
-        function (position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
+    let url = '/api/nearest-blood-bank?';
+    const params = [];
+    if (lat && lng) {
+      params.push(`lat=${lat}&lng=${lng}`);
+    }
+    if (district) {
+      params.push(`district=${encodeURIComponent(district)}`);
+    }
+    url += params.join('&');
 
-          fetch(`/api/nearest-blood-bank?lat=${lat}&lng=${lng}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.error) {
-                content.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
-                return;
-              }
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error || !data.nearby_banks || data.nearby_banks.length === 0) {
+          content.innerHTML = `<div class="alert alert-warning mb-0">${data.error || 'No blood banks found for this location.'}</div>`;
+          return;
+        }
 
-              content.innerHTML = `
-                <h4 class="fw-bold text-danger mb-1">${data.name}</h4>
-                <p class="text-muted mb-3"><i class="fas fa-map-marker-alt me-1"></i> ${data.address} • <strong>${data.distance_km} km away</strong></p>
-                
-                <div class="d-flex flex-column gap-2 mt-4">
-                  ${data.phone ? `<a href="tel:${data.phone}" class="btn btn-outline-danger"><i class="fas fa-phone me-1"></i> Call ${data.phone}</a>` : ''}
-                  ${data.maps_url ? `<a href="${data.maps_url}" target="_blank" rel="noopener" class="btn btn-outline-secondary"><i class="fas fa-map me-1"></i> Open in Maps</a>` : ''}
-                  <a href="${data.url}" target="_blank" class="btn btn-light"><i class="fas fa-info-circle me-1"></i> View Details</a>
+        let html = '<div class="d-flex flex-column gap-3">';
+        data.nearby_banks.forEach((bank, idx) => {
+          const isFirst = (idx === 0);
+          html += `
+            <div class="card border ${isFirst ? 'border-danger bg-danger-soft' : 'border-light-subtle bg-white'} shadow-sm rounded-3 p-3">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h6 class="fw-bold mb-0 text-dark">${bank.name}</h6>
+                    ${isFirst ? '<span class="badge bg-danger text-white"><i class="fas fa-star me-1"></i>Closest Facility</span>' : ''}
+                    ${bank.is_same_district ? '<span class="badge bg-success text-white">In Your District</span>' : ''}
+                    ${bank.emergency_available ? '<span class="badge bg-warning text-dark"><i class="fas fa-bolt me-1"></i>24/7 Emergency</span>' : ''}
+                  </div>
+                  <p class="text-muted small mb-0 mt-1">
+                    <i class="fas fa-map-marker-alt text-danger me-1"></i>${bank.address} • 
+                    <strong class="text-dark">${bank.distance_km} km away</strong>
+                  </p>
                 </div>
-              `;
-            })
-            .catch(err => {
-              content.innerHTML = `<div class="alert alert-danger">Error fetching data.</div>`;
-            });
-        },
-        function (error) {
-          content.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle mb-2 fa-2x"></i><br>Location access denied or unavailable.<br><small class="text-muted">${error.message}</small></div>`;
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+                <button type="button" class="btn btn-sm btn-outline-danger fw-semibold use-bank-btn"
+                        data-name="${bank.name}"
+                        data-district="${bank.district}"
+                        data-province="${bank.province}">
+                  <i class="fas fa-check-double me-1"></i>Select This Facility
+                </button>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
+                ${bank.phone ? `<a href="tel:${bank.phone}" class="btn btn-xs btn-outline-secondary py-1 px-2 small"><i class="fas fa-phone me-1 text-primary"></i>${bank.phone}</a>` : ''}
+                ${bank.maps_url ? `<a href="${bank.maps_url}" target="_blank" rel="noopener" class="btn btn-xs btn-outline-secondary py-1 px-2 small"><i class="fas fa-map-location-dot me-1 text-danger"></i>Directions</a>` : ''}
+                <a href="${bank.reserve_url}" target="_blank" class="btn btn-xs btn-outline-danger py-1 px-2 small"><i class="fas fa-hand-holding-droplet me-1"></i>Reserve Blood</a>
+                <a href="${bank.url}" target="_blank" class="btn btn-xs btn-light py-1 px-2 small text-muted"><i class="fas fa-circle-info me-1"></i>Profile</a>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        content.innerHTML = html;
+
+        // Bind Select buttons
+        document.querySelectorAll('.use-bank-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const bName = this.dataset.name;
+            const bDistrict = this.dataset.district;
+            const bProvince = this.dataset.province;
+
+            const hospitalInput = document.getElementById('hospital');
+            const districtInput = document.getElementById('district');
+            const provinceInput = document.getElementById('province');
+
+            if (hospitalInput) hospitalInput.value = bName;
+            if (districtInput && bDistrict) {
+              districtInput.value = bDistrict;
+              districtInput.dispatchEvent(new Event('change'));
+            }
+            if (provinceInput && bProvince) {
+              provinceInput.value = bProvince;
+              provinceInput.dispatchEvent(new Event('change'));
+            }
+
+            const modalEl = document.getElementById('nearestBloodBankModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+          });
+        });
+      })
+      .catch(err => {
+        content.innerHTML = `<div class="alert alert-danger mb-0">Error computing distance. Please select your district from the dropdown above.</div>`;
+      });
+  }
+
+  if (btnNearest) {
+    btnNearest.addEventListener('click', function () {
+      const modal = new bootstrap.Modal(document.getElementById('nearestBloodBankModal'));
+      modal.show();
+
+      // Read currently selected district from form if present
+      const formDistrict = document.getElementById('district') ? document.getElementById('district').value : '';
+      if (formDistrict && modalDistrictSelect) {
+        modalDistrictSelect.value = formDistrict;
+      }
+
+      const activeDistrict = modalDistrictSelect ? modalDistrictSelect.value : formDistrict;
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            userGpsCoords = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            fetchNearestBanks(userGpsCoords.lat, userGpsCoords.lng, activeDistrict);
+          },
+          function (error) {
+            // Geolocation denied/unavailable: fallback seamlessly to selected district or default
+            fetchNearestBanks(null, null, activeDistrict);
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+      } else {
+        fetchNearestBanks(null, null, activeDistrict);
+      }
+    });
+  }
+
+  if (modalDistrictSelect) {
+    modalDistrictSelect.addEventListener('change', function() {
+      const selectedDistrict = this.value;
+      const lat = userGpsCoords ? userGpsCoords.lat : null;
+      const lng = userGpsCoords ? userGpsCoords.lng : null;
+      fetchNearestBanks(lat, lng, selectedDistrict);
+    });
+  }
+
+  if (modalRefreshGpsBtn) {
+    modalRefreshGpsBtn.addEventListener('click', function() {
+      const activeDistrict = modalDistrictSelect ? modalDistrictSelect.value : '';
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            userGpsCoords = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            fetchNearestBanks(userGpsCoords.lat, userGpsCoords.lng, activeDistrict);
+          },
+          function (error) {
+            fetchNearestBanks(null, null, activeDistrict);
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      } else {
+        fetchNearestBanks(null, null, activeDistrict);
+      }
     });
   }
 </script>
