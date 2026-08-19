@@ -784,30 +784,41 @@ def public_update_request_status(id):
 @public_bp.route('/find-donors')
 def find_donors():
     page        = request.args.get('page', 1, type=int)
-    blood_group = request.args.get('blood_group', '')
-    district    = request.args.get('district', '')
-    local_level = request.args.get('local_level', '')
-    donor_type  = request.args.get('donor_type', '')
-    query = Donor.query.filter_by(is_active=True, is_public=True)
+    blood_group = request.args.get('blood_group', '').strip()
+    district    = request.args.get('district', '').strip()
+    local_level = (request.args.get('local_level') or request.args.get('city') or '').strip()
+    donor_type  = request.args.get('donor_type', '').strip()
+    status      = request.args.get('status', '').strip()
+    
+    # Query all active registered donors (available, recently donated, and unavailable)
+    query = Donor.query.filter(Donor.is_active != False)
     
     if blood_group:
         query = query.filter_by(blood_group=blood_group)
     if district:
         query = query.filter(Donor.curr_district.ilike(f'%{district}%'))
     if local_level:
-        query = query.filter(Donor.curr_local_level.ilike(f'%{local_level}%'))
+        query = query.filter(
+            or_(
+                Donor.curr_local_level.ilike(f'%{local_level}%'),
+                Donor.curr_tole.ilike(f'%{local_level}%')
+            )
+        )
     if donor_type:
         query = query.filter_by(donor_type=donor_type)
+    if status:
+        query = query.filter_by(availability_status=status)
     
     query = query.order_by(
         (Donor.availability_status == 'available').desc(),
         desc(Donor.created_at)
     )
     
-    pagination = paginate_query(query, page, current_app.config['DONORS_PER_PAGE'])
+    per_page = current_app.config.get('DONORS_PER_PAGE', 12)
+    pagination = paginate_query(query, page, per_page)
     
-    total_donors = Donor.query.count()
-    avail_donors = Donor.query.filter_by(availability_status='available').count()
+    total_donors = Donor.query.filter(Donor.is_active != False).count()
+    avail_donors = Donor.query.filter(Donor.is_active != False, Donor.availability_status == 'available').count()
     blood_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
     districts = ALL_DISTRICTS
     
@@ -818,7 +829,9 @@ def find_donors():
         selected_bg=blood_group,
         selected_district=district,
         selected_local_level=local_level,
+        selected_city=local_level,
         selected_type=donor_type,
+        selected_status=status,
         total_donors=total_donors,
         avail_donors=avail_donors,
     )

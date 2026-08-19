@@ -69,19 +69,43 @@
   </div>
 </div>
 
-<!-- Quick Blood Group Filter Buttons -->
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <span class="small text-muted align-self-center me-1">Quick:</span>
-  <a href="{{ url_for('public.find_donors') }}"
-    class="btn btn-sm {{ 'btn-dark' if not selected_bg else 'btn-outline-secondary' }} rounded-pill">
-    All
-  </a>
-  {% for bg in blood_groups %}
-  <a href="{{ url_for('public.find_donors', blood_group=bg) }}"
-    class="btn btn-sm {{ 'btn-danger' if selected_bg == bg else 'btn-outline-danger' }} rounded-pill fw-bold">
-    {{ bg }}
-  </a>
-  {% endfor %}
+<!-- Quick Filters: Blood Group & Status -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <!-- Blood Group Pills -->
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <span class="small text-muted fw-semibold me-1">Group:</span>
+    <a href="{{ url_for('public.find_donors', district=selected_district, city=selected_city, status=selected_status, donor_type=selected_type) }}"
+      class="btn btn-sm {{ 'btn-dark' if not selected_bg else 'btn-outline-secondary' }} rounded-pill">
+      All
+    </a>
+    {% for bg in blood_groups %}
+    <a href="{{ url_for('public.find_donors', blood_group=bg, district=selected_district, city=selected_city, status=selected_status, donor_type=selected_type) }}"
+      class="btn btn-sm {{ 'btn-danger' if selected_bg == bg else 'btn-outline-danger' }} rounded-pill fw-bold">
+      {{ bg }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Availability Status Pills -->
+  <div class="d-flex flex-wrap gap-1 align-items-center">
+    <span class="small text-muted fw-semibold me-1">Status:</span>
+    <a href="{{ url_for('public.find_donors', blood_group=selected_bg, district=selected_district, city=selected_city, donor_type=selected_type) }}"
+       class="btn btn-sm {{ 'btn-secondary text-white' if not selected_status else 'btn-outline-secondary' }} rounded-pill">
+      All Statuses ({{ total_donors }})
+    </a>
+    <a href="{{ url_for('public.find_donors', blood_group=selected_bg, district=selected_district, city=selected_city, status='available', donor_type=selected_type) }}"
+       class="btn btn-sm {{ 'btn-success text-white' if selected_status == 'available' else 'btn-outline-success' }} rounded-pill">
+      <i class="fas fa-circle-check me-1"></i>Available ({{ avail_donors }})
+    </a>
+    <a href="{{ url_for('public.find_donors', blood_group=selected_bg, district=selected_district, city=selected_city, status='recently_donated', donor_type=selected_type) }}"
+       class="btn btn-sm {{ 'btn-warning text-dark fw-semibold' if selected_status == 'recently_donated' else 'btn-outline-warning text-dark' }} rounded-pill">
+      <i class="fas fa-clock-rotate-left me-1"></i>Recently Donated
+    </a>
+    <a href="{{ url_for('public.find_donors', blood_group=selected_bg, district=selected_district, city=selected_city, status='unavailable', donor_type=selected_type) }}"
+       class="btn btn-sm {{ 'btn-secondary text-white' if selected_status == 'unavailable' else 'btn-outline-secondary' }} rounded-pill">
+      <i class="fas fa-ban me-1"></i>Unavailable
+    </a>
+  </div>
 </div>
 
 <!-- Results -->
@@ -228,7 +252,7 @@
     <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
       <a class="page-link" href="{{ url_for('public.find_donors',
          page=pagination.prev_num, blood_group=selected_bg,
-         district=selected_district, city=selected_city, donor_type=selected_type) }}">
+         district=selected_district, city=selected_city, status=selected_status, donor_type=selected_type) }}">
         <i class="fas fa-chevron-left fa-xs"></i>
       </a>
     </li>
@@ -237,7 +261,7 @@
     <li class="page-item {{ 'active' if p == pagination.page }}">
       <a class="page-link" href="{{ url_for('public.find_donors',
            page=p, blood_group=selected_bg, district=selected_district,
-           city=selected_city, donor_type=selected_type) }}">{{ p }}</a>
+           city=selected_city, status=selected_status, donor_type=selected_type) }}">{{ p }}</a>
     </li>
     {% else %}
     <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -246,7 +270,7 @@
     <li class="page-item {{ 'disabled' if not pagination.has_next }}">
       <a class="page-link" href="{{ url_for('public.find_donors',
          page=pagination.next_num, blood_group=selected_bg,
-         district=selected_district, city=selected_city, donor_type=selected_type) }}">
+         district=selected_district, city=selected_city, status=selected_status, donor_type=selected_type) }}">
         <i class="fas fa-chevron-right fa-xs"></i>
       </a>
     </li>
