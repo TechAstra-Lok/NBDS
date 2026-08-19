@@ -9,10 +9,18 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
-from app.models import BloodBankAccount, BloodBankLoginHistory, BloodBankPasswordHistory
+from app.models import (
+    BloodBankAccount, BloodBankLoginHistory, BloodBankPasswordHistory,
+    BloodReservation, BloodInventory, BloodInventoryMovement,
+    AuditLog, StaffMember, BloodTransfer
+)
 from app.services.auth_service import AuthService
+from app.services.inventory_service import InventoryService
+from app.utils import paginate_query, save_image, delete_file
+from app.forms import StaffMemberForm
 from datetime import datetime, timedelta
 from functools import wraps
+import uuid
 
 bloodbank_bp = Blueprint('bloodbank', __name__, template_folder='../templates/bloodbank')
 
@@ -202,8 +210,6 @@ def change_password():
 @bloodbank_bp.route('/reservations')
 @bloodbank_login_required
 def reservations():
-    from app.models import BloodReservation
-    from app.utils import paginate_query
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     
     page = request.args.get('page', 1, type=int)
@@ -220,7 +226,6 @@ def reservations():
 @bloodbank_bp.route('/reservations/add', methods=['POST'])
 @bloodbank_login_required
 def add_reservation():
-    from app.models import BloodReservation, BloodInventory
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     
     hospital_name = request.form.get('hospital_name', '').strip()
@@ -234,7 +239,6 @@ def add_reservation():
         flash('Hospital name, patient name, and blood group are required.', 'danger')
         return redirect(url_for('bloodbank.reservations'))
         
-    import uuid
     new_reservation = BloodReservation(
         blood_bank_id=account.blood_bank_id,
         hospital_name=hospital_name,
@@ -256,8 +260,6 @@ def add_reservation():
 @bloodbank_bp.route('/reservations/<int:id>/status', methods=['POST'])
 @bloodbank_login_required
 def update_reservation_status(id):
-    from app.models import BloodReservation, BloodInventory, BloodInventoryMovement, AuditLog
-    from app.services.inventory_service import InventoryService
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     
     reservation = BloodReservation.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
@@ -367,8 +369,6 @@ def update_reservation_status(id):
 @bloodbank_bp.route('/staff')
 @bloodbank_login_required
 def staff():
-    from app.models import StaffMember
-    from app.utils import paginate_query
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
         StaffMember.query.order_by(StaffMember.created_at.desc()), page, 15
@@ -379,10 +379,6 @@ def staff():
 @bloodbank_bp.route('/staff/add', methods=['GET', 'POST'])
 @bloodbank_login_required
 def add_staff():
-    from app.models import StaffMember
-    from app.forms import StaffMemberForm
-    from app.utils import save_image
-    
     form = StaffMemberForm()
     if form.validate_on_submit():
         photo_file = None
@@ -413,10 +409,6 @@ def add_staff():
 @bloodbank_bp.route('/staff/<int:id>/edit', methods=['GET', 'POST'])
 @bloodbank_login_required
 def edit_staff(id):
-    from app.models import StaffMember
-    from app.forms import StaffMemberForm
-    from app.utils import save_image, delete_file
-
     member = StaffMember.query.get_or_404(id)
     form = StaffMemberForm(obj=member)
     
@@ -447,9 +439,6 @@ def edit_staff(id):
 @bloodbank_bp.route('/staff/<int:id>/delete', methods=['POST'])
 @bloodbank_login_required
 def delete_staff(id):
-    from app.models import StaffMember
-    from app.utils import delete_file
-
     member = StaffMember.query.get_or_404(id)
     
     if member.profile_photo:
@@ -466,7 +455,6 @@ def delete_staff(id):
 @bloodbank_bp.route('/dashboard')
 @bloodbank_login_required
 def dashboard():
-    from app.models import BloodInventory, StaffMember, BloodReservation, BloodTransfer
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     # Force password change if still required
     if account.password_change_required:
@@ -491,7 +479,6 @@ def dashboard():
 @bloodbank_bp.route('/inventory')
 @bloodbank_login_required
 def inventory():
-    from app.models import BloodInventory
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     items = BloodInventory.query.filter_by(blood_bank_id=account.blood_bank_id).order_by(BloodInventory.blood_group).all()
     return render_template('bloodbank/inventory.html', account=account, bank=account.blood_bank, items=items)
@@ -500,7 +487,6 @@ def inventory():
 @bloodbank_bp.route('/inventory/add', methods=['GET', 'POST'])
 @bloodbank_login_required
 def add_inventory():
-    from app.models import BloodInventory, BloodInventoryMovement
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
 
     if request.method == 'POST':
@@ -550,8 +536,10 @@ def add_inventory():
         db.session.commit()
         
         # Sync public cache
-        from app.services.inventory_service import InventoryService
-        InventoryService.sync_public_cache(account.blood_bank_id)
+        try:
+            InventoryService.sync_public_cache(account.blood_bank_id)
+        except Exception:
+            pass
 
         flash(f'Inventory for {blood_group} ({component}) created with {units} units.', 'success')
         return redirect(url_for('bloodbank.inventory'))
@@ -562,7 +550,6 @@ def add_inventory():
 @bloodbank_bp.route('/inventory/<int:id>/edit', methods=['GET', 'POST'])
 @bloodbank_login_required
 def edit_inventory(id):
-    from app.models import BloodInventory, BloodInventoryMovement
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     item = BloodInventory.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
 
@@ -590,8 +577,10 @@ def edit_inventory(id):
         db.session.commit()
 
         # Sync public cache
-        from app.services.inventory_service import InventoryService
-        InventoryService.sync_public_cache(account.blood_bank_id)
+        try:
+            InventoryService.sync_public_cache(account.blood_bank_id)
+        except Exception:
+            pass
 
         flash(f'Inventory for {item.blood_group} ({item.component}) updated.', 'success')
         return redirect(url_for('bloodbank.inventory'))
@@ -603,7 +592,6 @@ def edit_inventory(id):
 @bloodbank_bp.route('/inventory/<int:id>/delete', methods=['POST'])
 @bloodbank_login_required
 def delete_inventory(id):
-    from app.models import BloodInventory
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
     item = BloodInventory.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
 
@@ -616,8 +604,10 @@ def delete_inventory(id):
     db.session.commit()
     
     # Sync public cache
-    from app.services.inventory_service import InventoryService
-    InventoryService.sync_public_cache(account.blood_bank_id)
+    try:
+        InventoryService.sync_public_cache(account.blood_bank_id)
+    except Exception:
+        pass
 
     flash(f'Inventory record for {label} deleted.', 'success')
     return redirect(url_for('bloodbank.inventory'))
