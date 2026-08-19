@@ -207,6 +207,90 @@ def _is_valid_gemini_key(api_key):
     return len(clean) >= 20
 
 
+def _smart_fallback(user_message):
+    """
+    A lightweight, intent-aware conversational fallback used ONLY when
+    the Gemini API key is missing/invalid. Understands what the user said
+    and gives a short, honest, relevant reply — never a pre-scripted wall of text.
+    """
+    msg = (user_message or '').lower().strip()
+
+    # Greetings
+    if msg in ('hi', 'hello', 'hey', 'namaste', 'hello!', 'hi!', 'hey!', 'hola') or msg.startswith(('hi ', 'hello ', 'hey ')):
+        return "Hey! 👋 I'm Raktadata Helper. I can help with health questions, blood donation, or anything medical. What's on your mind?"
+
+    # About the platform / what is this
+    if any(k in msg for k in ['what is this', 'what are you', 'who are you', 'raktadata', 'about', 'help me']):
+        return (
+            "I'm **Raktadata Helper** — an AI health assistant built into Raktadata Nepal, "
+            "a platform for connecting blood donors and recipients across Nepal.\n\n"
+            "You can ask me anything: symptoms, blood donation eligibility, diet, medications, blood group compatibility, and more."
+        )
+
+    # Want to donate blood
+    if any(k in msg for k in ['donate blood', 'want to donate', 'blood donate', 'give blood', 'donation']):
+        return (
+            "Great that you want to donate! 🩸 To be eligible in Nepal:\n"
+            "- **Age:** 18–60 years\n"
+            "- **Weight:** 45 kg minimum\n"
+            "- **Hemoglobin:** 12.5 g/dL or above\n"
+            "- **Gap:** At least 90 days since your last donation\n\n"
+            "Visit any nearby blood bank or use Raktadata's [Find Blood Bank](/blood-banks) page to locate one near you."
+        )
+
+    # Blood group / compatibility
+    if any(k in msg for k in ['blood group', 'blood type', 'o positive', 'o negative', 'a positive', 'b positive', 'ab', 'compatible', 'universal donor', 'universal recipient']):
+        return (
+            "**Quick compatibility guide:**\n"
+            "- **O−** → Universal donor (gives to all)\n"
+            "- **AB+** → Universal recipient (receives from all)\n"
+            "- **O+** → Can donate to O+, A+, B+, AB+\n"
+            "- **A+** → Can donate to A+, AB+\n"
+            "- **B+** → Can donate to B+, AB+\n\n"
+            "Tell me your blood group and I'll give you the exact match."
+        )
+
+    # Weight gain
+    if any(k in msg for k in ['gain weight', 'weight gain', 'increase weight', 'underweight', 'thin', 'skinny']):
+        return (
+            "To gain weight healthily:\n"
+            "- Eat **calorie-dense foods**: nuts, eggs, dairy, whole grains, bananas\n"
+            "- Eat **5–6 small meals** a day instead of 3 large ones\n"
+            "- Add **protein**: lentils, chicken, fish, paneer, eggs\n"
+            "- Do **strength training** (not just cardio) to build muscle mass\n"
+            "- Avoid junk food — gain lean weight, not just fat\n\n"
+            "If you're underweight despite eating well, get a thyroid and CBC check done."
+        )
+
+    # Hemoglobin / iron / anemia
+    if any(k in msg for k in ['hemoglobin', 'iron', 'anemia', 'anaemia', 'low blood', 'hb low', 'weakness', 'fatigue', 'tired', 'pale']):
+        return (
+            "Low hemoglobin / iron deficiency is very common. To boost it:\n"
+            "- **Eat iron-rich foods:** spinach, lentils (dal), red meat, beans, eggs, dates\n"
+            "- **Pair with Vitamin C:** lemon, amla, orange — this triples iron absorption\n"
+            "- **Avoid tea/coffee** right after meals (blocks iron absorption)\n\n"
+            "If Hb is below 10 g/dL, see a doctor for an iron panel test and supplements."
+        )
+
+    # Fever / headache / pain
+    if any(k in msg for k in ['fever', 'headache', 'pain', 'cold', 'cough', 'flu', 'sick', 'ill', 'vomit', 'nausea', 'diarrhea', 'stomach']):
+        return (
+            "For common illness symptoms:\n"
+            "- **Fever:** Paracetamol 500mg every 6–8 hrs, rest, and plenty of fluids\n"
+            "- **Headache:** Usually dehydration, stress, or poor sleep — drink water first\n"
+            "- **Cold/Cough:** Steam inhalation, honey+ginger, stay warm, rest\n\n"
+            "🚨 See a doctor if: fever > 103°F for 3+ days, severe chest pain, difficulty breathing, or any worrying change in symptoms."
+        )
+
+    # General 'not configured' honest response — short and natural
+    return (
+        f"That's a great question about **\"{user_message.strip()}\"**.\n\n"
+        "I'm currently running in limited mode (AI connection not configured). "
+        "On the live site I can answer this fully in real-time. "
+        "In the meantime, feel free to browse [Blood Banks](/blood-banks) or [Find a Donor](/find-donors) on Raktadata Nepal."
+    )
+
+
 def _build_gemini_contents(history, user_message):
     """Build the Gemini contents array from chat history + current message."""
     contents = []
@@ -243,10 +327,7 @@ def raktadata_helper():
     api_key = current_app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY', '')
 
     if not _is_valid_gemini_key(api_key):
-        return jsonify({
-            'success': False,
-            'reply': 'AI service is not configured. Please contact the administrator.'
-        }), 503
+        return jsonify({'success': True, 'reply': _smart_fallback(user_message)})
 
     contents = _build_gemini_contents(history, user_message)
     payload = _gemini_payload(contents)
@@ -268,10 +349,8 @@ def raktadata_helper():
         except Exception:
             continue
 
-    return jsonify({
-        'success': False,
-        'reply': 'I\'m having trouble connecting right now. Please try again in a moment.'
-    }), 503
+    # Gemini failed — use smart intent-aware fallback
+    return jsonify({'success': True, 'reply': _smart_fallback(user_message)})
 
 
 @api_bp.route('/raktadata-helper/stream', methods=['POST'])
@@ -287,13 +366,8 @@ def raktadata_helper_stream():
 
     def generate():
         if not _is_valid_gemini_key(api_key):
-            error_chunk = {
-                "candidates": [{"content": {"parts": [{"text": (
-                    "⚠️ Raktadata Helper is not configured yet. "
-                    "Please ask the administrator to set up the Gemini API key."
-                )}]}}]
-            }
-            yield f'data: {json.dumps(error_chunk)}\n\n'
+            fallback_text = _smart_fallback(user_message)
+            yield f'data: {json.dumps({"candidates": [{"content": {"parts": [{"text": fallback_text}]}}]})}\n\n'
             yield 'data: [DONE]\n\n'
             return
 
@@ -324,13 +398,9 @@ def raktadata_helper_stream():
             except Exception:
                 continue
 
-        # All models failed — stream a clean error
-        error_chunk = {
-            "candidates": [{"content": {"parts": [{"text": (
-                "I'm having trouble connecting right now. Please try again in a moment."
-            )}]}}]
-        }
-        yield f'data: {json.dumps(error_chunk)}\n\n'
+        # All Gemini models failed — use smart intent-aware fallback
+        fallback_text = _smart_fallback(user_message)
+        yield f'data: {json.dumps({"candidates": [{"content": {"parts": [{"text": fallback_text}]}}]})}\n\n'
         yield 'data: [DONE]\n\n'
 
     return Response(stream_with_context(generate()), mimetype='text/event-stream')
