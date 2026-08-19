@@ -32,7 +32,7 @@
 
           <!-- Emergency Toggle -->
           <div class="alert d-flex align-items-center gap-3 mb-4"
-            style="background:#e10808;border:2px solid #5d0808;border-radius:22px;">
+            style="background:#c75454;border:2px solid #6e1111;border-radius:22px;">
             <i class="fas fa-triangle-exclamation text-warning fa-lg flex-shrink-0"></i>
             <div class="flex-grow-1">
               <strong class="small">Is this a LIFE-THREATENING emergency?</strong>
@@ -133,7 +133,8 @@
               <label class="form-label fw-semibold">
                 Required Blood Type / Component <span class="text-danger">*</span>
               </label>
-              {{ form.required_component(class="form-select" + (" is-invalid" if form.required_component.errors else ""), id="required_component") }}
+              {{ form.required_component(class="form-select" + (" is-invalid" if form.required_component.errors else
+              ""), id="required_component") }}
               {% for e in form.required_component.errors %}
               <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
