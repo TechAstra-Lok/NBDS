@@ -22,7 +22,7 @@ from app.forms import (
 )
 from app.utils import save_image, save_file, delete_file, paginate_query, sanitize_html
 from sqlalchemy import desc, func, or_  # यहाँ or_ इम्पोर्ट फिक्स गरिएको छ
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from werkzeug.security import generate_password_hash
 
@@ -33,7 +33,6 @@ admin_bp = Blueprint('admin', __name__)
 @admin_bp.before_request
 def enforce_admin_session_timeout():
     # Only apply to logged-in users accessing admin blueprint
-    from datetime import datetime
     if not current_user.is_authenticated:
         return
 
@@ -44,7 +43,9 @@ def enforce_admin_session_timeout():
         except Exception:
             last_dt = None
         if last_dt:
-            if datetime.utcnow() - last_dt > timedelta(minutes=5):
+            # Handle timezone-aware or naive comparison safely
+            now_dt = datetime.now(timezone.utc) if getattr(last_dt, 'tzinfo', None) else datetime.now()
+            if now_dt - last_dt > timedelta(minutes=5):
                 # expire session
                 logout_user()
                 session.pop('admin_last_active', None)
@@ -52,7 +53,7 @@ def enforce_admin_session_timeout():
                 return redirect(url_for('admin.login'))
 
     # update last active timestamp for admins
-    session['admin_last_active'] = datetime.utcnow().isoformat()
+    session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
 
 
 # ─── Auth Decorators ──────────────────────────
@@ -117,12 +118,11 @@ def create_inventory_notifications(inventory):
         notifications.append(notification)
 
     if inventory.expiry_date:
-        from datetime import datetime
         try:
             expiry = datetime.strptime(inventory.expiry_date, '%Y-%m-%d').date()
         except ValueError:
             expiry = None
-        if expiry and (expiry - datetime.utcnow().date()).days <= 14:
+        if expiry and (expiry - datetime.now().date()).days <= 14:
             notification = Notification(
                 title='Expiry soon',
                 message=f"{inventory.blood_group} {inventory.component} expires soon.",
@@ -148,12 +148,11 @@ def build_blood_inventory_report(bank_id):
     expiring_soon_count = 0
     for item in inventory_items:
         if item.expiry_date:
-            from datetime import datetime
             try:
                 expiry = datetime.strptime(item.expiry_date, '%Y-%m-%d').date()
             except ValueError:
                 expiry = None
-            if expiry and (expiry - datetime.utcnow().date()).days <= 14:
+            if expiry and (expiry - datetime.now().date()).days <= 14:
                 expiring_soon_count += 1
     return {
         'bank_id': bank.id,
@@ -182,8 +181,8 @@ def login():
             login_user(user, remember=form.remember.data)
             # make admin session permanent for session lifetime tracking
             session.permanent = True
-            session['admin_last_active'] = datetime.utcnow().isoformat()
-            user.last_login = datetime.utcnow()
+            session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
+            user.last_login = datetime.now(timezone.utc)
             db.session.commit()
             
             next_page = request.args.get('next')
@@ -245,13 +244,13 @@ def dashboard():
     volunteer_has     = Volunteer.query.filter_by(designation='HA').count()
     
     total_blood_banks = BloodBank.query.count()
-    pending_events    = News.query.filter(News.category.in_(['event', 'program'])).filter(News.scheduled_date > datetime.utcnow()).count()
+    pending_events    = News.query.filter(News.category.in_(['event', 'program'])).filter(News.scheduled_date > datetime.now()).count()
     
     notifications_sent = NotificationDeliveryLog.query.filter_by(status='sent').count()
     notifications_failed = NotificationDeliveryLog.query.filter_by(status='failed').count()
 
     # Visitor stats
-    today       = datetime.utcnow().date()
+    today       = datetime.now().date()
     today_visitors = SiteVisitor.query.filter_by(visit_date=today).count()
     week_ago    = today - timedelta(days=7)
     week_visitors = SiteVisitor.query.filter(SiteVisitor.visit_date >= week_ago).count()
@@ -270,7 +269,7 @@ def dashboard():
     # Monthly registration trend (last 6 months)
     monthly_data = []
     for i in range(5, -1, -1):
-        month_start = (datetime.utcnow().replace(day=1) - timedelta(days=i*30)).replace(day=1)
+        month_start = (datetime.now().replace(day=1) - timedelta(days=i*30)).replace(day=1)
         month_end   = (month_start + timedelta(days=32)).replace(day=1)
         count = Donor.query.filter(
             Donor.created_at >= month_start,
@@ -1313,7 +1312,7 @@ def edit_donor(id):
                 donor.email = form.email.data.strip() if form.email.data and form.email.data.strip() else None
                 donor.phone2 = form.phone2.data.strip() if form.phone2.data and form.phone2.data.strip() else None
                 donor.social_link = form.social_link.data.strip() if form.social_link.data and form.social_link.data.strip() else None
-                donor.updated_at = datetime.utcnow()
+                donor.updated_at = datetime.now(timezone.utc)
                 donor.recalculate_and_save()
                 db.session.commit()
                 flash(f'✅ Donor {donor.donor_id} ({donor.full_name}) updated successfully!', 'success')
@@ -1945,7 +1944,7 @@ def reset_blood_bank_password(id):
         # pyrefly: ignore [unexpected-keyword]
         password_hash=bank.account.password_hash,
         # pyrefly: ignore [unexpected-keyword]
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     db.session.add(history)
     db.session.commit()
@@ -2127,7 +2126,7 @@ def edit_news(id):
         post.author     = (form.author.data or '').strip()
         post.tags       = (form.tags.data or '').strip() if form.tags.data else None
         post.is_published = form.is_published.data
-        post.updated_at = datetime.utcnow()
+        post.updated_at = datetime.now(timezone.utc)
         
         db.session.commit()
         flash('✅ News post updated!', 'success')
@@ -2223,7 +2222,7 @@ def edit_notice(id):
             notice.expiry_date = None
         notice.priority = int(form.priority.data) if form.priority.data is not None else 0
         notice.is_active = form.is_active.data
-        notice.updated_at = datetime.utcnow()
+        notice.updated_at = datetime.now(timezone.utc)
         
         db.session.commit()
         flash('✅ Notice updated successfully!', 'success')
@@ -2301,8 +2300,8 @@ def add_advertisement():
             return render_template('admin/ad_form.html', form=form, action='Add')
         
         image_file = save_image(form.image.data, 'ads', max_width=800, max_height=600)
-        start_dt = datetime.combine(form.start_date.data, datetime.min.time()) if form.start_date.data else datetime.utcnow()
-        end_dt = datetime.combine(form.end_date.data, datetime.max.time()) if form.end_date.data else datetime.utcnow()
+        start_dt = datetime.combine(form.start_date.data, datetime.min.time()) if form.start_date.data else datetime.now(timezone.utc)
+        end_dt = datetime.combine(form.end_date.data, datetime.max.time()) if form.end_date.data else datetime.now(timezone.utc)
         
         ad = Advertisement(
             # pyrefly: ignore [unexpected-keyword]

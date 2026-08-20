@@ -9,7 +9,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, or_, func
 from flask_login import login_required, current_user, login_user, logout_user
 
 from app import db
@@ -509,25 +509,54 @@ def nearest_blood_bank():
 def blood_bank_detail(bank_id):
     blood_bank = BloodBank.query.get_or_404(bank_id)
     
-    # Load from public cache to prevent cross-database tenant engine runtime errors
-    from app.models import PublicBloodBankCache
-    cache = PublicBloodBankCache.query.filter_by(blood_bank_id=bank_id).first()
+    from app.models import BloodInventory, BloodReservation, PublicBloodBankCache
+    real_inventories = BloodInventory.query.filter_by(blood_bank_id=bank_id).order_by(BloodInventory.blood_group, BloodInventory.component).all()
     inventory_items = []
-    if cache:
-        group_mapping = {
-            'A+': cache.a_pos, 'A-': cache.a_neg,
-            'B+': cache.b_pos, 'B-': cache.b_neg,
-            'AB+': cache.ab_pos, 'AB-': cache.ab_neg,
-            'O+': cache.o_pos, 'O-': cache.o_neg
-        }
-        for group, val in group_mapping.items():
-            if val > 0:
+    
+    if real_inventories:
+        for item in real_inventories:
+            active_reserved = db.session.query(func.sum(BloodReservation.units)).filter(
+                BloodReservation.blood_bank_id == bank_id,
+                BloodReservation.blood_group == item.blood_group,
+                BloodReservation.component == item.component,
+                BloodReservation.status.in_(['approved', 'locked'])
+            ).scalar()
+            
+            reserved_units = int(active_reserved) if active_reserved is not None else (item.units_reserved or 0)
+            avail_units = max((item.units_available or 0) - reserved_units, 0)
+            
+            if (item.units_available or 0) > 0 or reserved_units > 0:
                 inventory_items.append({
-                    'blood_group': group,
-                    'component': 'Any / Whole Blood',
-                    'available_units': val,
-                    'units_reserved': 0
+                    'blood_group': item.blood_group,
+                    'component': item.component,
+                    'available_units': avail_units,
+                    'units_reserved': reserved_units
                 })
+    else:
+        cache = PublicBloodBankCache.query.filter_by(blood_bank_id=bank_id).first()
+        if cache:
+            group_mapping = {
+                'A+': cache.a_pos, 'A-': cache.a_neg,
+                'B+': cache.b_pos, 'B-': cache.b_neg,
+                'AB+': cache.ab_pos, 'AB-': cache.ab_neg,
+                'O+': cache.o_pos, 'O-': cache.o_neg
+            }
+            for group, val in group_mapping.items():
+                active_reserved = db.session.query(func.sum(BloodReservation.units)).filter(
+                    BloodReservation.blood_bank_id == bank_id,
+                    BloodReservation.blood_group == group,
+                    BloodReservation.status.in_(['approved', 'locked'])
+                ).scalar() or 0
+                
+                reserved_units = int(active_reserved)
+                avail_units = max((val or 0) - reserved_units, 0)
+                if (val or 0) > 0 or reserved_units > 0:
+                    inventory_items.append({
+                        'blood_group': group,
+                        'component': 'Any / Whole Blood',
+                        'available_units': avail_units,
+                        'units_reserved': reserved_units
+                    })
     
     # Resolve tenant DB and fetch staff members
     staff_members = []
