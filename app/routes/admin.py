@@ -1,3 +1,4 @@
+from typing import Any
 import csv
 import io
 import re
@@ -612,7 +613,7 @@ def export_donors():
         filter_str = (' | '.join(filters_used)) if filters_used else 'All Donors'
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        elements = [
+        elements: list[Any] = [
             Paragraph('NEPALI BLOOD DONORS SOCIETY — REGISTERED DONORS DIRECTORY', title_style),
             Paragraph(f'Exported on: {now_str} | Filters: {filter_str} | Total Records: {len(donors_list)}', sub_style),
             Spacer(1, 4)
@@ -788,6 +789,8 @@ def import_donors_csv():
     try:
         raw_bytes = file.stream.read()
         rows_data = []
+        dialect = None
+        csv_reader = None
 
         if filename.endswith('.xlsx') or filename.endswith('.xls'):
             try:
@@ -815,8 +818,6 @@ def import_donors_csv():
             stream = io.StringIO(raw_bytes.decode('utf-8-sig', errors='replace'))
             sample = stream.read(8192)
             stream.seek(0)
-            dialect = None
-            csv_reader = None
             try:
                 dialect = csv.Sniffer().sniff(sample, delimiters=',\t;|')
                 csv_reader = csv.DictReader(stream, dialect=dialect)
@@ -1542,7 +1543,7 @@ def export_blood_banks():
                 self._saved_page_states = []
             def showPage(self):
                 self._saved_page_states.append(dict(self.__dict__))
-                self._startPage()
+                getattr(self, '_startPage')()
             def save(self):
                 num_pages = len(self._saved_page_states)
                 for state in self._saved_page_states:
@@ -1554,11 +1555,13 @@ def export_blood_banks():
                 self.saveState()
                 self.setFont('Helvetica', 8)
                 self.setFillColor(colors.HexColor('#6B7280'))
-                self.drawRightString(self._pagesize[0] - 30, 20, f'Page {self._pageNumber} of {page_count}')
+                pagesize = getattr(self, '_pagesize', (841.89, 595.27))
+                pagenum = getattr(self, '_pageNumber', 1)
+                self.drawRightString(pagesize[0] - 30, 20, f'Page {pagenum} of {page_count}')
                 self.drawString(30, 20, 'Raktadata — Nepali Blood Donors Society | Blood Banks Directory')
                 self.setStrokeColor(colors.HexColor('#E5E7EB'))
                 self.setLineWidth(0.5)
-                self.line(30, 32, self._pagesize[0] - 30, 32)
+                self.line(30, 32, pagesize[0] - 30, 32)
                 self.restoreState()
 
         buf = io.BytesIO()
@@ -1571,7 +1574,7 @@ def export_blood_banks():
         header_cell_style = ParagraphStyle('HeaderCellText', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, leading=11, textColor=colors.whitesmoke)
 
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        elements = [
+        elements: list[Any] = [
             Paragraph('NEPALI BLOOD DONORS SOCIETY — BLOOD BANKS DIRECTORY', title_style),
             Paragraph(f'Exported on: {now_str} | Total Records: {len(banks)}', sub_style),
             Spacer(1, 4)
@@ -1628,7 +1631,7 @@ def export_blood_banks():
         return redirect(url_for('admin.blood_banks'))
 
     wb = Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = 'Blood Banks'
 
     # Header styling
@@ -1649,7 +1652,7 @@ def export_blood_banks():
     # Data rows
     for row_data in rows:
         ws.append(row_data)
-        r = ws.max_row
+        r = ws.max_row or len(rows) + 1
         for col_idx in range(1, len(HEADERS) + 1):
             ws.cell(row=r, column=col_idx).border = border
 
@@ -1690,7 +1693,7 @@ def blood_bank_upload_template():
         'is_emergency_panel', 'is_grouped_entry', 'is_active', 'notes',
     ]
     wb = Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = 'Blood Banks Template'
     ws.append(HEADERS)
     header_fill = PatternFill('solid', fgColor='DC2626')
@@ -1748,8 +1751,8 @@ def bulk_upload_blood_banks():
                 flash('openpyxl required for Excel upload.', 'danger')
                 return redirect(url_for('admin.blood_banks'))
             wb = load_workbook(io.BytesIO(file.stream.read()), read_only=True, data_only=True)
-            ws = wb.active
-            raw = list(ws.values)
+            ws = wb.active or wb.create_sheet()
+            raw = list(ws.values) if ws else []
             if not raw:
                 flash('Uploaded file is empty.', 'danger')
                 return redirect(url_for('admin.blood_banks'))
@@ -2298,22 +2301,24 @@ def add_advertisement():
             return render_template('admin/ad_form.html', form=form, action='Add')
         
         image_file = save_image(form.image.data, 'ads', max_width=800, max_height=600)
+        start_dt = datetime.combine(form.start_date.data, datetime.min.time()) if form.start_date.data else datetime.utcnow()
+        end_dt = datetime.combine(form.end_date.data, datetime.max.time()) if form.end_date.data else datetime.utcnow()
         
         ad = Advertisement(
             # pyrefly: ignore [unexpected-keyword]
-            title       = form.title.data.strip(),
+            title       = (form.title.data or '').strip(),
             # pyrefly: ignore [unexpected-keyword]
-            description = form.description.data.strip() if form.description.data else None,
+            description = (form.description.data or '').strip() if form.description.data else None,
             # pyrefly: ignore [unexpected-keyword]
             image       = image_file,
             # pyrefly: ignore [unexpected-keyword]
-            redirect_url= form.redirect_url.data.strip() if form.redirect_url.data else None,
+            redirect_url= (form.redirect_url.data or '').strip() if form.redirect_url.data else None,
             # pyrefly: ignore [unexpected-keyword]
             ad_type     = form.ad_type.data,
             # pyrefly: ignore [unexpected-keyword]
-            start_date  = datetime.combine(form.start_date.data, datetime.min.time()),
+            start_date  = start_dt,
             # pyrefly: ignore [unexpected-keyword]
-            end_date    = datetime.combine(form.end_date.data, datetime.max.time()),
+            end_date    = end_dt,
             # pyrefly: ignore [unexpected-keyword]
             is_active   = form.is_active.data,
         )
@@ -2789,7 +2794,7 @@ def add_user():
             email=form.email.data or '',
             full_name=form.full_name.data or '',
             role=form.role.data or 'Admin',
-            is_active=bool(form.is_active.data)
+            is_active=form.is_active.data
         )
         password = form.password.data if form.password.data else 'admin123'
         user.set_password(password)
