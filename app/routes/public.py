@@ -72,7 +72,7 @@ def is_image_safe(image_path):
     यदि गुगल सेट गरिएको छैन भने, सुरक्षाको लागि यो प्रकार्यले पास दिन्छ।
     """
     try:
-        # pyrefly: ignore [missing-import]
+       
         from google.cloud import vision
         client = vision.ImageAnnotatorClient()
 
@@ -80,7 +80,7 @@ def is_image_safe(image_path):
             content = image_file.read()
 
         image = vision.Image(content=content)
-        response = client.safe_search_detection(image=image)
+        response = client.safe_search_detection(image=image)  # type: ignore[attr-defined]  # dynamically generated gRPC method
         safe = response.safe_search_annotation
 
         # Likelihood levels: UNKNOWN, VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY
