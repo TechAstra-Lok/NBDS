@@ -519,7 +519,7 @@ def export_donors():
             return redirect(url_for('admin.donors'))
 
         wb = Workbook()
-        ws = wb.active
+        ws = wb.active or wb.create_sheet()
         ws.title = 'Blood Donors'
 
         header_fill = PatternFill('solid', fgColor='DC2626')
@@ -538,7 +538,7 @@ def export_donors():
 
         for r_data in rows:
             ws.append(r_data)
-            r = ws.max_row
+            r = ws.max_row or len(rows) + 1
             for col_idx in range(1, len(HEADERS) + 1):
                 ws.cell(row=r, column=col_idx).border = border
 
@@ -553,15 +553,16 @@ def export_donors():
         return Response(
             buf.read(),
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={'Content-Disposition': 'attachment; filename=nepal_blood_donors.xlsx'}
+            headers={'Content-Disposition': 'attachment; filename=blood_donors.xlsx'}
         )
 
+    # ── PDF Export (ReportLab) ──────────────────────────
     if fmt == 'pdf':
         try:
-            from reportlab.lib.pagesizes import landscape, A4
+            from reportlab.lib.pagesizes import A4, landscape
             from reportlab.lib import colors
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.pdfgen import canvas
         except ImportError:
             flash('reportlab is required for PDF export.', 'danger')
@@ -573,7 +574,7 @@ def export_donors():
                 self._saved_page_states = []
             def showPage(self):
                 self._saved_page_states.append(dict(self.__dict__))
-                self._startPage()
+                getattr(self, '_startPage')()
             def save(self):
                 num_pages = len(self._saved_page_states)
                 for state in self._saved_page_states:
@@ -585,11 +586,13 @@ def export_donors():
                 self.saveState()
                 self.setFont('Helvetica', 8)
                 self.setFillColor(colors.HexColor('#6B7280'))
-                self.drawRightString(self._pagesize[0] - 30, 20, f'Page {self._pageNumber} of {page_count}')
+                pagesize = getattr(self, '_pagesize', (841.89, 595.27))
+                pagenum = getattr(self, '_pageNumber', 1)
+                self.drawRightString(pagesize[0] - 30, 20, f'Page {pagenum} of {page_count}')
                 self.drawString(30, 20, 'Raktadata — Nepali Blood Donors Society | Registered Donors Export')
                 self.setStrokeColor(colors.HexColor('#E5E7EB'))
                 self.setLineWidth(0.5)
-                self.line(30, 32, self._pagesize[0] - 30, 32)
+                self.line(30, 32, pagesize[0] - 30, 32)
                 self.restoreState()
 
         buf = io.BytesIO()
@@ -725,7 +728,7 @@ def sample_donors_excel():
     ]
 
     wb = Workbook()
-    ws = wb.active
+    ws = wb.active or wb.create_sheet()
     ws.title = 'Sample Donor Import'
     ws.append(HEADERS)
 
@@ -771,16 +774,16 @@ def import_donors_csv():
         return redirect(url_for('admin.donors'))
         
     file = request.files[file_field]
-    if not file or file.filename == '':
+    if not file or not file.filename:
         flash('No file selected for upload.', 'danger')
         return redirect(url_for('admin.donors'))
         
-    filename = file.filename.lower()
+    filename = (file.filename or '').lower()
     if not (filename.endswith('.csv') or filename.endswith('.xlsx') or filename.endswith('.xls')):
         flash('Invalid file format. Please upload a .csv or .xlsx file.', 'danger')
         return redirect(url_for('admin.donors'))
         
-    duplicate_action = request.form.get('duplicate_action', 'skip').strip().lower()
+    duplicate_action = (request.form.get('duplicate_action') or 'skip').strip().lower()
     
     try:
         raw_bytes = file.stream.read()
@@ -794,8 +797,8 @@ def import_donors_csv():
                 return redirect(url_for('admin.donors'))
 
             wb = load_workbook(io.BytesIO(raw_bytes), read_only=True, data_only=True)
-            ws = wb.active
-            raw_grid = list(ws.values)
+            ws = wb.active or wb.create_sheet()
+            raw_grid = list(ws.values) if ws else []
             if not raw_grid:
                 flash('Uploaded file is empty.', 'danger')
                 return redirect(url_for('admin.donors'))
@@ -812,6 +815,8 @@ def import_donors_csv():
             stream = io.StringIO(raw_bytes.decode('utf-8-sig', errors='replace'))
             sample = stream.read(8192)
             stream.seek(0)
+            dialect = None
+            csv_reader = None
             try:
                 dialect = csv.Sniffer().sniff(sample, delimiters=',\t;|')
                 csv_reader = csv.DictReader(stream, dialect=dialect)
@@ -827,8 +832,8 @@ def import_donors_csv():
         # DEBUG: Log detected headers and delimiter for troubleshooting
         import logging
         _log = logging.getLogger('csv_import')
-        detected_delim = repr(dialect.delimiter) if 'dialect' in dir() else 'comma(default)'
-        raw_headers = csv_reader.fieldnames or []
+        detected_delim = repr(dialect.delimiter) if (dialect and hasattr(dialect, 'delimiter')) else 'comma(default)'
+        raw_headers = csv_reader.fieldnames if (csv_reader and csv_reader.fieldnames) else []
         _log.warning(f"CSV IMPORT DEBUG: delimiter={detected_delim}, headers={raw_headers}")
         _log.warning(f"CSV IMPORT DEBUG: raw_bytes first 500 chars: {repr(raw_bytes[:500])}")
         
@@ -1244,30 +1249,30 @@ def add_donor():
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
-                email_val = form.email.data.strip() if form.email.data and form.email.data.strip() else None
+                email_val = (form.email.data or '').strip() if form.email.data else None
                 donor = Donor(
-                    full_name           = form.full_name.data.strip(),
+                    full_name           = (form.full_name.data or '').strip(),
                     email               = email_val,
                     pin_hash            = generate_password_hash('1234'),
                     age                 = form.age.data,
                     weight              = form.weight.data,
                     perm_province       = form.perm_province.data or None,
-                    perm_district       = form.perm_district.data.strip() if form.perm_district.data else None,
-                    perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else None,
-                    perm_ward           = form.perm_ward.data.strip() if hasattr(form, 'perm_ward') and form.perm_ward.data else None,
-                    perm_tole           = form.perm_tole.data.strip() if hasattr(form, 'perm_tole') and form.perm_tole.data else None,
+                    perm_district       = (form.perm_district.data or '').strip() if form.perm_district.data else None,
+                    perm_local_level    = (form.perm_local_level.data or '').strip() if form.perm_local_level.data else None,
+                    perm_ward           = (form.perm_ward.data or '').strip() if hasattr(form, 'perm_ward') and form.perm_ward.data else None,
+                    perm_tole           = (form.perm_tole.data or '').strip() if hasattr(form, 'perm_tole') and form.perm_tole.data else None,
                     curr_province       = form.curr_province.data,
-                    curr_district       = form.curr_district.data.strip(),
-                    curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else None,
-                    curr_ward           = form.curr_ward.data.strip() if hasattr(form, 'curr_ward') and form.curr_ward.data else None,
-                    curr_tole           = form.curr_tole.data.strip() if hasattr(form, 'curr_tole') and form.curr_tole.data else None,
-                    phone1              = form.phone1.data.strip(),
-                    phone2              = form.phone2.data.strip() if form.phone2.data and form.phone2.data.strip() else None,
+                    curr_district       = (form.curr_district.data or '').strip(),
+                    curr_local_level    = (form.curr_local_level.data or '').strip() if form.curr_local_level.data else None,
+                    curr_ward           = (form.curr_ward.data or '').strip() if hasattr(form, 'curr_ward') and form.curr_ward.data else None,
+                    curr_tole           = (form.curr_tole.data or '').strip() if hasattr(form, 'curr_tole') and form.curr_tole.data else None,
+                    phone1              = (form.phone1.data or '').strip(),
+                    phone2              = (form.phone2.data or '').strip() if form.phone2.data else None,
                     blood_group         = form.blood_group.data,
                     last_donation_date  = form.last_donation_date.data,
                     donation_times      = form.donation_times.data or 0,
                     donor_type          = form.donor_type.data,
-                    social_link         = form.social_link.data.strip() if form.social_link.data and form.social_link.data.strip() else None,
+                    social_link         = (form.social_link.data or '').strip() if form.social_link.data else None,
                     is_active           = True,
                     is_public           = True,
                 )
@@ -2083,12 +2088,12 @@ def add_news():
             image_file = save_image(form.featured_image.data, 'news')
         
         post = News(
-            title       = form.title.data.strip(),
-            short_desc  = form.short_desc.data.strip(),
-            content     = sanitize_html(form.content.data),
+            title       = (form.title.data or '').strip(),
+            short_desc  = (form.short_desc.data or '').strip(),
+            content     = sanitize_html(form.content.data or ''),
             category    = form.category.data,
-            author      = form.author.data.strip(),
-            tags        = form.tags.data.strip() if form.tags.data else None,
+            author      = (form.author.data or '').strip(),
+            tags        = (form.tags.data or '').strip() if form.tags.data else None,
             featured_image = image_file,
             is_published = form.is_published.data,
         )
@@ -2112,12 +2117,12 @@ def edit_news(id):
             delete_file(post.featured_image, 'news')
             post.featured_image = save_image(form.featured_image.data, 'news')
         
-        post.title      = form.title.data.strip()
-        post.short_desc = form.short_desc.data.strip()
-        post.content    = sanitize_html(form.content.data)
+        post.title      = (form.title.data or '').strip()
+        post.short_desc = (form.short_desc.data or '').strip()
+        post.content    = sanitize_html(form.content.data or '')
         post.category   = form.category.data
-        post.author     = form.author.data.strip()
-        post.tags       = form.tags.data.strip() if form.tags.data else None
+        post.author     = (form.author.data or '').strip()
+        post.tags       = (form.tags.data or '').strip() if form.tags.data else None
         post.is_published = form.is_published.data
         post.updated_at = datetime.utcnow()
         
@@ -2164,13 +2169,13 @@ def add_notice():
         
         notice = Notice(
             # pyrefly: ignore [unexpected-keyword]
-            title           = form.title.data.strip(),
+            title           = (form.title.data or '').strip(),
             # pyrefly: ignore [unexpected-keyword]
-            content         = form.content.data.strip(),
+            content         = (form.content.data or '').strip(),
             # pyrefly: ignore [unexpected-keyword]
             expiry_date     = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None,
             # pyrefly: ignore [unexpected-keyword]
-            priority        = int(form.priority.data),
+            priority        = int(form.priority.data) if form.priority.data is not None else 0,
             # pyrefly: ignore [unexpected-keyword]
             attachment      = file_name,
             # pyrefly: ignore [unexpected-keyword]
@@ -2206,8 +2211,8 @@ def edit_notice(id):
             notice.attachment = file_name
             notice.attachment_type = file_ext
             
-        notice.title = form.title.data.strip()
-        notice.content = form.content.data.strip()
+        notice.title = (form.title.data or '').strip()
+        notice.content = (form.content.data or '').strip()
         if form.expiry_date.data:
             ed = form.expiry_date.data
             notice.expiry_date = datetime.combine(ed, datetime.min.time()) if not isinstance(ed, datetime) else ed
@@ -2228,7 +2233,8 @@ def edit_notice(id):
 @permission_required('manage_notices')
 def delete_notice(id):
     notice = Notice.query.get_or_404(id)
-    delete_file(notice.attachment, 'notices')
+    if notice.attachment:
+        delete_file(notice.attachment, 'notices')
     db.session.delete(notice)
     db.session.commit()
     flash('Notice deleted.', 'warning')
@@ -2248,7 +2254,7 @@ def toggle_notice(id):
 #   ADVERTISEMENT MANAGEMENT
 # ════════════════════════════════════════════
 @admin_bp.route('/advertisements')
-@permission_required('manage_ads')
+@permission_required('manage_advertisements')
 def advertisements():
     page = request.args.get('page', 1, type=int)
     pagination = paginate_query(
@@ -2437,10 +2443,10 @@ def add_staff():
             photo_file = save_image(form.profile_photo.data, 'staff')
         
         member = StaffMember(
-            full_name=form.full_name.data.strip(),
-            designation=form.designation.data.strip(),
-            email=form.email.data.strip() if form.email.data else None,
-            contact_number=form.contact_number.data.strip() if form.contact_number.data else None,
+            full_name=(form.full_name.data or '').strip(),
+            designation=(form.designation.data or '').strip(),
+            email=(form.email.data or '').strip() if form.email.data else None,
+            contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
             profile_photo=photo_file,
             province=form.province.data or None,
             district=form.district.data or None,
@@ -2469,10 +2475,10 @@ def edit_staff(id):
                 delete_file(member.profile_photo, 'staff')
             member.profile_photo = save_image(form.profile_photo.data, 'staff')
             
-        member.full_name = form.full_name.data.strip()
-        member.designation = form.designation.data.strip()
-        member.email = form.email.data.strip() if form.email.data else None
-        member.contact_number = form.contact_number.data.strip() if form.contact_number.data else None
+        member.full_name = (form.full_name.data or '').strip()
+        member.designation = (form.designation.data or '').strip()
+        member.email = (form.email.data or '').strip() if form.email.data else None
+        member.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
         member.province = form.province.data or None
         member.district = form.district.data or None
         member.local_level = form.local_level.data or None
@@ -2522,12 +2528,12 @@ def add_partner():
             logo_file = save_image(form.logo_file.data, 'partners')
             
         partner = Partner(
-            partner_name=form.partner_name.data.strip(),
-            description=form.description.data.strip() if form.description.data else None,
-            website_url=form.website_url.data.strip() if form.website_url.data else None,
-            email=form.email.data.strip() if form.email.data else None,
-            contact_number=form.contact_number.data.strip() if form.contact_number.data else None,
-            address=form.address.data.strip() if form.address.data else None,
+            partner_name=(form.partner_name.data or '').strip(),
+            description=(form.description.data or '').strip() if form.description.data else None,
+            website_url=(form.website_url.data or '').strip() if form.website_url.data else None,
+            email=(form.email.data or '').strip() if form.email.data else None,
+            contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
+            address=(form.address.data or '').strip() if form.address.data else None,
             logo_file=logo_file,
             is_active=form.is_active.data
         )
@@ -2551,12 +2557,12 @@ def edit_partner(id):
                 delete_file(partner.logo_file, 'partners')
             partner.logo_file = save_image(form.logo_file.data, 'partners')
             
-        partner.partner_name = form.partner_name.data.strip()
-        partner.description = form.description.data.strip() if form.description.data else None
-        partner.website_url = form.website_url.data.strip() if form.website_url.data else None
-        partner.email = form.email.data.strip() if form.email.data else None
-        partner.contact_number = form.contact_number.data.strip() if form.contact_number.data else None
-        partner.address = form.address.data.strip() if form.address.data else None
+        partner.partner_name = (form.partner_name.data or '').strip()
+        partner.description = (form.description.data or '').strip() if form.description.data else None
+        partner.website_url = (form.website_url.data or '').strip() if form.website_url.data else None
+        partner.email = (form.email.data or '').strip() if form.email.data else None
+        partner.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
+        partner.address = (form.address.data or '').strip() if form.address.data else None
         partner.is_active = form.is_active.data
         
         db.session.commit()
@@ -2779,11 +2785,11 @@ def add_user():
     
     if form.validate_on_submit():
         user = User(
-            username=form.username.data,
-            email=form.email.data,
-            full_name=form.full_name.data,
-            role=form.role.data,
-            is_active=form.is_active.data
+            username=form.username.data or '',
+            email=form.email.data or '',
+            full_name=form.full_name.data or '',
+            role=form.role.data or 'Admin',
+            is_active=bool(form.is_active.data)
         )
         password = form.password.data if form.password.data else 'admin123'
         user.set_password(password)
