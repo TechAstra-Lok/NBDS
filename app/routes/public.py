@@ -26,7 +26,7 @@ from app.utils import paginate_query, get_blood_group_stats, rate_limit, generat
 from app.tasks import alert_matching_donors
 
 try:
-    import nepali_datetime
+    import nepali_datetime  # type: ignore
 except ImportError:
     nepali_datetime = None
 
@@ -105,7 +105,7 @@ def is_text_safe(title, content):
     OpenAI API प्रयोग गरी कथाको शीर्षक र विषयवस्तु सुरक्षित/सान्दर्भिक छ कि छैन जाँच गर्ने।
     """
     try:
-        import openai
+        import openai  # type: ignore
         import json
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -179,8 +179,8 @@ def success_stories():
             return redirect(url_for('public.success_stories'))
 
         filename = None
-        if file and file.filename != '':
-            filename = secure_filename(file.filename)
+        if file and file.filename:
+            filename = secure_filename(file.filename or '')
             upload_folder = os.path.join(current_app.root_path, 'static/uploads/stories')
             os.makedirs(upload_folder, exist_ok=True)
             
@@ -714,8 +714,9 @@ def blood_request_form():
     form = BloodRequestForm()
     
     if form.validate_on_submit():
-        ten_min_ago = datetime.utcnow() - timedelta(minutes=10)
-        normalized_new = ''.join(e for e in form.patient_name.data.lower() if e.isalnum())
+        ten_min_ago = datetime.now() - timedelta(minutes=10)
+        p_name = form.patient_name.data or ''
+        normalized_new = ''.join(e for e in p_name.lower() if e.isalnum())
         recent = BloodRequest.query.filter(BloodRequest.created_at >= ten_min_ago).all()
         for r in recent:
             normalized_existing = ''.join(e for e in (r.patient_name or '').lower() if e.isalnum())
@@ -727,21 +728,21 @@ def blood_request_form():
                 return redirect(url_for('public.blood_request_board'))
 
         req = BloodRequest(
-            patient_name    = form.patient_name.data.strip(),
-            request_message = form.request_message.data.strip() if form.request_message.data else "",
-            case_details    = form.case_details.data.strip(),
+            patient_name    = (form.patient_name.data or '').strip(),
+            request_message = (form.request_message.data or '').strip(),
+            case_details    = (form.case_details.data or '').strip(),
             blood_group     = form.blood_group.data,
             required_component = form.required_component.data or 'Whole Blood',
             units_needed    = form.units_needed.data,
-            hospital        = form.hospital.data.strip(),
+            hospital        = (form.hospital.data or '').strip(),
             province        = form.province.data or "",
-            district        = form.district.data.strip() if form.district.data else "",
-            local_level     = form.local_level.data.strip() if form.local_level.data else "",
-            ward_no         = form.ward_no.data.strip() if form.ward_no.data else "",
-            contact_person  = form.contact_person.data.strip(),
-            contact_number  = form.contact_number.data.strip(),
-            alt_number      = form.alt_number.data.strip() if form.alt_number.data else "",
-            pin             = form.pin.data.strip(),
+            district        = (form.district.data or '').strip(),
+            local_level     = (form.local_level.data or '').strip(),
+            ward_no         = (form.ward_no.data or '').strip(),
+            contact_person  = (form.contact_person.data or '').strip(),
+            contact_number  = (form.contact_number.data or '').strip(),
+            alt_number      = (form.alt_number.data or '').strip(),
+            pin             = (form.pin.data or '').strip(),
             is_emergency    = form.is_emergency.data,
         )
         db.session.add(req)
@@ -751,7 +752,7 @@ def blood_request_form():
         if form.hospital_paper.data:
             paper_file = form.hospital_paper.data
             import uuid
-            ext = paper_file.filename.rsplit('.', 1)[-1].lower() if '.' in (paper_file.filename or '') else 'jpg'
+            ext = (paper_file.filename or '').rsplit('.', 1)[-1].lower() if '.' in (paper_file.filename or '') else 'jpg'
             filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
             upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
             os.makedirs(upload_dir, exist_ok=True)
@@ -768,7 +769,8 @@ def blood_request_form():
         
         # Trigger Intelligent Donor Alert
         try:
-            alert_matching_donors(current_app._get_current_object(), req.id)
+            app_obj = getattr(current_app, '_get_current_object')()
+            alert_matching_donors(app_obj, req.id)
         except Exception as e:
             current_app.logger.error(f"Error alerting donors: {e}")
         
@@ -841,8 +843,8 @@ def manage_blood_request():
 
     if form.validate_on_submit():
         request_record = BloodRequest.query.filter_by(
-            request_id=form.request_id.data.strip(),
-            pin=form.pin.data.strip()
+            request_id=(form.request_id.data or '').strip(),
+            pin=(form.pin.data or '').strip()
         ).first()
 
         if not request_record:
@@ -871,7 +873,7 @@ def public_update_request_status(id):
         else:
             request_record.status = action
             if action == 'fulfilled':
-                request_record.fulfilled_date = datetime.utcnow()
+                request_record.fulfilled_date = datetime.now()
             flash(f'Your request has been marked as {action.replace("_", " ")}.', 'success')
     else:
         flash('Invalid action selected.', 'danger')
@@ -949,33 +951,36 @@ def become_donor():
     
     if form.validate_on_submit():
         ad_date = form.last_donation_date.data
-        if ad_date and ad_date.year > 2050:
-            bs_date = nepali_datetime.date(ad_date.year, ad_date.month, ad_date.day)
-            ad_date = bs_date.to_datetime_date()
+        if ad_date and hasattr(ad_date, 'year') and ad_date.year > 2050 and nepali_datetime:
+            try:
+                bs_date = nepali_datetime.date(ad_date.year, ad_date.month, ad_date.day)
+                ad_date = bs_date.to_datetime_date()
+            except Exception:
+                pass
 
         donor = Donor(
-            full_name           = form.full_name.data.strip(),
-            email               = form.email.data.strip() if form.email.data and form.email.data.strip() else None,
-            pin_hash            = generate_password_hash(form.pin.data),
+            full_name           = (form.full_name.data or '').strip(),
+            email               = (form.email.data or '').strip() if form.email.data and form.email.data.strip() else None,
+            pin_hash            = generate_password_hash(form.pin.data or '1234'),
             age                 = form.age.data,
             weight              = form.weight.data,
             perm_province       = form.perm_province.data or "",
-            perm_district       = form.perm_district.data.strip() if form.perm_district.data else "",
-            perm_local_level    = form.perm_local_level.data.strip() if form.perm_local_level.data else "",
-            perm_ward           = form.perm_ward.data.strip() if form.perm_ward.data else "",
-            perm_tole           = form.perm_tole.data.strip() if form.perm_tole.data else "",
+            perm_district       = (form.perm_district.data or '').strip(),
+            perm_local_level    = (form.perm_local_level.data or '').strip(),
+            perm_ward           = (form.perm_ward.data or '').strip(),
+            perm_tole           = (form.perm_tole.data or '').strip(),
             curr_province       = form.curr_province.data,
-            curr_district       = form.curr_district.data.strip(),
-            curr_local_level    = form.curr_local_level.data.strip() if form.curr_local_level.data else "",
-            curr_ward           = form.curr_ward.data.strip() if form.curr_ward.data else "",
-            curr_tole           = form.curr_tole.data.strip() if form.curr_tole.data else "",
-            phone1              = form.phone1.data.strip(),
-            phone2              = form.phone2.data.strip() if form.phone2.data else "",
+            curr_district       = (form.curr_district.data or '').strip(),
+            curr_local_level    = (form.curr_local_level.data or '').strip(),
+            curr_ward           = (form.curr_ward.data or '').strip(),
+            curr_tole           = (form.curr_tole.data or '').strip(),
+            phone1              = (form.phone1.data or '').strip(),
+            phone2              = (form.phone2.data or '').strip(),
             blood_group         = form.blood_group.data,
             last_donation_date  = ad_date,
             donation_times      = form.donation_times.data or 0,
             donor_type          = form.donor_type.data,
-            social_link         = form.social_link.data.strip() if form.social_link.data else "",
+            social_link         = (form.social_link.data or '').strip(),
         )
         
         # Calculate initial availability
@@ -999,7 +1004,7 @@ def donor_login():
         
     form = DonorLoginForm()
     if form.validate_on_submit():
-        login_val = form.login_id.data.strip()
+        login_val = (form.login_id.data or '').strip()
         
         # Check if login_val is phone or email
         # To normalize phone, reuse the normalize logic if it looks like a phone
@@ -1011,7 +1016,7 @@ def donor_login():
         from sqlalchemy import or_
         donor = Donor.query.filter(or_(Donor.phone1 == normalized_phone, Donor.email == login_val)).first()
         
-        if donor and check_password_hash(donor.pin_hash, form.pin.data):
+        if donor and check_password_hash(donor.pin_hash, form.pin.data or ''):
             session.permanent = True
             login_user(donor, remember=True)
             flash('Logged in successfully.', 'success')
@@ -1030,28 +1035,26 @@ def become_volunteer():
     
     if form.validate_on_submit():
         volunteer = Volunteer(
-            # pyrefly: ignore [unexpected-keyword]
-            full_name           = form.full_name.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            email               = form.email.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            pin_hash            = generate_password_hash(form.pin.data),
-            # pyrefly: ignore [unexpected-keyword]
-            phone1              = form.phone1.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            phone2              = form.phone2.data.strip() if form.phone2.data else None,
-            # pyrefly: ignore [unexpected-keyword]
+            full_name           = (form.full_name.data or '').strip(),
+            email               = (form.email.data or '').strip(),
+            
+            pin_hash            = generate_password_hash(form.pin.data or '1234'),
+            
+            phone1              = (form.phone1.data or '').strip(),
+            
+            phone2              = (form.phone2.data or '').strip() if form.phone2.data else None,
+            
             designation         = form.designation.data,
-            # pyrefly: ignore [unexpected-keyword]
-            working_field       = form.working_field.data.strip() if form.working_field.data else None,
-            # pyrefly: ignore [unexpected-keyword]
-            perm_address        = form.perm_address.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            curr_address        = form.curr_address.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            curr_district       = form.curr_district.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            availability_time   = form.availability_time.data.strip() if form.availability_time.data else None
+            
+            working_field       = (form.working_field.data or '').strip() if form.working_field.data else None,
+            
+            perm_address        = (form.perm_address.data or '').strip(),
+            
+            curr_address        = (form.curr_address.data or '').strip(),
+            
+            curr_district       = (form.curr_district.data or '').strip(),
+            
+            availability_time   = (form.availability_time.data or '').strip() if form.availability_time.data else None
         )
         db.session.add(volunteer)
         db.session.commit()
@@ -1071,14 +1074,14 @@ def volunteer_login():
         
     form = VolunteerLoginForm()
     if form.validate_on_submit():
-        volunteer = Volunteer.query.filter_by(phone1=form.phone1.data.strip()).first()
-        if volunteer and check_password_hash(volunteer.pin_hash, form.pin.data):
+        volunteer = Volunteer.query.filter_by(phone1=(form.phone1.data or '').strip()).first()
+        if volunteer and check_password_hash(volunteer.pin_hash, form.pin.data or ''):
             login_user(volunteer, remember=form.remember.data)
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('public.index'))
         else:
-            flash('Login Unsuccessful. Please check mobile number and PIN.', 'danger')
+            flash('Login Unsuccessful. Please check your mobile number and PIN.', 'danger')
             
     return render_template('auth/volunteer_login.html', form=form)
 
@@ -1128,7 +1131,7 @@ def donor_profile(donor_id):
             donor.preference.sms_alerts = profile_form.sms_alerts.data
             donor.preference.in_app_alerts = profile_form.in_app_alerts.data
             
-            donor.updated_at = datetime.utcnow()
+            donor.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             flash('Your profile has been updated.', 'success')
             return redirect(url_for('public.donor_profile', donor_id=donor_id))
@@ -1220,7 +1223,7 @@ def news_list():
     )
     
     # Fetch Active Notices (Naive UTC timestamp prevents SQLAlchemy TypeError)
-    now = datetime.utcnow()
+    now = datetime.now()
     active_notices = Notice.query.filter(
         Notice.is_active == True,
         or_(Notice.expiry_date == None, Notice.expiry_date >= now)
@@ -1252,16 +1255,16 @@ def contact():
     
     if form.validate_on_submit():
         msg = Contact(
-            # pyrefly: ignore [unexpected-keyword]
-            name    = form.name.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            email   = form.email.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            phone   = form.phone.data.strip() if form.phone.data else None,
-            # pyrefly: ignore [unexpected-keyword]
-            subject = form.subject.data.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            message = form.message.data.strip(),
+            
+            name    = (form.name.data or '').strip(),
+            
+            email   = (form.email.data or '').strip(),
+            
+            phone   = (form.phone.data or '').strip() if form.phone.data else None,
+            
+            subject = (form.subject.data or '').strip(),
+            
+            message = (form.message.data or '').strip(),
         )
         db.session.add(msg)
         db.session.commit()
@@ -1322,7 +1325,7 @@ Sitemap: https://raktadata.lokeshprasai.com.np/sitemap.xml
 
 @public_bp.route('/sitemap.xml', methods=['GET'])
 def sitemap():
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().date().isoformat()
     pages = [
         (url_for('public.index', _external=True), today, '1.0', 'daily'),
         (url_for('public.find_donors', _external=True), today, '0.9', 'daily'),
