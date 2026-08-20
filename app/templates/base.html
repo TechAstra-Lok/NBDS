@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
     content="{% block meta_desc %}रक्तदान र रक्तदाता - Find blood donors, request emergency blood, check blood banks, and get health guidance across Nepal. Nepal's premier blood donor platform.{% endblock %}" />
-  <meta name="keywords" content="{% block meta_keywords %}blood donation Nepal, blood donors Nepal, O+ blood donor Kathmandu, emergency blood request Nepal, Nepali blood bank, blood group compatibility, health tips Nepal{% endblock %}" />
+  <meta name="keywords"
+    content="{% block meta_keywords %}blood donation Nepal, blood donors Nepal, O+ blood donor Kathmandu, emergency blood request Nepal, Nepali blood bank, blood group compatibility, health tips Nepal{% endblock %}" />
   <meta name="author" content="रक्तदान र रक्तदाता - Nepali Blood Donors System" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <meta name="theme-color" content="#DC2626" />
@@ -16,8 +17,10 @@
 
   <!-- Open Graph / Facebook -->
   <meta property="og:site_name" content="{{ site_name }}" />
-  <meta property="og:title" content="{% block og_title %}{{ site_name }} — Emergency Blood Donors & Health Network Nepal{% endblock %}" />
-  <meta property="og:description" content="{% block og_desc %}Find active blood donors, locate blood banks, request emergency blood, and get 24/7 AI health guidance across Nepal.{% endblock %}" />
+  <meta property="og:title"
+    content="{% block og_title %}{{ site_name }} — Emergency Blood Donors & Health Network Nepal{% endblock %}" />
+  <meta property="og:description"
+    content="{% block og_desc %}Find active blood donors, locate blood banks, request emergency blood, and get 24/7 AI health guidance across Nepal.{% endblock %}" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://raktadata.lokeshprasai.com.np/static/images/logo.png" />
   <meta property="og:url" content="{{ request.url }}" />
@@ -30,7 +33,8 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="{{ site_name }} — Blood Donors Nepal" />
-  <meta name="twitter:description" content="Find blood donors, request emergency blood, and get health guidance in Nepal." />
+  <meta name="twitter:description"
+    content="Find blood donors, request emergency blood, and get health guidance in Nepal." />
   <meta name="twitter:image" content="https://raktadata.lokeshprasai.com.np/static/images/logo.png" />
 
   <!-- PWA & Favicons -->
@@ -208,173 +212,193 @@
             </a>
           </li>
         </ul>
-        <div class="dropdown me-2">
-          <button class="btn btn-outline-light btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-globe me-1"></i>{{ 'नेपाली' if session.get('lang') == 'ne' else 'English' }}
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="min-width: 120px;">
-            <li><a class="dropdown-item {{ 'active' if session.get('lang') != 'ne' }}" href="{{ url_for('public.set_language', lang='en') }}">English</a></li>
-            <li><a class="dropdown-item {{ 'active' if session.get('lang') == 'ne' }}" href="{{ url_for('public.set_language', lang='ne') }}">नेपाली</a></li>
-          </ul>
-        </div>
 
-        <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0" title="{{ t.search }}">
-          <i class="fas fa-search"></i>
-        </a>
-        <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-white text-danger btn-sm fw-bold shadow-sm"
-          style="background:#fff;">
-          <i class="fas fa-circle-plus me-1"></i>
-          <span class="d-none d-xl-inline">{{ t.request_blood }}</span>
-          <span class="d-xl-none">{{ t.request_blood }}</span>
-        </a>
+        <div class="d-flex align-items-center gap-2">
 
-        {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
-        <!-- Notification Bell -->
-        <div class="dropdown me-1" id="notifBellDropdown">
-          <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
-            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
-            <i class="fas fa-bell"></i>
-            <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
-              id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
-          </button>
-          <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
-            style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
-            <!-- Notification Header -->
-            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
-              style="background:linear-gradient(135deg,#DC2626,#991B1B);">
-              <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
-              <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
-                title="Mark all as read" style="font-size:0.75rem;">
-                <i class="fas fa-check-double me-1"></i>All Read
-              </button>
-            </div>
-            <!-- Notification List -->
-            <div id="notifList" style="max-height:360px;overflow-y:auto;">
-              <div class="text-center text-muted py-4">
-                <i class="fas fa-spinner fa-spin me-1"></i> Loading...
+          <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0"
+            title="{{ t.search }}">
+            <i class="fas fa-search"></i>
+          </a>
+
+
+
+          <a href="{{ url_for('public.blood_request_form') }}"
+            class="btn btn-white text-danger btn-sm fw-bold shadow-sm" style="background:#c2b2b2;">
+            <i class="fas fa-circle-plus me-1"></i>
+            <span class="d-none d-xl-inline">{{ t.request_blood }}</span>
+            <span class="d-xl-none">{{ t.request_blood }}</span>
+          </a>
+
+          {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_')
+          %}
+          <!-- Notification Bell -->
+          <div class="dropdown me-1" id="notifBellDropdown">
+            <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
+              data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
+              <i class="fas fa-bell"></i>
+              <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
+                id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
+              style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
+              <!-- Notification Header -->
+              <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+                style="background:linear-gradient(135deg,#DC2626,#991B1B);">
+                <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
+                <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
+                  title="Mark all as read" style="font-size:0.75rem;">
+                  <i class="fas fa-check-double me-1"></i>All Read
+                </button>
+              </div>
+              <!-- Notification List -->
+              <div id="notifList" style="max-height:360px;overflow-y:auto;">
+                <div class="text-center text-muted py-4">
+                  <i class="fas fa-spinner fa-spin me-1"></i> Loading...
+                </div>
+              </div>
+              <!-- Footer -->
+              <div class="border-top text-center py-2" style="background:#86a1bc;">
+                <a href="{{ url_for('notifications.preferences') }}"
+                  class="text-danger text-decoration-none small fw-semibold">
+                  <i class="fas fa-cog me-1"></i>Notification Preferences
+                </a>
               </div>
             </div>
-            <!-- Footer -->
-            <div class="border-top text-center py-2" style="background:#f9fafb;">
-              <a href="{{ url_for('notifications.preferences') }}"
-                class="text-danger text-decoration-none small fw-semibold">
-                <i class="fas fa-cog me-1"></i>Notification Preferences
-              </a>
-            </div>
           </div>
-        </div>
-        {% endif %}
+          {% endif %}
 
-        {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
-        <div class="dropdown">
-          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-user-circle me-1"></i>
-            {% if session.get('bloodbank_account_id') %}
-            Blood Bank Panel
-            {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
-            Donor Panel
-            {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-            Volunteer Panel
-            {% else %}
-            Admin Panel
-            {% endif %}
+          {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user-circle me-1"></i>
+              {% if session.get('bloodbank_account_id') %}
+              Blood Bank Panel
+              {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
+              Donor Panel
+              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+              Volunteer Panel
+              {% else %}
+              Admin Panel
+              {% endif %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              {% if session.get('bloodbank_account_id') %}
+              <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i
+                    class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i
+                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+              {% else %}
+              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
+              <li><a class="dropdown-item"
+                  href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i
+                    class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
+              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
+              <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i
+                    class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
+              {% else %}
+              <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i
+                    class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
+              {% endif %}
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i
+                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+              {% endif %}
+            </ul>
+          </div>
+          {% else %}
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-sign-in-alt me-1"></i> Login
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i
+                    class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i
+                    class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i
+                    class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i
+                    class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
+            </ul>
+          </div>
+          {% endif %}
+          <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
+            <i class="fas fa-moon fa-sm" id="themeIcon"></i>
           </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-            {% if session.get('bloodbank_account_id') %}
-            <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i
-                  class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-            <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i
-                  class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-            {% else %}
-            {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
-            <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i
-                  class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
-            {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-            <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i
-                  class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
-            {% else %}
-            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i
-                  class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
-            {% endif %}
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-            <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i
-                  class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-            {% endif %}
-          </ul>
-        </div>
-        {% else %}
-        <div class="dropdown">
-          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="fas fa-sign-in-alt me-1"></i> Login
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-            <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i
-                  class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i
-                  class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-            <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i
-                  class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i
-                  class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
-          </ul>
-        </div>
-        {% endif %}
-        <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
-          <i class="fas fa-moon fa-sm" id="themeIcon"></i>
-        </button>
+
+
+          <!-- Language Switcher -->
+          <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle border-0" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-globe me-1"></i>{{ 'ने' if session.get('lang') == 'ne' else 'Eng' }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="min-width: 120px;">
+              <li><a class="dropdown-item {{ 'active' if session.get('lang') != 'ne' }}"
+                  href="{{ url_for('public.set_language', lang='en') }}">English</a></li>
+              <li><a class="dropdown-item {{ 'active' if session.get('lang') == 'ne' }}"
+                  href="{{ url_for('public.set_language', lang='ne') }}">नेपाली</a></li>
+            </ul>
+          </div>
+
+
+        </div><!-- end right-side controls -->
       </div>
     </div>
     </div>
   </nav>
 
-<!-- ══════════════════════════════════════
+  <!-- ══════════════════════════════════════
       NOTICE BAR (MARQUEE & RESPONSIVE)
 ══════════════════════════════════════ -->
-{% if active_notices %}
-<div class="notice-bar py-2 border-bottom overflow-hidden" style="background: linear-gradient(90deg, #fffbeb, #fef3c7);">
-  <div class="container-xl px-3">
-    <div class="d-flex align-items-center gap-3">
-      
-      <!-- Static Notice Badge -->
-      <span class="badge bg-warning text-dark flex-shrink-0 fw-bold z-1 shadow-sm px-2 py-1">
-        <i class="fas fa-bell me-1"></i>Notice
-      </span>
+  {% if active_notices %}
+  <div class="notice-bar py-2 border-bottom overflow-hidden"
+    style="background: linear-gradient(90deg, #fffbeb, #fef3c7);">
+    <div class="container-xl px-3">
+      <div class="d-flex align-items-center gap-3">
 
-      <!-- Marquee Ticker -->
-      <div class="notice-marquee-wrapper overflow-hidden position-relative w-100" style="white-space: nowrap;">
-        <div class="notice-marquee-content d-inline-block">
-          {% for notice in active_notices %}
-          <a href="{{ url_for('public.news_list') }}" 
-             class="notice-item-link text-decoration-none text-dark small me-4 d-inline-flex align-items-center gap-2">
-            
-            <strong class="hover-underline">
-              {{ notice.title[:80] if notice.title else '' }}{% if notice.title and notice.title|length > 80 %}...{% endif %}
-            </strong>
+        <!-- Static Notice Badge -->
+        <span class="badge bg-warning text-dark flex-shrink-0 fw-bold z-1 shadow-sm px-2 py-1">
+          <i class="fas fa-bell me-1"></i>Notice
+        </span>
 
-            {% if notice is defined and notice and notice.days_left is defined and notice.days_left is not none and notice.days_left <= 5 %}
-              <span class="badge bg-danger py-0 px-1" style="font-size: 0.68rem;">Expires in {{ notice.days_left }}d</span>
-            {% endif %}
+        <!-- Marquee Ticker -->
+        <div class="notice-marquee-wrapper overflow-hidden position-relative w-100" style="white-space: nowrap;">
+          <div class="notice-marquee-content d-inline-block">
+            {% for notice in active_notices %}
+            <a href="{{ url_for('public.news_list') }}"
+              class="notice-item-link text-decoration-none text-dark small me-4 d-inline-flex align-items-center gap-2">
 
-            {% if not loop.last %}
-              <span class="text-muted ms-2 opacity-50">|</span>
-            {% endif %}
-          </a>
-          {% endfor %}
+              <strong class="hover-underline">
+                {{ notice.title[:80] if notice.title else '' }}{% if notice.title and notice.title|length > 80 %}...{%
+                endif %}
+              </strong>
+
+              {% if notice is defined and notice and notice.days_left is defined and notice.days_left is not none and
+              notice.days_left <= 5 %} <span class="badge bg-danger py-0 px-1" style="font-size: 0.68rem;">Expires in {{
+                notice.days_left }}d</span>
+                {% endif %}
+
+                {% if not loop.last %}
+                <span class="text-muted ms-2 opacity-50">|</span>
+                {% endif %}
+            </a>
+            {% endfor %}
+          </div>
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
   <!-- ══════════════════════════════════════
      FLASH MESSAGES
@@ -810,7 +834,7 @@
     <button id="helpher-toggle" class="helpher-btn shadow-lg" aria-label="Open Raktadata Helper AI Assistant">
       <i class="fas fa-user-md"></i>
     </button>
-    
+
     <div id="helpher-window" class="helpher-window shadow-xl d-none">
       <div class="helpher-header">
         <div>
@@ -818,22 +842,26 @@
           <small>24/7 AI Medical & Health Doctor</small>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <button id="helpher-clear" class="btn btn-sm text-white border-0 bg-transparent opacity-75 opacity-100-hover" title="Clear Chat History">
+          <button id="helpher-clear" class="btn btn-sm text-white border-0 bg-transparent opacity-75 opacity-100-hover"
+            title="Clear Chat History">
             <i class="fas fa-trash-alt"></i>
           </button>
           <button id="helpher-close" class="btn btn-sm text-white"><i class="fas fa-times"></i></button>
         </div>
       </div>
-      
+
       <div id="helpher-messages" class="helpher-messages">
         <div class="message ai-message">
-          <div class="msg-content">Hello! I am <strong>Raktadata Helper</strong>, your 24/7 AI Medical Doctor and health assistant. You can ask me <strong>any question about health, symptoms, medical guidelines, diseases, pre/post donation tips, and blood compatibility</strong>. How can I help you today?</div>
+          <div class="msg-content">Hello! I am <strong>Raktadata Helper</strong>, your 24/7 AI Medical Doctor and health
+            assistant. You can ask me <strong>any question about health, symptoms, medical guidelines, diseases,
+              pre/post donation tips, and blood compatibility</strong>. How can I help you today?</div>
         </div>
       </div>
-      
+
       <div class="helpher-input-area">
         <form id="helpher-form" class="d-flex w-100">
-          <input type="text" id="helpher-input" class="form-control me-2" placeholder="Ask any health or blood question..." required autocomplete="off">
+          <input type="text" id="helpher-input" class="form-control me-2"
+            placeholder="Ask any health or blood question..." required autocomplete="off">
           <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i></button>
         </form>
       </div>
@@ -849,6 +877,7 @@
       z-index: 1050;
       font-family: 'Inter', sans-serif;
     }
+
     .helpher-btn {
       width: 60px;
       height: 60px;
@@ -863,10 +892,12 @@
       justify-content: center;
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
     }
+
     .helpher-btn:hover {
       transform: scale(1.1);
       box-shadow: 0 10px 25px rgba(229, 57, 53, 0.4) !important;
     }
+
     .helpher-window {
       position: absolute;
       bottom: 80px;
@@ -878,17 +909,27 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
       animation: helpherFadeIn 0.3s ease-out forwards;
     }
+
     .helpher-window.d-none {
       display: none !important;
     }
+
     @keyframes helpherFadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
+
     .helpher-header {
       background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
       color: white;
@@ -896,8 +937,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+
     .helpher-messages {
       flex: 1;
       padding: 15px;
@@ -907,14 +949,24 @@
       flex-direction: column;
       gap: 12px;
     }
+
     .message {
       max-width: 85%;
       animation: msgPop 0.3s ease-out forwards;
     }
+
     @keyframes msgPop {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
+
     .msg-content {
       padding: 12px 16px;
       border-radius: 18px;
@@ -922,47 +974,57 @@
       line-height: 1.4;
       word-wrap: break-word;
     }
+
     .user-message {
       align-self: flex-end;
     }
+
     .user-message .msg-content {
       background: #e53935;
       color: white;
       border-bottom-right-radius: 4px;
     }
+
     .ai-message {
       align-self: flex-start;
     }
+
     .ai-message .msg-content {
       background: white;
       color: #333;
       border-bottom-left-radius: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       border: 1px solid #eee;
     }
+
     .ai-message .msg-content p:last-child {
       margin-bottom: 0;
     }
+
     .ai-message .msg-content pre {
       background: #f0f0f0;
       padding: 10px;
       border-radius: 8px;
       overflow-x: auto;
     }
+
     .helpher-input-area {
       padding: 15px;
       background: white;
       border-top: 1px solid #eee;
     }
+
     .helpher-input-area input {
       border-radius: 20px;
       padding-left: 15px;
       border: 1px solid #ddd;
     }
+
     .helpher-input-area input:focus {
       box-shadow: none;
       border-color: #e53935;
     }
+
     .helpher-input-area button {
       border-radius: 50%;
       width: 40px;
@@ -972,6 +1034,7 @@
       align-items: center;
       justify-content: center;
     }
+
     .typing-indicator {
       display: flex;
       gap: 4px;
@@ -979,6 +1042,7 @@
       align-items: center;
       justify-content: center;
     }
+
     .typing-dot {
       width: 6px;
       height: 6px;
@@ -986,12 +1050,28 @@
       border-radius: 50%;
       animation: typingBounce 1.4s infinite ease-in-out both;
     }
-    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes typingBounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
+
+    .typing-dot:nth-child(1) {
+      animation-delay: -0.32s;
     }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    @keyframes typingBounce {
+
+      0%,
+      80%,
+      100% {
+        transform: scale(0);
+      }
+
+      40% {
+        transform: scale(1);
+      }
+    }
+
     @media (max-width: 576px) {
       .helpher-window {
         width: calc(100vw - 40px);
@@ -1002,7 +1082,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const toggleBtn = document.getElementById('helpher-toggle');
       const closeBtn = document.getElementById('helpher-close');
       const clearBtn = document.getElementById('helpher-clear');
@@ -1010,7 +1090,7 @@
       const form = document.getElementById('helpher-form');
       const input = document.getElementById('helpher-input');
       const messagesContainer = document.getElementById('helpher-messages');
-      
+
       const IS_DONOR = ("{% if current_user.is_authenticated and current_user.__class__.__name__ == 'Donor' %}true{% else %}false{% endif %}" === "true");
       const DONOR_ID = "{% if current_user.is_authenticated and current_user.__class__.__name__ == 'Donor' %}{{ current_user.id }}{% endif %}";
       const STORAGE_KEY = IS_DONOR ? `raktadata_chat_history_donor_${DONOR_ID}` : 'raktadata_chat_history_guest';
@@ -1060,7 +1140,7 @@
       closeBtn.addEventListener('click', toggleWindow);
 
       if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
+        clearBtn.addEventListener('click', function () {
           if (confirm('Clear chat history?')) {
             chatHistory = [];
             storageEngine.removeItem(STORAGE_KEY);
@@ -1108,7 +1188,7 @@
       // Initial load
       loadHistory();
 
-      form.addEventListener('submit', async function(e) {
+      form.addEventListener('submit', async function (e) {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
@@ -1123,15 +1203,15 @@
           const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
           const response = await fetch('/api/v1/raktadata-helper/stream', {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({ message: text, history: chatHistory })
           });
-          
+
           typingEl.remove();
-          
+
           if (!response.ok) {
             addMessage("I'm sorry, I encountered an error. Please try again.", 'ai');
             return;
@@ -1144,7 +1224,7 @@
           contentDiv.className = 'msg-content';
           msgDiv.appendChild(contentDiv);
           messagesContainer.appendChild(msgDiv);
-          
+
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
           let aiFullText = "";
@@ -1154,10 +1234,10 @@
             const { done, value } = await reader.read();
             if (done) break;
             buffer += decoder.decode(value, { stream: true });
-            
+
             const lines = buffer.split('\n');
             buffer = lines.pop(); // keep the last incomplete line in buffer
-            
+
             for (const line of lines) {
               if (line.trim().startsWith('data: ')) {
                 const dataStr = line.replace('data: ', '').trim();
@@ -1182,7 +1262,7 @@
               }
             }
           }
-          
+
           chatHistory.push({ role: 'user', content: text });
           chatHistory.push({ role: 'ai', content: aiFullText });
           if (chatHistory.length > 20) chatHistory = chatHistory.slice(chatHistory.length - 20);
@@ -1200,17 +1280,17 @@
 
   <!-- DevTools & Console View Protection Script -->
   <script>
-    (function() {
+    (function () {
       // Disable Right-Click Context Menu Inspect
-      document.addEventListener('contextmenu', function(e) {
+      document.addEventListener('contextmenu', function (e) {
         e.preventDefault();
       });
 
       // Disable Keyboard Shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S)
-      document.addEventListener('keydown', function(e) {
+      document.addEventListener('keydown', function (e) {
         if (
-          e.keyCode === 123 || 
-          (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+          e.keyCode === 123 ||
+          (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
           (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
         ) {
           e.preventDefault();
@@ -1221,7 +1301,7 @@
 
       // Suppress Console Output
       if (typeof console !== 'undefined') {
-        var _empty = function() {};
+        var _empty = function () { };
         console.log = _empty;
         console.warn = _empty;
         console.error = _empty;
