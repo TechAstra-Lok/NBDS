@@ -2608,18 +2608,27 @@ def data_quality():
         supply = Donor.query.filter_by(blood_group=g, availability_status='available').count()
         demand = BloodRequest.query.filter_by(blood_group=g, status='active').count()
         
-        # Determine risk level
+        # Determine risk level accurately
         if demand > 0 and supply == 0:
             status = 'Critical Shortage'
             badge = 'danger'
-        elif demand > 0 and supply / demand < 2:
+        elif demand > 0 and supply < demand:
+            status = 'Critical Deficit'
+            badge = 'danger'
+        elif demand > 0 and (supply / demand) < 2:
             status = 'High Deficit'
             badge = 'warning'
-        elif demand == 0:
-            status = 'Healthy Supply'
+        elif supply == 0:
+            status = 'No Active Donors'
+            badge = 'secondary'
+        elif supply <= 2:
+            status = 'Low Reserve'
+            badge = 'warning'
+        elif demand > 0 and (supply / demand) >= 2:
+            status = 'Optimal'
             badge = 'success'
         else:
-            status = 'Optimal'
+            status = 'Healthy Supply'
             badge = 'success'
             
         group_imbalances.append({
@@ -2644,24 +2653,73 @@ def data_quality():
         'senior': int((age_46_65 / total_donors) * 100) if total_donors > 0 else 0
     }
     
-    # Duplicate detection (Same phone numbers or very similar names)
-    # Since phone numbers are unique in DB now, we check for potential name duplicates
+    # Duplicate detection (Verified matching contact or high name similarity without family-name false positives)
     all_donors = Donor.query.all()
     potential_duplicates = []
     from difflib import SequenceMatcher
     
     for i in range(len(all_donors)):
-        for j in range(i + 1, min(i + 20, len(all_donors))): # Limit comparison complexity
+        for j in range(i + 1, len(all_donors)):
             d1 = all_donors[i]
             d2 = all_donors[j]
-            if d1.id != d2.id:
-                ratio = SequenceMatcher(None, d1.full_name.lower(), d2.full_name.lower()).ratio()
-                if ratio > 0.85:
-                    potential_duplicates.append({
-                        'donor1': d1,
-                        'donor2': d2,
-                        'similarity': int(ratio * 100)
-                    })
+            if d1.id == d2.id:
+                continue
+
+            # Check matching secondary phone
+            if (d1.phone2 and d2.phone1 and d1.phone2 == d2.phone1) or (d2.phone2 and d1.phone1 and d2.phone2 == d1.phone1):
+                potential_duplicates.append({
+                    'donor1': d1,
+                    'donor2': d2,
+                    'similarity': 95,
+                    'reason': 'Shared Secondary Phone'
+                })
+                continue
+
+            # Check matching email
+            if d1.email and d2.email and d1.email.strip().lower() == d2.email.strip().lower():
+                potential_duplicates.append({
+                    'donor1': d1,
+                    'donor2': d2,
+                    'similarity': 99,
+                    'reason': 'Matching Email'
+                })
+                continue
+                
+            name1 = d1.full_name.strip().lower()
+            name2 = d2.full_name.strip().lower()
+            
+            # Exact full name match
+            if name1 == name2:
+                sim = 100 if (d1.blood_group == d2.blood_group and d1.curr_district == d2.curr_district) else 90
+                potential_duplicates.append({
+                    'donor1': d1,
+                    'donor2': d2,
+                    'similarity': sim,
+                    'reason': 'Identical Full Name'
+                })
+                continue
+                
+            # Tokenized comparison to prevent family-member false positives (e.g. Prajwal Timsina vs Ujwal Timsina)
+            tokens1 = name1.split()
+            tokens2 = name2.split()
+            
+            if len(tokens1) >= 2 and len(tokens2) >= 2:
+                first1, last1 = tokens1[0], tokens1[-1]
+                first2, last2 = tokens2[0], tokens2[-1]
+                
+                first_sim = SequenceMatcher(None, first1, first2).ratio()
+                last_sim = SequenceMatcher(None, last1, last2).ratio()
+                
+                # Both first name and last name must have high similarity (e.g. typos, spelling variations)
+                if first_sim >= 0.82 and last_sim >= 0.82:
+                    overall_sim = SequenceMatcher(None, name1, name2).ratio()
+                    if overall_sim >= 0.88:
+                        potential_duplicates.append({
+                            'donor1': d1,
+                            'donor2': d2,
+                            'similarity': int(overall_sim * 100),
+                            'reason': 'High Name Similarity'
+                        })
                     
     return render_template('admin/data_quality.html',
         total_donors=total_donors,

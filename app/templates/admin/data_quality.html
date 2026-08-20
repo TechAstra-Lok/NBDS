@@ -156,10 +156,14 @@
                         <div class="text-muted small">ID: {{ pair.donor2.donor_id }} | Phone: {{ pair.donor2.phone1 }}</div>
                     </td>
                     <td>
-                        <span class="badge bg-danger">{{ pair.similarity }}% Match</span>
+                        <span class="badge {% if pair.similarity >= 95 %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ pair.similarity }}% Match</span>
+                        {% if pair.reason %}
+                        <div class="text-muted small mt-1">{{ pair.reason }}</div>
+                        {% endif %}
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="alert('Verification protocol triggered for profiles {{ pair.donor1.donor_id }} and {{ pair.donor2.donor_id }}.');">Verify Profile</button>
+                        <a href="{{ url_for('admin.edit_donor', id=pair.donor1.id) }}" class="btn btn-sm btn-outline-danger me-1">Review A</a>
+                        <a href="{{ url_for('admin.edit_donor', id=pair.donor2.id) }}" class="btn btn-sm btn-outline-secondary">Review B</a>
                     </td>
                 </tr>
                 {% else %}
