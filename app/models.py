@@ -1,7 +1,10 @@
 from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def utc_now():
+    return datetime.now(timezone.utc)
 import uuid
 
 
@@ -19,7 +22,7 @@ class User(UserMixin, db.Model):
     role            = db.Column(db.String(20), default='admin')  # superadmin | admin | moderator | content_manager
     is_active       = db.Column(db.Boolean, default=True)
     last_login      = db.Column(db.DateTime)
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
     
     def __init__(self, username: str, email: str, full_name: str = '',
                  role: str = 'admin', is_active: bool = True, **kwargs):
@@ -86,8 +89,8 @@ class BloodBank(db.Model):
     notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, index=True)
     status = db.Column(db.String(20), default='active', index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     # Tenant Registry Fields
     tenant_id = db.Column(db.String(50), unique=True, index=True)
@@ -164,7 +167,7 @@ class BloodBankAccount(UserMixin, db.Model):
     
     password_change_required = db.Column(db.Boolean, default=True)
     account_status = db.Column(db.String(20), default='pending') # pending, active, suspended
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     last_login_at = db.Column(db.DateTime)
     password_changed_at = db.Column(db.DateTime)
     
@@ -188,7 +191,7 @@ class BloodBankPasswordHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey('blood_bank_accounts.id'), nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     
     account = db.relationship('BloodBankAccount', backref=db.backref('password_history', lazy=True, cascade='all, delete-orphan'))
 
@@ -198,7 +201,7 @@ class BloodBankLoginHistory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey('blood_bank_accounts.id'), nullable=False, index=True)
-    login_time = db.Column(db.DateTime, default=datetime.utcnow)
+    login_time = db.Column(db.DateTime, default=utc_now)
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.String(255))
     status = db.Column(db.String(20)) # success, failed, locked
@@ -222,7 +225,7 @@ class PublicBloodBankCache(db.Model):
     o_pos = db.Column(db.Integer, default=0)
     o_neg = db.Column(db.Integer, default=0)
     
-    last_synced_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_synced_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     blood_bank = db.relationship('BloodBank', backref=db.backref('inventory_cache', uselist=False))
 
@@ -247,7 +250,7 @@ class BloodInventory(db.Model):
     expiry_date = db.Column(db.String(20))
     qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
     
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     movements = db.relationship('BloodInventoryMovement', backref='inventory', lazy=True, cascade='all, delete-orphan')
 
@@ -283,7 +286,7 @@ class BloodInventoryMovement(db.Model):
     movement_type = db.Column(db.String(30), nullable=False, index=True)
     units = db.Column(db.Integer, default=0)
     note = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
 
     def to_dict(self):
         return {
@@ -309,12 +312,12 @@ class BloodBag(db.Model):
     blood_group = db.Column(db.String(5), nullable=False, index=True)
     component = db.Column(db.String(50), nullable=False, default='Whole Blood')
     volume_ml = db.Column(db.Integer, nullable=True)
-    collection_date = db.Column(db.DateTime, default=datetime.utcnow)
+    collection_date = db.Column(db.DateTime, default=utc_now)
     expiry_date = db.Column(db.DateTime, nullable=True, index=True)
     status = db.Column(db.String(20), default='testing', index=True) # testing, available, reserved, transferred, discarded, used
     qr_code = db.Column(db.String(100), unique=True, nullable=True, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     # Note: Donor is in Main DB, BloodBag is in Tenant DB. Cross-DB joins are not supported by SQLAlchemy.
     # We remove the donor db.relationship.
@@ -332,7 +335,7 @@ class LabTestResult(db.Model):
     result = db.Column(db.String(20), default='pending') # positive, negative, pending
     tested_at = db.Column(db.DateTime, nullable=True)
     tested_by = db.Column(db.String(100), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
 
 class BloodInventoryTransaction(db.Model):
@@ -344,7 +347,7 @@ class BloodInventoryTransaction(db.Model):
     blood_bank_id = db.Column(db.Integer, nullable=False, index=True) # Logical FK to Main DB BloodBank
     transaction_type = db.Column(db.String(30), nullable=False, index=True) # collection, transfer_in, transfer_out, discard, issue
     reason = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
 
 
 class BloodReservation(db.Model):
@@ -362,8 +365,8 @@ class BloodReservation(db.Model):
     status = db.Column(db.String(20), default='pending', index=True)
     hospital_paper_file = db.Column(db.String(255), nullable=True)
     qr_code = db.Column(db.String(80), unique=True, nullable=True, index=True)
-    requested_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    requested_at = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def to_dict(self):
         return {
@@ -395,8 +398,8 @@ class BloodTransfer(db.Model):
     units = db.Column(db.Integer, default=1)
     status = db.Column(db.String(20), default='pending', index=True)
     remarks = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def to_dict(self):
         return {
@@ -425,7 +428,7 @@ class LowStockAlert(db.Model):
     component = db.Column(db.String(50), nullable=False, default='Whole Blood')
     severity = db.Column(db.String(20), default='warning', index=True)
     message = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
 
     def to_dict(self):
         return {
@@ -453,7 +456,7 @@ class Notification(db.Model):
     channel = db.Column(db.String(20), default='in_app', index=True)
     is_read = db.Column(db.Boolean, default=False, index=True)
     read_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
     
     # Relationships
     delivery_logs = db.relationship('NotificationDeliveryLog', backref='notification', lazy=True, cascade='all, delete-orphan')
@@ -485,8 +488,8 @@ class NotificationDeliveryLog(db.Model):
     status = db.Column(db.String(20), default='pending', index=True) # pending, sent, failed
     error_message = db.Column(db.Text, nullable=True)
     attempt_count = db.Column(db.Integer, default=0)
-    last_attempt_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    last_attempt_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
     
     # Enterprise fields
     provider_name = db.Column(db.String(50), nullable=True)
@@ -529,7 +532,7 @@ class DonorNotificationPreference(db.Model):
     quiet_hours_end = db.Column(db.Time, nullable=True)
     dnd_mode = db.Column(db.Boolean, default=False)
     
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def to_dict(self):
         return {
@@ -556,7 +559,7 @@ class AuditLog(db.Model):
     entity_id = db.Column(db.Integer, nullable=True, index=True)
     details = db.Column(db.Text)
     actor = db.Column(db.String(100), default='system')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now, index=True)
 
     def to_dict(self):
         return {
@@ -638,8 +641,8 @@ class Donor(UserMixin, db.Model):
     is_email_verified       = db.Column(db.Boolean, default=False)
     is_phone_verified       = db.Column(db.Boolean, default=False)
     is_active               = db.Column(db.Boolean, default=True)
-    created_at              = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at              = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at              = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at              = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     # Relationships
     donation_history        = db.relationship('DonorDonationHistory', backref='donor', lazy=True, cascade='all, delete-orphan')
@@ -689,7 +692,7 @@ class Donor(UserMixin, db.Model):
         if not self.last_donation_date:
             return ('available', None)
         
-        today = datetime.utcnow().date()
+        today = utc_now().date()
         days_since = (today - self.last_donation_date).days
         eligible_date = self.last_donation_date + timedelta(days=self.UNAVAILABLE_DAYS)
         
@@ -699,7 +702,7 @@ class Donor(UserMixin, db.Model):
             return ('available', None)
     
     def to_dict(self):
-        import nepali_datetime
+        import nepali_datetime  # type: ignore[import-untyped]
         
         def format_bs(dt):
             if not dt: return None
@@ -733,12 +736,12 @@ class Donor(UserMixin, db.Model):
         self.available_after_date = after_date
         # Also sync the legacy field
         self.available_after = after_date
-        self.last_status_recalculated_at = datetime.utcnow()
+        self.last_status_recalculated_at = utc_now()
     
     @property
     def availability_display(self):
         """Human-readable availability status text."""
-        import nepali_datetime
+        import nepali_datetime  # type: ignore[import-untyped]
         
         def format_bs(dt):
             if not dt: return ""
@@ -798,8 +801,8 @@ class DonorDonationHistory(db.Model):
     units           = db.Column(db.Float, default=1.0)
     notes           = db.Column(db.Text)
     created_by      = db.Column(db.String(50), default='donor')  # 'donor' or 'admin_<id>'
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     DONATION_TYPE_LABELS = {
         'whole_blood': 'Whole Blood',
@@ -859,7 +862,7 @@ class Volunteer(UserMixin, db.Model):
     # Status
     is_approved             = db.Column(db.Boolean, default=False, index=True)
     is_active               = db.Column(db.Boolean, default=True)
-    created_at              = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at              = db.Column(db.DateTime, default=utc_now)
     
     def set_pin(self, pin):
         self.pin_hash = generate_password_hash(str(pin))
@@ -899,7 +902,7 @@ class StaffMember(db.Model):
     tole            = db.Column(db.String(100))
     
     is_active       = db.Column(db.Boolean, default=True)
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
     
     @property
     def image_url(self):
@@ -927,7 +930,7 @@ class Partner(db.Model):
     logo_file       = db.Column(db.String(255))
     
     is_active       = db.Column(db.Boolean, default=True)
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
     
     @property
     def image_url(self):
@@ -974,8 +977,8 @@ class BloodRequest(db.Model):
     creator_id      = db.Column(db.Integer, nullable=True) # Logical FK to Main DB Donor (Optional, if logged in)
     
     # Tracking
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     fulfilled_date  = db.Column(db.DateTime)
     
     pin             = db.Column(db.String(4), nullable=True)
@@ -983,7 +986,7 @@ class BloodRequest(db.Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if not self.request_id:
-            ts = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+            ts = utc_now().strftime('%Y%m%d%H%M%S')
             self.request_id = f"REQ-{ts}"
     
     @property
@@ -1088,8 +1091,8 @@ class SuccessStory(db.Model):
     status          = db.Column(db.String(20), default='pending', index=True) # pending | approved | rejected | hidden
     moderation_logs = db.Column(db.Text) # AI Moderation issues JSON string
     
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1121,11 +1124,11 @@ class News(db.Model):
     tags            = db.Column(db.String(300))
     
     is_published    = db.Column(db.Boolean, default=True, index=True)
-    scheduled_date  = db.Column(db.DateTime, default=datetime.utcnow) # For scheduled publication
+    scheduled_date  = db.Column(db.DateTime, default=utc_now) # For scheduled publication
     views           = db.Column(db.Integer, default=0)
     
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1161,13 +1164,13 @@ class Notice(db.Model):
     attachment      = db.Column(db.String(255))
     attachment_type = db.Column(db.String(10))
     
-    published_date  = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    published_date  = db.Column(db.DateTime, default=utc_now, index=True)
     expiry_date     = db.Column(db.DateTime)
     is_active       = db.Column(db.Boolean, default=True, index=True)
     priority        = db.Column(db.Integer, default=0)
     
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1181,7 +1184,7 @@ class Notice(db.Model):
         if not self.expiry_date:
             return None
         
-        now = datetime.utcnow()
+        now = utc_now()
         if self.expiry_date < now:
             return 0
             
@@ -1202,14 +1205,14 @@ class Advertisement(db.Model):
     redirect_url    = db.Column(db.String(500))
     ad_type         = db.Column(db.String(20), default='sidebar', index=True)  # sidebar|banner|footer
     
-    start_date      = db.Column(db.DateTime, default=datetime.utcnow)
+    start_date      = db.Column(db.DateTime, default=utc_now)
     end_date        = db.Column(db.DateTime)
     clicks          = db.Column(db.Integer, default=0)
     impressions     = db.Column(db.Integer, default=0)
     is_active       = db.Column(db.Boolean, default=True, index=True)
     
-    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at      = db.Column(db.DateTime, default=utc_now)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1225,7 +1228,7 @@ class SiteVisitor(db.Model):
     ip_address  = db.Column(db.String(45), nullable=False, index=True)
     visit_date  = db.Column(db.Date, nullable=False, index=True)
     user_agent  = db.Column(db.String(255))
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at  = db.Column(db.DateTime, default=utc_now)
     
     __table_args__ = (
         db.UniqueConstraint('ip_address', 'visit_date', name='unique_daily_visitor'),
@@ -1248,7 +1251,7 @@ class Contact(db.Model):
     subject     = db.Column(db.String(255), nullable=False)
     message     = db.Column(db.Text, nullable=False)
     is_read     = db.Column(db.Boolean, default=False, index=True)
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at  = db.Column(db.DateTime, default=utc_now, index=True)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -1262,7 +1265,7 @@ class PushSubscription(db.Model):
     token = db.Column(db.Text, nullable=False, unique=True)
     auth_key = db.Column(db.String(255), nullable=True) # For Web Push (VAPID)
     p256dh_key = db.Column(db.String(255), nullable=True) # For Web Push (VAPID)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     last_used_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
 
@@ -1281,9 +1284,9 @@ class NotificationQueue(db.Model):
     status = db.Column(db.String(20), default='queued', index=True) # queued, processing, completed, failed, dlq
     retry_count = db.Column(db.Integer, default=0)
     max_retries = db.Column(db.Integer, default=3)
-    next_attempt_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    next_attempt_at = db.Column(db.DateTime, default=utc_now, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     error_log = db.Column(db.Text, nullable=True)
 
     def __init__(self, **kwargs):
@@ -1298,7 +1301,7 @@ class DonorResponse(db.Model):
     donor_id = db.Column(db.Integer, db.ForeignKey('donors.id'), nullable=False, index=True)
     response_type = db.Column(db.String(20), nullable=False) # 'available', 'maybe', 'unavailable', 'already_donated'
     message = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

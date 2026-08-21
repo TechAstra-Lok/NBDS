@@ -15,7 +15,7 @@ from flask import g
 from flask_sqlalchemy.session import Session
 
 class TenantAwareSession(Session):
-    def get_bind(self, mapper=None, clause=None, **kwargs):
+    def get_bind(self, mapper=None, clause=None, bind=None, **kwargs):
         if mapper is not None:
             bind_key = getattr(mapper.class_, '__bind_key__', None)
             if bind_key == 'tenant':
@@ -28,7 +28,7 @@ class TenantAwareSession(Session):
                     "Tenant model accessed without tenant context — falling back to main DB."
                 )
                 mapper = None
-        return super().get_bind(mapper, clause, **kwargs)
+        return super().get_bind(mapper=mapper, clause=clause, bind=bind, **kwargs)
 
 csrf = CSRFProtect()
 db = SQLAlchemy(session_options={"class_": TenantAwareSession})
@@ -39,7 +39,7 @@ login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
 migrate = Migrate()
 try:
-    from flask_babel import Babel, gettext as _
+    from flask_babel import Babel, gettext as _  # type: ignore[import-untyped]
     has_babel = True
 except ImportError:
     has_babel = False
@@ -50,12 +50,13 @@ except ImportError:
         return text
 
 try:
-    import nepali_datetime
+    import nepali_datetime  # type: ignore[import-untyped]
     has_nepali_datetime = True
 except ImportError:
     has_nepali_datetime = False
 
 import datetime
+from datetime import timezone
 
 def get_locale():
     from flask import session, request
@@ -89,7 +90,7 @@ def create_app(config_name=None):
     
     # एक्सटेन्सनहरू एप्लिकेसनसँग जोड्ने (Initialize extensions)
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db)  # type: ignore[arg-type]
     login_manager.init_app(app)
     csrf.init_app(app)
     cache.init_app(app)
@@ -205,7 +206,7 @@ def create_app(config_name=None):
             html.append('</ul></nav>')
             return Markup(''.join(html))
 
-        app.jinja_env.globals['render_pagination'] = render_pagination
+        app.jinja_env.globals['render_pagination'] = render_pagination  # type: ignore[assignment]
         
         # Schedule Background Jobs
         from app.tasks import schedule_jobs
@@ -270,7 +271,7 @@ def _ensure_legacy_schema_columns(app):
                 continue
 
             table_columns = {col['name'] for col in inspector.get_columns(table_name)}
-            for column in model_cls.__table__.columns:
+            for column in model_cls.__table__.columns:  # type: ignore[attr-defined]
                 if column.name not in table_columns:
                     try:
                         # Compile type according to the active database dialect (e.g. BYTEA on PostgreSQL, BLOB on SQLite)
@@ -438,18 +439,16 @@ def _register_context_processors(app):
         # भिजिटर ट्र्याकिङ प्रणाली (Visitor Tracking)
         try:
             visitor_ip = request.remote_addr
-            today = datetime.utcnow().date()
+            now_utc = datetime.now(timezone.utc)
+            today = now_utc.date()
             existing = SiteVisitor.query.filter_by(
                 ip_address=visitor_ip,
                 visit_date=today
             ).first()
             if not existing:
                 new_visitor = SiteVisitor(
-                    # pyrefly: ignore [unexpected-keyword]
                     ip_address=visitor_ip,
-                    # pyrefly: ignore [unexpected-keyword]
                     visit_date=today,
-                    # pyrefly: ignore [unexpected-keyword]
                     user_agent=request.headers.get('User-Agent', '')[:255]
                 )
                 db.session.add(new_visitor)
@@ -458,17 +457,18 @@ def _register_context_processors(app):
             db.session.rollback()
             pass
         
+        now_utc = datetime.now(timezone.utc)
         # सक्रिय सूचनाहरू (Active Notices)
         active_notices = Notice.query.filter(
             Notice.is_active == True,
-            (Notice.expiry_date == None) | (Notice.expiry_date >= datetime.utcnow())
+            (Notice.expiry_date == None) | (Notice.expiry_date >= now_utc)
         ).order_by(Notice.published_date.desc()).limit(5).all()
         
         # साइडबार विज्ञापनहरू (Active Sidebar Ads)
         sidebar_ads = Advertisement.query.filter(
             Advertisement.is_active == True,
             Advertisement.ad_type == 'sidebar',
-            (Advertisement.end_date == None) | (Advertisement.end_date >= datetime.utcnow())
+            (Advertisement.end_date == None) | (Advertisement.end_date >= now_utc)
         ).all()
         
         return dict(
@@ -478,7 +478,7 @@ def _register_context_processors(app):
             contact_email=app.config.get('CONTACT_EMAIL', ''),
             active_notices=active_notices,
             sidebar_ads=sidebar_ads,
-            current_year=datetime.utcnow().year
+            current_year=now_utc.year
         )
     
     @app.context_processor

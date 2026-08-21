@@ -1128,10 +1128,11 @@ def donor_profile(donor_id):
                     from PIL import Image
                     import io
                     # Open and compress the image
-                    img = Image.open(photo_file)
+                    img = Image.open(photo_file.stream)  # type: ignore[arg-type]
                     img = img.convert('RGB')  # Convert to RGB (handles PNG transparency, etc.)
                     # Resize to max 400x400 maintaining aspect ratio
-                    img.thumbnail((400, 400), Image.LANCZOS)
+                    resample_filter = getattr(Image, 'Resampling', Image).LANCZOS  # type: ignore[attr-defined]
+                    img.thumbnail((400, 400), resample_filter)
                     # Save as compressed JPEG
                     buffer = io.BytesIO()
                     img.save(buffer, format='JPEG', quality=65, optimize=True)
@@ -1229,7 +1230,7 @@ def donor_qr(donor_id):
     qr.make(fit=True)
     img = qr.make_image(fill_color='#991B1B', back_color='white')
     buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format='PNG')  # type: ignore[call-arg]
     buffer.seek(0)
     return Response(
         buffer.getvalue(),
