@@ -273,26 +273,31 @@ def _ensure_legacy_schema_columns(app):
             for column in model_cls.__table__.columns:
                 if column.name not in table_columns:
                     try:
-                        col_type_str = str(column.type).upper()
-                        if "VARCHAR" in col_type_str or "STRING" in col_type_str:
-                            length = getattr(column.type, 'length', 255) or 255
-                            sql_type = f"VARCHAR({length})"
-                        elif "TEXT" in col_type_str:
-                            sql_type = "TEXT"
-                        elif "INTEGER" in col_type_str or "INT" in col_type_str:
-                            sql_type = "INTEGER"
-                        elif "BOOLEAN" in col_type_str or "BOOL" in col_type_str:
-                            sql_type = "BOOLEAN"
-                        elif "DATETIME" in col_type_str or "TIMESTAMP" in col_type_str:
-                            sql_type = "TIMESTAMP"
-                        elif "BLOB" in col_type_str or "LARGEBINARY" in col_type_str or "LARGE_BINARY" in col_type_str:
-                            sql_type = "BLOB"
-                        elif "FLOAT" in col_type_str or "REAL" in col_type_str:
-                            sql_type = "REAL"
-                        elif "DATE" in col_type_str:
-                            sql_type = "DATE"
-                        else:
-                            sql_type = "VARCHAR(255)"
+                        # Compile type according to the active database dialect (e.g. BYTEA on PostgreSQL, BLOB on SQLite)
+                        try:
+                            sql_type = str(column.type.compile(db.engine.dialect))
+                        except Exception:
+                            is_pg = (db.engine.name == 'postgresql')
+                            col_type_str = str(column.type).upper()
+                            if "VARCHAR" in col_type_str or "STRING" in col_type_str:
+                                length = getattr(column.type, 'length', 255) or 255
+                                sql_type = f"VARCHAR({length})"
+                            elif "TEXT" in col_type_str:
+                                sql_type = "TEXT"
+                            elif "INTEGER" in col_type_str or "INT" in col_type_str:
+                                sql_type = "INTEGER"
+                            elif "BOOLEAN" in col_type_str or "BOOL" in col_type_str:
+                                sql_type = "BOOLEAN"
+                            elif "DATETIME" in col_type_str or "TIMESTAMP" in col_type_str:
+                                sql_type = "TIMESTAMP"
+                            elif "BLOB" in col_type_str or "LARGEBINARY" in col_type_str or "LARGE_BINARY" in col_type_str or "BYTEA" in col_type_str:
+                                sql_type = "BYTEA" if is_pg else "BLOB"
+                            elif "FLOAT" in col_type_str or "REAL" in col_type_str:
+                                sql_type = "REAL"
+                            elif "DATE" in col_type_str:
+                                sql_type = "DATE"
+                            else:
+                                sql_type = "VARCHAR(255)"
                         
                         db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {sql_type}"))
                         db.session.commit()
