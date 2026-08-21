@@ -702,14 +702,19 @@ class Donor(UserMixin, db.Model):
             return ('available', None)
     
     def to_dict(self):
-        import nepali_datetime  # type: ignore[import-untyped]
+        try:
+            import nepali_datetime  # type: ignore[import-untyped]
+        except ImportError:
+            nepali_datetime = None
         
         def format_bs(dt):
             if not dt: return None
             try:
-                if isinstance(dt, datetime): dt = dt.date()
-                bs = nepali_datetime.date.from_datetime_date(dt)
-                return bs.strftime('%Y-%m-%d')
+                if nepali_datetime:
+                    if isinstance(dt, datetime): dt = dt.date()
+                    bs = nepali_datetime.date.from_datetime_date(dt)
+                    return bs.strftime('%Y-%m-%d')
+                return dt.strftime('%Y-%m-%d')
             except:
                 return dt.strftime('%Y-%m-%d')
 
@@ -741,14 +746,19 @@ class Donor(UserMixin, db.Model):
     @property
     def availability_display(self):
         """Human-readable availability status text."""
-        import nepali_datetime  # type: ignore[import-untyped]
+        try:
+            import nepali_datetime  # type: ignore[import-untyped]
+        except ImportError:
+            nepali_datetime = None
         
         def format_bs(dt):
             if not dt: return ""
             try:
-                if isinstance(dt, datetime): dt = dt.date()
-                bs = nepali_datetime.date.from_datetime_date(dt)
-                return bs.strftime('%Y-%m-%d')
+                if nepali_datetime:
+                    if isinstance(dt, datetime): dt = dt.date()
+                    bs = nepali_datetime.date.from_datetime_date(dt)
+                    return bs.strftime('%Y-%m-%d')
+                return dt.strftime('%Y-%m-%d')
             except:
                 return dt.strftime('%Y-%m-%d')
 

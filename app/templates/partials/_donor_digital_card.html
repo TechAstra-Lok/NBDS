@@ -6,166 +6,229 @@
       <small class="text-muted">National Blood Donors Society Nepal (NBDS) • Verified Identity</small>
     </div>
     <div>
-      <button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" id="downloadCardBtn" onclick="downloadDonorCard()">
-        <i class="fas fa-download me-1"></i> Download Card (PNG)
+      <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" id="downloadCardBtn" onclick="downloadDonorCard()">
+        <i class="fas fa-download me-2"></i> Download Card (PNG)
       </button>
     </div>
   </div>
 
-  <!-- Card Wrapper for high-res snapshot -->
-  <div class="card-export-container d-flex justify-content-center p-2">
-    <div id="nbdsDonorCard" class="nbds-card-root">
+  <!-- Card Canvas Wrapper for high-res export -->
+  <div class="card-export-container d-flex justify-content-center p-1 p-md-3">
+    <div id="nbdsDonorCard" class="nbds-id-card">
       
-      <!-- Top Decorative Red Corner (Right) -->
+      <!-- Top Right Red Wave with Heartbeat -->
       <div class="nbds-top-right-decor">
-        <svg viewBox="0 0 200 100" preserveAspectRatio="none" class="nbds-corner-svg">
-          <path d="M0,0 L200,0 L200,100 Q100,80 0,0 Z" fill="#8B0000"></path>
+        <svg viewBox="0 0 240 130" class="nbds-top-swoosh" preserveAspectRatio="none">
+          <path d="M0,0 L240,0 L240,130 C170,125 120,70 0,0 Z" fill="#990000"></path>
         </svg>
-        <div class="nbds-heartbeat-badge">
-          <span class="nbds-ecg-line">ﮩـﮩـ</span>
-          <div class="nbds-heart-drop">
-            <i class="fas fa-heart"></i>
-            <i class="fas fa-droplet nbds-inner-drop"></i>
-          </div>
-          <span class="nbds-ecg-line">ـﮩـﮩ</span>
+        <div class="nbds-ecg-heart-wrap">
+          <svg class="nbds-ecg-svg" viewBox="0 0 160 50">
+            <!-- ECG Pulse Line -->
+            <path d="M 5,25 L 35,25 L 42,12 L 48,38 L 54,20 L 58,28 L 64,25 L 75,25" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Heart with droplet inside -->
+            <g transform="translate(80, 25)">
+              <path d="M 0, -12 A 8,8 0 0,1 14,0 Q 14,8 0,16 Q -14,8 -14,0 A 8,8 0 0,1 0,-12 Z" fill="#ffffff"/>
+              <path d="M 0, -6 C 3,-1 6,3 6,6 A 6,6 0 0,1 -6,6 C -6,3 -3,-1 0,-6 Z" fill="#990000"/>
+            </g>
+            <!-- Right ECG Pulse Line -->
+            <path d="M 98,25 L 110,25 L 116,12 L 122,38 L 128,20 L 132,28 L 138,25 L 155,25" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
       </div>
 
-      <!-- Top Left Logo Badge -->
+      <!-- Top Left Logo Emblem -->
       <div class="nbds-top-left-logo">
-        <div class="nbds-logo-circle">
-          <i class="fas fa-hand-holding-droplet"></i>
-        </div>
+        <svg viewBox="0 0 100 120" class="nbds-drop-logo-svg">
+          <!-- Outer Teardrop Shape in Dark Red -->
+          <path d="M 50,2 C 50,2 10,65 10,88 A 40,40 0 0,0 90,88 C 90,65 50,2 50,2 Z" fill="#990000"/>
+          <path d="M 50,7 C 50,7 14,66 14,88 A 36,36 0 0,0 86,88 C 86,66 50,7 50,7 Z" fill="#ffffff" opacity="0.15"/>
+          
+          <!-- White Emblem Inside (Hands holding blood drops & cross) -->
+          <g fill="#ffffff">
+            <!-- Microscope / Beaker symbol top -->
+            <rect x="36" y="34" width="28" height="12" rx="3" transform="rotate(-30 50 40)"/>
+            <circle cx="50" cy="58" r="4.5"/>
+            <circle cx="41" cy="67" r="3.5"/>
+            <circle cx="59" cy="67" r="3.5"/>
+            <!-- Helping Hands / Cupped Hands base -->
+            <path d="M 28,78 C 30,95 45,102 50,103 C 55,102 70,95 72,78 C 66,85 58,89 50,89 C 42,89 34,85 28,78 Z"/>
+            <path d="M 22,86 C 28,102 44,107 50,108 C 56,107 72,102 78,86 C 72,96 61,102 50,102 C 39,102 28,96 22,86 Z" opacity="0.6"/>
+          </g>
+        </svg>
       </div>
 
-      <!-- Header Section -->
-      <div class="nbds-header text-center">
-        <h2 class="nbds-title-en">NATIONAL BLOOD DONORS SOCIETY</h2>
-        <h3 class="nbds-title-np">राष्ट्रिय रक्तदाता समाज</h3>
-        <div class="nbds-slogan-line">
-          <span class="nbds-line"></span>
-          <span class="nbds-slogan-text">Donate Blood, <i class="fas fa-droplet text-danger"></i> Save Lives</span>
-          <span class="nbds-line"></span>
-        </div>
-
-        <!-- Ribbon Header -->
-        <div class="nbds-ribbon-wrap">
-          <div class="nbds-ribbon">
-            <span>BLOOD DONOR CARD</span>
-          </div>
-          <div class="nbds-ribbon-sub">
-            <span class="nbds-sub-bullet">&#9670;</span>
-            <span class="nbds-sub-text">रक्तदाता परिचयपत्र</span>
-            <span class="nbds-sub-bullet">&#9670;</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Body Section -->
-      <div class="nbds-body">
+      <!-- Header Center: Titles & Slogan -->
+      <div class="nbds-header-center">
+        <h1 class="nbds-main-title">NATIONAL BLOOD DONORS SOCIETY</h1>
+        <h2 class="nbds-nepali-title">राष्ट्रिय रक्तदाता समाज</h2>
         
-        <!-- Left: Profile Photo Frame -->
-        <div class="nbds-photo-col">
-          <div class="nbds-photo-frame">
+        <div class="nbds-slogan-wrap">
+          <span class="nbds-slogan-line"></span>
+          <span class="nbds-slogan-text">Donate Blood, <i class="fas fa-droplet text-danger"></i> Save Lives</span>
+          <span class="nbds-slogan-line"></span>
+        </div>
+
+        <!-- 3D Ribbon Banner -->
+        <div class="nbds-ribbon-container">
+          <div class="nbds-ribbon-3d">
+            <span class="nbds-ribbon-text">BLOOD DONOR CARD</span>
+          </div>
+          <div class="nbds-ribbon-subtitle">
+            <span class="nbds-sub-ornament">— ◆</span>
+            <span class="nbds-sub-text">रक्तदाता परिचयपत्र</span>
+            <span class="nbds-sub-ornament">◆ —</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Body Columns -->
+      <div class="nbds-card-body">
+        
+        <!-- Left: Photo Frame -->
+        <div class="nbds-photo-box">
+          <div class="nbds-photo-border">
             {% if donor.profile_photo_data %}
-              <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" alt="Donor Photo" class="nbds-donor-img" crossorigin="anonymous">
+              <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" alt="{{ donor.full_name }}" class="nbds-actual-photo" crossorigin="anonymous">
             {% else %}
-              <div class="nbds-placeholder-img">
-                <svg viewBox="0 0 100 120" class="nbds-avatar-svg">
-                  <circle cx="50" cy="40" r="24" fill="#cbd5e1"/>
-                  <path d="M15,110 C15,75 85,75 85,110 Z" fill="#cbd5e1"/>
+              <div class="nbds-photo-placeholder">
+                <svg viewBox="0 0 100 120" class="nbds-silhouette-svg">
+                  <circle cx="50" cy="42" r="23" fill="#cbd5e1"/>
+                  <path d="M 18,110 C 18,78 82,78 82,110 Z" fill="#cbd5e1"/>
                 </svg>
               </div>
             {% endif %}
           </div>
-          <span class="nbds-photo-label">PROFILE PHOTO</span>
+          <div class="nbds-photo-caption">PROFILE PHOTO</div>
         </div>
 
-        <!-- Center: Details List -->
-        <div class="nbds-info-col">
-          <div class="nbds-info-row">
-            <div class="nbds-info-icon"><i class="fas fa-id-badge"></i></div>
-            <div class="nbds-info-label">DONOR ID</div>
-            <div class="nbds-info-sep">:</div>
-            <div class="nbds-info-value font-monospace fw-bold text-dark">{{ donor.donor_id }}</div>
-          </div>
-
-          <div class="nbds-info-row">
-            <div class="nbds-info-icon"><i class="fas fa-user"></i></div>
-            <div class="nbds-info-label">NAME</div>
-            <div class="nbds-info-sep">:</div>
-            <div class="nbds-info-value fw-bold text-dark text-uppercase">{{ donor.full_name }}</div>
-          </div>
-
-          <div class="nbds-info-row">
-            <div class="nbds-info-icon"><i class="fas fa-droplet text-danger"></i></div>
-            <div class="nbds-info-label">BLOOD GROUP</div>
-            <div class="nbds-info-sep">:</div>
-            <div class="nbds-info-value fw-bolder text-danger fs-5">{{ donor.blood_group }}</div>
-          </div>
-
-          <div class="nbds-info-row">
-            <div class="nbds-info-icon"><i class="fas fa-hand-holding-medical"></i></div>
-            <div class="nbds-info-label">DONOR TYPE</div>
-            <div class="nbds-info-sep">:</div>
-            <div class="nbds-info-value text-capitalize">{{ donor.donor_type }}</div>
-          </div>
-
-          <div class="nbds-info-row">
-            <div class="nbds-info-icon"><i class="fas fa-shield-check text-success"></i></div>
-            <div class="nbds-info-label">STATUS</div>
-            <div class="nbds-info-sep">:</div>
-            <div class="nbds-info-value text-success fw-bold">
-              {{ donor.availability_status|replace('_', ' ')|title }}
+        <!-- Middle: Data Rows with dotted fill lines -->
+        <div class="nbds-data-box">
+          
+          <!-- DONOR ID -->
+          <div class="nbds-row">
+            <div class="nbds-icon-col">
+              <div class="nbds-row-badge"><i class="fas fa-id-card"></i></div>
+            </div>
+            <div class="nbds-label-col">DONOR ID</div>
+            <div class="nbds-sep-col">:</div>
+            <div class="nbds-value-col">
+              <span class="nbds-val-text fw-bold text-dark font-monospace">{{ donor.donor_id }}</span>
+              <span class="nbds-dots-filler"></span>
             </div>
           </div>
 
-          <!-- Last Donation Box -->
-          <div class="nbds-last-donation-box">
-            <div class="nbds-last-don-header">
-              <i class="fas fa-calendar-days text-danger"></i>
-              <span class="fw-bold">LAST DONATION</span>
-              <i class="fas fa-droplet text-danger"></i>
+          <!-- NAME -->
+          <div class="nbds-row">
+            <div class="nbds-icon-col">
+              <div class="nbds-row-badge"><i class="fas fa-user"></i></div>
             </div>
-            <div class="nbds-last-don-date">
-              {{ donor.last_donation_date.strftime('%Y-%m-%d') if donor.last_donation_date else 'Regular Donor / First Time' }}
+            <div class="nbds-label-col">NAME</div>
+            <div class="nbds-sep-col">:</div>
+            <div class="nbds-value-col">
+              <span class="nbds-val-text fw-bold text-dark text-uppercase">{{ donor.full_name }}</span>
+              <span class="nbds-dots-filler"></span>
             </div>
           </div>
+
+          <!-- BLOOD GROUP -->
+          <div class="nbds-row">
+            <div class="nbds-icon-col">
+              <div class="nbds-row-badge"><i class="fas fa-droplet"></i></div>
+            </div>
+            <div class="nbds-label-col">BLOOD GROUP</div>
+            <div class="nbds-sep-col">:</div>
+            <div class="nbds-value-col">
+              <span class="nbds-val-text fw-bolder text-danger fs-5">{{ donor.blood_group }}</span>
+              <span class="nbds-dots-filler"></span>
+            </div>
+          </div>
+
+          <!-- DONOR TYPE -->
+          <div class="nbds-row">
+            <div class="nbds-icon-col">
+              <div class="nbds-row-badge"><i class="fas fa-hand-holding-heart"></i></div>
+            </div>
+            <div class="nbds-label-col">DONOR TYPE</div>
+            <div class="nbds-sep-col">:</div>
+            <div class="nbds-value-col">
+              <span class="nbds-val-text fw-semibold text-dark text-capitalize">{{ donor.donor_type }}</span>
+              <span class="nbds-dots-filler"></span>
+            </div>
+          </div>
+
+          <!-- STATUS -->
+          <div class="nbds-row">
+            <div class="nbds-icon-col">
+              <div class="nbds-row-badge"><i class="fas fa-circle-check"></i></div>
+            </div>
+            <div class="nbds-label-col">STATUS</div>
+            <div class="nbds-sep-col">:</div>
+            <div class="nbds-value-col">
+              <span class="nbds-val-text fw-bold text-success">{{ donor.availability_status|replace('_', ' ')|title }}</span>
+              <span class="nbds-dots-filler"></span>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Right: Verification QR Code -->
-        <div class="nbds-qr-col">
-          <div class="nbds-qr-card">
-            <div class="nbds-qr-img-wrap">
-              <img src="{{ url_for('public.donor_qr', donor_id=donor.donor_id) }}" alt="Verification QR" class="nbds-qr-img" crossorigin="anonymous">
+        <!-- Right: Official Verification QR Card -->
+        <div class="nbds-qr-box">
+          <div class="nbds-qr-frame">
+            <div class="nbds-qr-img-pad">
+              <img src="{{ url_for('public.donor_qr', donor_id=donor.donor_id) }}" alt="Verify QR" class="nbds-qr-code" crossorigin="anonymous">
             </div>
-            <div class="nbds-qr-footer">
-              <span class="nbds-qr-title">SCAN TO VERIFY</span>
-              <span class="nbds-qr-sub">DONOR INFORMATION</span>
+            <div class="nbds-qr-label-banner">
+              <div class="nbds-qr-lbl-1">SCAN TO VERIFY</div>
+              <div class="nbds-qr-lbl-2">DONOR INFORMATION</div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Bottom Metadata Section -->
-      <div class="nbds-issued-row">
-        <i class="fas fa-calendar-check text-danger me-2"></i>
-        <strong>ISSUED:</strong>
-        <span class="nbds-issued-dots ms-2">
-          {{ donor.created_at.strftime('%Y-%m-%d') if donor.created_at else 'Verified NBDS System' }}
-        </span>
+      <!-- Mid-Bottom: Issued Line -->
+      <div class="nbds-issued-section">
+        <div class="nbds-issued-left">
+          <div class="nbds-calendar-icon-box">
+            <i class="fas fa-calendar-days text-danger fs-4"></i>
+          </div>
+          <span class="nbds-issued-label">ISSUED:</span>
+          <div class="nbds-issued-val-wrap">
+            <span class="nbds-issued-text">{{ donor.created_at.strftime('%Y-%m-%d') if donor.created_at else 'Active Record' }}</span>
+            <span class="nbds-issued-dots"></span>
+          </div>
+        </div>
       </div>
 
-      <!-- Bottom Decorative Red Wave Footer -->
-      <div class="nbds-footer-wave">
-        <div class="nbds-footer-content">
-          <span class="nbds-footer-ecg">ﮩـﮩـ</span>
-          <i class="far fa-heart nbds-footer-heart"></i>
-          <span class="nbds-footer-ecg">ـﮩـﮩ</span>
-          <span class="nbds-footer-text">रक्तदान जीवनदान</span>
-          <i class="far fa-heart nbds-footer-heart"></i>
-          <span class="nbds-footer-ecg">―</span>
+      <!-- Bottom Red Curved Wave Footer -->
+      <div class="nbds-bottom-footer-wrap">
+        <svg viewBox="0 0 820 54" preserveAspectRatio="none" class="nbds-footer-swoosh">
+          <path d="M 0,22 Q 410,-10 820,22 L 820,54 L 0,54 Z" fill="#990000"/>
+        </svg>
+        
+        <div class="nbds-footer-text-overlay">
+          <!-- Left ECG & Heart -->
+          <div class="nbds-ecg-heart-group">
+            <svg class="nbds-mini-ecg" viewBox="0 0 70 24">
+              <path d="M 2,12 L 20,12 L 25,3 L 30,21 L 35,8 L 38,15 L 42,12 L 68,12" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <i class="far fa-heart nbds-white-heart"></i>
+            <svg class="nbds-mini-ecg" viewBox="0 0 70 24">
+              <path d="M 2,12 L 20,12 L 25,3 L 30,21 L 35,8 L 38,15 L 42,12 L 68,12" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- Slogan Center -->
+          <div class="nbds-nepali-slogan">रक्तदान जीवनदान</div>
+
+          <!-- Right ECG & Heart -->
+          <div class="nbds-ecg-heart-group">
+            <i class="far fa-heart nbds-white-heart"></i>
+            <svg class="nbds-mini-ecg" viewBox="0 0 70 24">
+              <path d="M 2,12 L 20,12 L 25,3 L 30,21 L 35,8 L 38,15 L 42,12 L 68,12" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="nbds-dash-tail">―</span>
+          </div>
         </div>
       </div>
 
@@ -173,199 +236,184 @@
   </div>
 </div>
 
-<!-- High Fidelity Styles for Donor ID Card -->
+<!-- Pixel-Perfect CSS Styles for NBDS Blood Donor ID Card -->
 <style>
-.nbds-card-root {
-  width: 780px;
-  min-height: 480px;
+.nbds-id-card {
+  width: 820px;
+  min-width: 820px;
+  height: 520px;
+  min-height: 520px;
   background: #ffffff;
-  border-radius: 24px;
-  border: 2px solid #8B0000;
-  box-shadow: 0 10px 30px rgba(139, 0, 0, 0.15), 0 4px 8px rgba(0,0,0,0.06);
+  border-radius: 28px;
+  border: 3px solid #990000;
+  box-shadow: 0 12px 36px rgba(153, 0, 0, 0.18), 0 4px 12px rgba(0,0,0,0.08);
   position: relative;
   overflow: hidden;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a1a;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  color: #111827;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* Top Right Decorative Corner */
+/* Top Right Swoosh */
 .nbds-top-right-decor {
   position: absolute;
   top: 0;
   right: 0;
-  width: 170px;
-  height: 90px;
+  width: 220px;
+  height: 110px;
   z-index: 1;
   pointer-events: none;
 }
-.nbds-corner-svg {
+.nbds-top-swoosh {
   width: 100%;
   height: 100%;
   position: absolute;
   top: 0;
   right: 0;
 }
-.nbds-heartbeat-badge {
+.nbds-ecg-heart-wrap {
   position: absolute;
   top: 14px;
-  right: 18px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #ffffff;
-  font-size: 0.75rem;
+  right: 14px;
+  z-index: 2;
 }
-.nbds-ecg-line {
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: -1px;
-}
-.nbds-heart-drop {
-  position: relative;
-  font-size: 1.5rem;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.nbds-inner-drop {
-  position: absolute;
-  font-size: 0.65rem;
-  color: #8B0000;
-  top: 52%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.nbds-ecg-svg {
+  width: 145px;
+  height: 44px;
 }
 
 /* Top Left Logo */
 .nbds-top-left-logo {
   position: absolute;
-  top: 14px;
-  left: 20px;
+  top: 12px;
+  left: 16px;
   z-index: 2;
 }
-.nbds-logo-circle {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #a80d15 0%, #800000 100%);
-  border: 3px solid #ffffff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-size: 1.6rem;
+.nbds-drop-logo-svg {
+  width: 72px;
+  height: 90px;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.2));
 }
 
-/* Header */
-.nbds-header {
+/* Header Center */
+.nbds-header-center {
+  text-align: center;
   padding-top: 14px;
-  padding-left: 80px;
-  padding-right: 130px;
+  padding-left: 95px;
+  padding-right: 155px;
   position: relative;
   z-index: 2;
 }
-.nbds-title-en {
-  font-size: 1.32rem;
+.nbds-main-title {
+  font-size: 1.48rem;
   font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #8B0000;
+  letter-spacing: 0.6px;
+  color: #990000;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.15;
 }
-.nbds-title-np {
-  font-size: 1.35rem;
+.nbds-nepali-title {
+  font-size: 1.52rem;
   font-weight: 800;
-  color: #720000;
+  color: #800000;
   margin: 2px 0 0 0;
   line-height: 1.2;
 }
-.nbds-slogan-line {
+.nbds-slogan-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 3px;
-  margin-bottom: 8px;
+  margin: 3px 0 6px 0;
 }
-.nbds-line {
+.nbds-slogan-line {
   height: 1.5px;
-  width: 60px;
-  background: #8B0000;
-  opacity: 0.6;
+  width: 75px;
+  background: #990000;
+  opacity: 0.75;
 }
 .nbds-slogan-text {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #333333;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #222222;
 }
 
-/* Ribbon */
-.nbds-ribbon-wrap {
+/* 3D Ribbon Banner */
+.nbds-ribbon-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 4px;
+  position: relative;
+  margin-top: 2px;
 }
-.nbds-ribbon {
-  background: linear-gradient(90deg, #7A0909 0%, #8B0000 50%, #7A0909 100%);
+.nbds-ribbon-3d {
+  background: #990000;
   color: #ffffff;
-  font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  font-weight: 900;
   letter-spacing: 1.5px;
-  padding: 4px 34px;
-  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+  padding: 4px 40px;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+  clip-path: polygon(16px 0%, 100% 0%, calc(100% - 16px) 100%, 0% 100%);
 }
-.nbds-ribbon-sub {
-  display: flex;
+.nbds-ribbon-subtitle {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #8B0000;
-  font-size: 0.88rem;
-  font-weight: 700;
   margin-top: 3px;
+  color: #990000;
+  font-size: 0.96rem;
+  font-weight: 800;
+  padding: 1px 16px;
+  border-left: 2px solid #990000;
+  border-right: 2px solid #990000;
 }
-.nbds-sub-bullet {
-  font-size: 0.6rem;
-  opacity: 0.8;
+.nbds-sub-ornament {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+.nbds-sub-text {
+  letter-spacing: 0.5px;
 }
 
-/* Body */
-.nbds-body {
+/* Main Body Layout */
+.nbds-card-body {
   display: flex;
-  padding: 12px 24px 8px 24px;
-  gap: 18px;
-  align-items: stretch;
+  padding: 6px 26px 0 26px;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
 }
 
-/* Photo */
-.nbds-photo-col {
-  width: 140px;
+/* Left Photo */
+.nbds-photo-box {
+  width: 145px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-.nbds-photo-frame {
-  width: 130px;
-  height: 155px;
-  border-radius: 14px;
-  border: 2px solid #e2e8f0;
+.nbds-photo-border {
+  width: 140px;
+  height: 165px;
+  border-radius: 16px;
+  border: 2px solid #990000;
   background: #f8fafc;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
 }
-.nbds-donor-img {
+.nbds-actual-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.nbds-placeholder-img {
+.nbds-photo-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
@@ -373,180 +421,224 @@
   justify-content: center;
   background: #f1f5f9;
 }
-.nbds-avatar-svg {
-  width: 75%;
-  height: 75%;
+.nbds-silhouette-svg {
+  width: 80%;
+  height: 80%;
 }
-.nbds-photo-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #475569;
-  letter-spacing: 0.5px;
+.nbds-photo-caption {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.8px;
   margin-top: 6px;
 }
 
-/* Info Column */
-.nbds-info-col {
+/* Middle Data */
+.nbds-data-box {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
 }
-.nbds-info-row {
+.nbds-row {
   display: flex;
-  align-items: baseline;
-  font-size: 0.84rem;
-  border-bottom: 1px dotted #cbd5e1;
-  padding-bottom: 2px;
-  margin-bottom: 4px;
+  align-items: center;
+  font-size: 0.9rem;
+  position: relative;
 }
-.nbds-info-icon {
-  width: 20px;
-  color: #8B0000;
-  font-size: 0.85rem;
+.nbds-icon-col {
+  width: 32px;
+  display: flex;
+  align-items: center;
 }
-.nbds-info-label {
-  width: 105px;
+.nbds-row-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: #990000;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+.nbds-label-col {
+  width: 118px;
   font-weight: 800;
-  color: #1e293b;
-  font-size: 0.78rem;
+  color: #111827;
+  font-size: 0.82rem;
   letter-spacing: 0.3px;
 }
-.nbds-info-sep {
-  width: 14px;
-  font-weight: 700;
-  color: #64748b;
+.nbds-sep-col {
+  width: 16px;
+  font-weight: 800;
+  color: #111827;
 }
-.nbds-info-value {
+.nbds-value-col {
   flex: 1;
-  color: #0f172a;
-}
-
-/* Last Donation Box */
-.nbds-last-donation-box {
-  margin-top: 6px;
-  border: 1.5px solid #8B0000;
-  border-radius: 10px;
-  background: #fffafa;
-  padding: 4px 12px;
-  text-align: center;
-}
-.nbds-last-don-header {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: #8B0000;
-  letter-spacing: 0.5px;
+  align-items: baseline;
+  overflow: hidden;
 }
-.nbds-last-don-date {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #1e293b;
-  border-top: 1px dashed rgba(139,0,0,0.3);
-  padding-top: 2px;
-  margin-top: 2px;
+.nbds-val-text {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  padding-right: 6px;
+}
+.nbds-dots-filler {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  border-bottom: 1.5px dotted #64748b;
+  z-index: 1;
 }
 
-/* QR Col */
-.nbds-qr-col {
+/* Right QR Frame */
+.nbds-qr-box {
+  width: 160px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.nbds-qr-frame {
   width: 155px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.nbds-qr-card {
-  width: 140px;
-  border-radius: 14px;
-  border: 2px solid #8B0000;
+  border-radius: 16px;
+  border: 2px solid #990000;
   overflow: hidden;
   background: #ffffff;
-  box-shadow: 0 4px 10px rgba(139,0,0,0.12);
+  box-shadow: 0 4px 12px rgba(153, 0, 0, 0.15);
 }
-.nbds-qr-img-wrap {
-  padding: 8px;
+.nbds-qr-img-pad {
+  padding: 10px;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
 }
-.nbds-qr-img {
+.nbds-qr-code {
   width: 100%;
   height: auto;
   aspect-ratio: 1/1;
   display: block;
 }
-.nbds-qr-footer {
-  background: #8B0000;
+.nbds-qr-label-banner {
+  background: #990000;
   color: #ffffff;
   text-align: center;
-  padding: 4px 2px;
-  display: flex;
-  flex-direction: column;
+  padding: 5px 3px;
+}
+.nbds-qr-lbl-1 {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.6px;
   line-height: 1.1;
 }
-.nbds-qr-title {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-.nbds-qr-sub {
-  font-size: 0.55rem;
-  font-weight: 600;
-  opacity: 0.9;
+.nbds-qr-lbl-2 {
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.95;
+  letter-spacing: 0.3px;
 }
 
-/* Issued Section */
-.nbds-issued-row {
+/* Mid-Bottom Issued Line */
+.nbds-issued-section {
+  padding: 0 28px 4px 28px;
+  border-top: 1.5px solid #fecaca;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.nbds-issued-left {
   display: flex;
   align-items: center;
-  padding: 0 26px 6px 26px;
-  font-size: 0.8rem;
-  color: #334155;
+  gap: 8px;
+}
+.nbds-calendar-icon-box {
+  display: flex;
+  align-items: center;
+}
+.nbds-issued-label {
+  font-weight: 900;
+  color: #111827;
+  font-size: 0.88rem;
+  letter-spacing: 0.5px;
+}
+.nbds-issued-val-wrap {
+  flex: 1;
+  max-width: 380px;
+  position: relative;
+  display: flex;
+  align-items: baseline;
+}
+.nbds-issued-text {
+  font-weight: 700;
+  color: #1f2937;
+  background: #ffffff;
+  padding-right: 8px;
+  z-index: 2;
+  font-size: 0.86rem;
 }
 .nbds-issued-dots {
-  border-bottom: 1px dotted #94a3b8;
-  flex: 1;
-  max-width: 320px;
-  font-weight: 600;
-  color: #1e293b;
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  border-bottom: 1.5px dotted #64748b;
+  z-index: 1;
 }
 
 /* Bottom Red Wave Footer */
-.nbds-footer-wave {
-  background: linear-gradient(90deg, #7A0909 0%, #8B0000 50%, #7A0909 100%);
-  color: #ffffff;
-  padding: 8px 16px;
+.nbds-bottom-footer-wrap {
   position: relative;
-  clip-path: ellipse(65% 100% at 50% 100%);
-  margin-top: 4px;
+  height: 52px;
+  width: 100%;
 }
-.nbds-footer-content {
+.nbds-footer-swoosh {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 52px;
+}
+.nbds-footer-text-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 0.82rem;
+  gap: 16px;
+  color: #ffffff;
+  padding-top: 10px;
 }
-.nbds-footer-text {
-  font-size: 1.05rem;
-  font-weight: 800;
+.nbds-ecg-heart-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nbds-mini-ecg {
+  width: 58px;
+  height: 20px;
+}
+.nbds-white-heart {
+  font-size: 1.15rem;
+  color: #ffffff;
+}
+.nbds-nepali-slogan {
+  font-size: 1.25rem;
+  font-weight: 900;
   letter-spacing: 1px;
+  color: #ffffff;
 }
-.nbds-footer-ecg {
-  font-weight: 700;
-  font-size: 0.95rem;
-  opacity: 0.85;
-}
-.nbds-footer-heart {
-  font-size: 0.9rem;
-  opacity: 0.9;
+.nbds-dash-tail {
+  font-size: 1.2rem;
+  color: #ffffff;
 }
 
-/* Responsive scaling for preview on mobile/tablets */
-@media (max-width: 820px) {
+/* Export Responsive Styling */
+@media (max-width: 860px) {
   .card-export-container {
     overflow-x: auto;
     justify-content: flex-start;
@@ -564,9 +656,9 @@ function downloadDonorCard() {
 
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating Image...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating High-Res Card...';
 
-  // Use scale 2 for crisp 300+ DPI output
+  // Render high-DPI image (scale 2.5) for print-ready crisp quality
   html2canvas(cardElement, {
     scale: 2.5,
     useCORS: true,
@@ -575,7 +667,7 @@ function downloadDonorCard() {
     logging: false
   }).then(function(canvas) {
     const link = document.createElement('a');
-    link.download = 'NBDS-Donor-Card-{{ donor.donor_id }}.png';
+    link.download = 'NBDS-Blood-Donor-Card-{{ donor.donor_id }}.png';
     link.href = canvas.toDataURL('image/png');
     document.body.appendChild(link);
     link.click();
@@ -585,7 +677,7 @@ function downloadDonorCard() {
     btn.innerHTML = originalText;
   }).catch(function(err) {
     console.error('Error generating card image:', err);
-    alert('Failed to download card. Please try again or use the Print button.');
+    alert('Failed to download card. Please try again.');
     btn.disabled = false;
     btn.innerHTML = originalText;
   });
