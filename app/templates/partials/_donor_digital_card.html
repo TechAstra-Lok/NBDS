@@ -12,9 +12,10 @@
     </div>
   </div>
 
-  <!-- Card Canvas Wrapper for high-res export -->
-  <div class="card-export-container d-flex justify-content-center p-1 p-md-3">
-    <div id="nbdsDonorCard" class="nbds-id-card" data-bs-theme="light">
+  <!-- Card Canvas Wrapper for high-res export and responsive mobile scaling -->
+  <div class="card-export-container" id="nbdsCardContainer">
+    <div class="nbds-card-scaler" id="nbdsCardScaler">
+      <div id="nbdsDonorCard" class="nbds-id-card" data-bs-theme="light">
       
       <!-- Top Right Red Wave with Heartbeat -->
       <div class="nbds-top-right-decor">
@@ -232,6 +233,7 @@
         </div>
       </div>
 
+      </div>
     </div>
   </div>
 </div>
@@ -665,18 +667,80 @@
   color: #ffffff;
 }
 
-/* Export Responsive Styling */
-@media (max-width: 860px) {
-  .card-export-container {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
+/* Proportional Responsive Scaling for Mobile & Tablets */
+.card-export-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: visible;
+  padding: 8px 0;
+}
+
+.nbds-card-scaler {
+  width: 100%;
+  max-width: 820px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+}
+
+.nbds-id-card {
+  transform-origin: top center;
+  transition: transform 0.15s ease-out;
+  flex-shrink: 0;
+}
+
+.nbds-header-center,
+.nbds-card-body,
+.nbds-photo-box,
+.nbds-data-box,
+.nbds-qr-box,
+.nbds-issued-section,
+.nbds-bottom-footer-wrap {
+  flex-shrink: 0;
 }
 </style>
 
-<!-- html2canvas script for direct high-res image download -->
+<!-- html2canvas and Dynamic Responsive Scaling Script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
+function resizeDonorCard() {
+  const container = document.getElementById('nbdsCardContainer');
+  const scaler = document.getElementById('nbdsCardScaler');
+  const card = document.getElementById('nbdsDonorCard');
+  if (!container || !scaler || !card) return;
+
+  const availableWidth = container.parentElement ? container.parentElement.clientWidth - 16 : container.clientWidth;
+  const CARD_WIDTH = 820;
+  const CARD_HEIGHT = 520;
+
+  if (availableWidth < CARD_WIDTH && availableWidth > 0) {
+    const scale = Math.max(0.35, availableWidth / CARD_WIDTH);
+    card.style.transform = 'scale(' + scale + ')';
+    scaler.style.height = (CARD_HEIGHT * scale) + 'px';
+    scaler.style.width = availableWidth + 'px';
+  } else {
+    card.style.transform = 'none';
+    scaler.style.height = CARD_HEIGHT + 'px';
+    scaler.style.width = '100%';
+  }
+}
+
+// Attach listener for resize, tab switch, and orientation change
+window.addEventListener('resize', resizeDonorCard);
+window.addEventListener('orientationchange', resizeDonorCard);
+document.addEventListener('DOMContentLoaded', resizeDonorCard);
+
+// Also re-trigger when digital card tab is activated
+document.addEventListener('shown.bs.tab', function(e) {
+  if (e.target && e.target.getAttribute('href') === '#card' || e.target.id === 'card-tab') {
+    setTimeout(resizeDonorCard, 50);
+  }
+});
+setTimeout(resizeDonorCard, 100);
+
 function downloadDonorCard() {
   const cardElement = document.getElementById('nbdsDonorCard');
   const btn = document.getElementById('downloadCardBtn');
@@ -686,6 +750,10 @@ function downloadDonorCard() {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating High-Res Card...';
 
+  // Save current transform state and reset temporarily for clean canvas capture
+  const prevTransform = cardElement.style.transform;
+  cardElement.style.transform = 'none';
+
   // Render high-DPI image (scale 2.5) for print-ready crisp quality
   html2canvas(cardElement, {
     scale: 2.5,
@@ -694,6 +762,9 @@ function downloadDonorCard() {
     backgroundColor: '#ffffff',
     logging: false
   }).then(function(canvas) {
+    // Restore transform state
+    cardElement.style.transform = prevTransform;
+
     const link = document.createElement('a');
     link.download = 'NBDS-Blood-Donor-Card-{{ donor.donor_id }}.png';
     link.href = canvas.toDataURL('image/png');
@@ -704,6 +775,7 @@ function downloadDonorCard() {
     btn.disabled = false;
     btn.innerHTML = originalText;
   }).catch(function(err) {
+    cardElement.style.transform = prevTransform;
     console.error('Error generating card image:', err);
     alert('Failed to download card. Please try again.');
     btn.disabled = false;
