@@ -14,7 +14,7 @@
 
   <!-- Card Canvas Wrapper for high-res export -->
   <div class="card-export-container d-flex justify-content-center p-1 p-md-3">
-    <div id="nbdsDonorCard" class="nbds-id-card">
+    <div id="nbdsDonorCard" class="nbds-id-card" data-bs-theme="light">
       
       <!-- Top Right Red Wave with Heartbeat -->
       <div class="nbds-top-right-decor">
@@ -112,7 +112,7 @@
             <div class="nbds-label-col">DONOR ID</div>
             <div class="nbds-sep-col">:</div>
             <div class="nbds-value-col">
-              <span class="nbds-val-text fw-bold text-dark font-monospace">{{ donor.donor_id }}</span>
+              <span class="nbds-val-text font-monospace">{{ donor.donor_id }}</span>
               <span class="nbds-dots-filler"></span>
             </div>
           </div>
@@ -125,7 +125,7 @@
             <div class="nbds-label-col">NAME</div>
             <div class="nbds-sep-col">:</div>
             <div class="nbds-value-col">
-              <span class="nbds-val-text fw-bold text-dark text-uppercase">{{ donor.full_name }}</span>
+              <span class="nbds-val-text nbds-name-text">{{ donor.full_name }}</span>
               <span class="nbds-dots-filler"></span>
             </div>
           </div>
@@ -138,7 +138,7 @@
             <div class="nbds-label-col">BLOOD GROUP</div>
             <div class="nbds-sep-col">:</div>
             <div class="nbds-value-col">
-              <span class="nbds-val-text fw-bolder text-danger fs-5">{{ donor.blood_group }}</span>
+              <span class="nbds-val-text nbds-blood-text">{{ donor.blood_group }}</span>
               <span class="nbds-dots-filler"></span>
             </div>
           </div>
@@ -151,7 +151,7 @@
             <div class="nbds-label-col">DONOR TYPE</div>
             <div class="nbds-sep-col">:</div>
             <div class="nbds-value-col">
-              <span class="nbds-val-text fw-semibold text-dark text-capitalize">{{ donor.donor_type }}</span>
+              <span class="nbds-val-text nbds-type-text">{{ donor.donor_type }}</span>
               <span class="nbds-dots-filler"></span>
             </div>
           </div>
@@ -164,7 +164,7 @@
             <div class="nbds-label-col">STATUS</div>
             <div class="nbds-sep-col">:</div>
             <div class="nbds-value-col">
-              <span class="nbds-val-text fw-bold text-success">{{ donor.availability_status|replace('_', ' ')|title }}</span>
+              <span class="nbds-val-text nbds-status-text">{{ donor.availability_status|replace('_', ' ')|title }}</span>
               <span class="nbds-dots-filler"></span>
             </div>
           </div>
@@ -465,15 +465,15 @@
 }
 .nbds-label-col {
   width: 118px;
-  font-weight: 800;
-  color: #111827;
-  font-size: 0.82rem;
-  letter-spacing: 0.3px;
+  font-weight: 900;
+  color: #0f172a !important;
+  font-size: 0.84rem;
+  letter-spacing: 0.4px;
 }
 .nbds-sep-col {
   width: 16px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 900;
+  color: #0f172a !important;
 }
 .nbds-value-col {
   flex: 1;
@@ -485,15 +485,41 @@
 .nbds-val-text {
   position: relative;
   z-index: 2;
-  background: #ffffff;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 0.94rem;
   padding-right: 6px;
+  letter-spacing: 0.3px;
+}
+.nbds-name-text {
+  color: #0f172a !important;
+  font-size: 0.96rem;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+}
+.nbds-blood-text {
+  color: #b91c1c !important;
+  font-size: 1.15rem;
+  font-weight: 900 !important;
+}
+.nbds-type-text {
+  color: #0f172a !important;
+  font-size: 0.92rem;
+  font-weight: 800 !important;
+  text-transform: capitalize;
+}
+.nbds-status-text {
+  color: #15803d !important;
+  font-size: 0.92rem;
+  font-weight: 800 !important;
 }
 .nbds-dots-filler {
   position: absolute;
   bottom: 3px;
   left: 0;
   right: 0;
-  border-bottom: 1.5px dotted #64748b;
+  border-bottom: 1.5px dotted #94a3b8;
   z-index: 1;
 }
 
@@ -509,12 +535,12 @@
   border-radius: 16px;
   border: 2px solid #990000;
   overflow: hidden;
-  background: #ffffff;
+  background: #ffffff !important;
   box-shadow: 0 4px 12px rgba(153, 0, 0, 0.15);
 }
 .nbds-qr-img-pad {
   padding: 10px;
-  background: #ffffff;
+  background: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -526,8 +552,8 @@
   display: block;
 }
 .nbds-qr-label-banner {
-  background: #990000;
-  color: #ffffff;
+  background: #990000 !important;
+  color: #ffffff !important;
   text-align: center;
   padding: 5px 3px;
 }
@@ -536,12 +562,14 @@
   font-weight: 900;
   letter-spacing: 0.6px;
   line-height: 1.1;
+  color: #ffffff !important;
 }
 .nbds-qr-lbl-2 {
   font-size: 0.62rem;
   font-weight: 700;
   opacity: 0.95;
   letter-spacing: 0.3px;
+  color: #ffffff !important;
 }
 
 /* Mid-Bottom Issued Line */
@@ -562,7 +590,7 @@
 }
 .nbds-issued-label {
   font-weight: 900;
-  color: #111827;
+  color: #0f172a !important;
   font-size: 0.88rem;
   letter-spacing: 0.5px;
 }
@@ -574,19 +602,19 @@
   align-items: baseline;
 }
 .nbds-issued-text {
-  font-weight: 700;
-  color: #1f2937;
-  background: #ffffff;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
   padding-right: 8px;
   z-index: 2;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
 }
 .nbds-issued-dots {
   position: absolute;
   bottom: 2px;
   left: 0;
   right: 0;
-  border-bottom: 1.5px dotted #64748b;
+  border-bottom: 1.5px dotted #94a3b8;
   z-index: 1;
 }
 
