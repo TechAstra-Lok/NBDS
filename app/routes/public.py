@@ -1121,6 +1121,25 @@ def donor_profile(donor_id):
     
     if is_owner and request.method == 'POST':
         if 'profile_submit' in request.form and profile_form.validate_on_submit():
+            # Handle profile photo upload (before populate_obj to avoid FileStorage being written to text field)
+            photo_file = request.files.get('profile_photo')
+            if photo_file and photo_file.filename:
+                try:
+                    from PIL import Image
+                    import io
+                    # Open and compress the image
+                    img = Image.open(photo_file)
+                    img = img.convert('RGB')  # Convert to RGB (handles PNG transparency, etc.)
+                    # Resize to max 400x400 maintaining aspect ratio
+                    img.thumbnail((400, 400), Image.LANCZOS)
+                    # Save as compressed JPEG
+                    buffer = io.BytesIO()
+                    img.save(buffer, format='JPEG', quality=65, optimize=True)
+                    donor.profile_photo_data = buffer.getvalue()
+                    donor.profile_photo_mimetype = 'image/jpeg'
+                except Exception as photo_err:
+                    flash(f'Photo upload failed: {photo_err}', 'warning')
+            
             profile_form.populate_obj(donor)
             
             # Save Notification Preferences
@@ -1184,6 +1203,39 @@ def donor_profile(donor_id):
                            history=history,
                            is_owner=is_owner)
 
+
+@public_bp.route('/donor/<string:donor_id>/photo')
+def donor_photo(donor_id):
+    """Serve the donor's profile photo from the database."""
+    donor = Donor.query.filter_by(donor_id=donor_id).first_or_404()
+    if not donor.profile_photo_data:
+        abort(404)
+    return Response(
+        donor.profile_photo_data,
+        mimetype=donor.profile_photo_mimetype or 'image/jpeg',
+        headers={'Cache-Control': 'public, max-age=86400'}
+    )
+
+
+@public_bp.route('/donor/<string:donor_id>/qr')
+def donor_qr(donor_id):
+    """Generate a QR code image for the donor's public profile URL."""
+    donor = Donor.query.filter_by(donor_id=donor_id).first_or_404()
+    import qrcode
+    import io
+    profile_url = url_for('public.donor_profile', donor_id=donor.donor_id, _external=True)
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=2)
+    qr.add_data(profile_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='#991B1B', back_color='white')
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return Response(
+        buffer.getvalue(),
+        mimetype='image/png',
+        headers={'Cache-Control': 'public, max-age=86400'}
+    )
 
 @public_bp.route('/api/donor/<string:donor_id>/availability')
 def donor_availability_api(donor_id):

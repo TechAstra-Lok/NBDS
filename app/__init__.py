@@ -285,6 +285,12 @@ def _ensure_legacy_schema_columns(app):
                             sql_type = "BOOLEAN"
                         elif "DATETIME" in col_type_str or "TIMESTAMP" in col_type_str:
                             sql_type = "TIMESTAMP"
+                        elif "BLOB" in col_type_str or "LARGEBINARY" in col_type_str or "LARGE_BINARY" in col_type_str:
+                            sql_type = "BLOB"
+                        elif "FLOAT" in col_type_str or "REAL" in col_type_str:
+                            sql_type = "REAL"
+                        elif "DATE" in col_type_str:
+                            sql_type = "DATE"
                         else:
                             sql_type = "VARCHAR(255)"
                         

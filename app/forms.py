@@ -274,6 +274,12 @@ class DonorProfileEditForm(FlaskForm):
     sms_alerts          = BooleanField('SMS Alerts', default=True)
     in_app_alerts       = BooleanField('In-App Alerts', default=True)
     
+    # Profile Photo
+    profile_photo       = FileField('Profile Photo', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Only image files (jpg, png, webp) are allowed.')
+    ])
+    
     submit = SubmitField('Save Profile Changes')
 
 

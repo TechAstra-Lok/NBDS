@@ -13,10 +13,17 @@
                 </div>
 
                 <div class="my-3">
+                    {% if donor.profile_photo_data %}
+                    <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" 
+                         alt="{{ donor.full_name }}" 
+                         class="rounded-circle border border-3 border-danger shadow-sm"
+                         style="width:110px; height:110px; object-fit: cover;">
+                    {% else %}
                     <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center border border-3 border-danger shadow-sm"
                         style="width:110px; height:110px;">
                         <i class="fas fa-user-heart text-danger fs-1"></i>
                     </div>
+                    {% endif %}
                 </div>
 
                 <h4 class="fw-bold text-dark mb-1">{{ donor.full_name }}</h4>

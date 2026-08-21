@@ -625,6 +625,10 @@ class Donor(UserMixin, db.Model):
     donor_notes             = db.Column(db.Text)  # admin or self notes
     is_public               = db.Column(db.Boolean, default=True)  # profile visibility toggle
     
+    # Profile Photo (stored as compressed JPEG binary in DB)
+    profile_photo_data      = db.Column(db.LargeBinary)  # compressed JPEG bytes
+    profile_photo_mimetype  = db.Column(db.String(30))    # e.g. 'image/jpeg'
+    
     # Donation Summary Fields (kept for fast filtering, updated by engine)
     total_donations         = db.Column(db.Integer, default=0)
     available_after_date    = db.Column(db.Date)  # computed: 90th day from last donation
@@ -765,6 +769,13 @@ class Donor(UserMixin, db.Model):
             'recently_donated': 'bg-warning text-dark',
             'unavailable': 'bg-danger',
         }.get(self.availability_status, 'bg-secondary')
+    
+    @property
+    def profile_photo_url(self):
+        """Return URL to serve the donor's profile photo, or a default avatar."""
+        if self.profile_photo_data:
+            return f"/donor/{self.donor_id}/photo"
+        return "/static/images/default-avatar.png"
     
     def __repr__(self):
         return f'<Donor {self.donor_id}: {self.full_name} [{self.blood_group}] status={self.availability_status}>'

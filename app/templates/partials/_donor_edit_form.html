@@ -1,6 +1,46 @@
-<form method="POST" action="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}" class="needs-validation" novalidate>
+<form method="POST" action="{{ url_for('public.donor_profile', donor_id=donor.donor_id) }}" class="needs-validation" novalidate enctype="multipart/form-data">
     {{ profile_form.hidden_tag() }}
     
+    <!-- Profile Photo Upload -->
+    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Profile Photo</h6>
+    <div class="row g-3 mb-4">
+        <div class="col-md-12">
+            <div class="d-flex align-items-center gap-4">
+                <div class="position-relative">
+                    {% if donor.profile_photo_data %}
+                    <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" 
+                         alt="Profile Photo" 
+                         class="rounded-circle border border-3 border-danger shadow-sm"
+                         style="width: 100px; height: 100px; object-fit: cover;"
+                         id="photoPreview">
+                    {% else %}
+                    <div class="rounded-circle bg-light border border-3 border-danger shadow-sm d-flex align-items-center justify-content-center"
+                         style="width: 100px; height: 100px;" id="photoPreviewPlaceholder">
+                        <i class="fas fa-user text-muted fa-2x"></i>
+                    </div>
+                    <img src="" alt="Preview" class="rounded-circle border border-3 border-danger shadow-sm d-none"
+                         style="width: 100px; height: 100px; object-fit: cover;" id="photoPreview">
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label small fw-bold text-muted mb-1">
+                        {{ 'Change Photo' if donor.profile_photo_data else 'Upload Photo' }}
+                    </label>
+                    <input type="file" name="profile_photo" class="form-control form-control-sm rounded-3" 
+                           accept="image/jpeg,image/png,image/webp" id="profilePhotoInput">
+                    <div class="form-text small text-muted mt-1">
+                        <i class="fas fa-info-circle me-1"></i>Max 5MB. JPG, PNG or WebP. Will be compressed automatically.
+                    </div>
+                    {% if donor.profile_photo_data %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size: 0.7rem;">
+                        <i class="fas fa-check-circle me-1"></i>Photo uploaded
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Basic Information</h6>
     <div class="row g-3 mb-4">
         <div class="col-md-6">
@@ -130,6 +170,38 @@
         </button>
     </div>
 </form>
+
+<!-- Photo preview JS -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('profilePhotoInput');
+    if (input) {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            // Validate size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File too large. Maximum size is 5MB.');
+                e.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const preview = document.getElementById('photoPreview');
+                const placeholder = document.getElementById('photoPreviewPlaceholder');
+                if (preview) {
+                    preview.src = ev.target.result;
+                    preview.classList.remove('d-none');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('d-none');
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+});
+</script>
 
 <!-- Use existing address.js for cascade loading -->
 <script src="{{ url_for('static', filename='js/address.js') }}"></script>
