@@ -97,10 +97,10 @@
             <div class="row g-3">
               {% for st in three_shifts.current_staff %}
               <div class="col-md-6">
-                <div class="d-flex align-items-center p-3 rounded-3 bg-white shadow-sm border border-success border-opacity-25 h-100">
+                <div class="d-flex align-items-center p-3 rounded-3 bg-body shadow-sm border border-success border-opacity-25 h-100">
                   <img loading="lazy" src="{{ st.image_url }}" alt="{{ st.full_name }}" class="rounded-circle border border-2 border-success me-3" style="width:52px;height:52px;object-fit:cover;">
                   <div class="flex-grow-1">
-                    <h6 class="mb-0 fw-bold text-dark">{{ st.full_name }}</h6>
+                    <h6 class="mb-0 fw-bold">{{ st.full_name }}</h6>
                     <div class="text-success small fw-semibold"><i class="fas fa-stethoscope fa-xs me-1"></i>{{ st.role_in_shift }}</div>
                     {% if st.qualification %}
                     <div class="text-muted" style="font-size:0.75rem;">{{ st.qualification }}</div>
@@ -126,12 +126,12 @@
           <div class="row g-3">
             <!-- Previous Shift -->
             <div class="col-md-6">
-              <div class="p-3 rounded-3 bg-light border h-100">
+              <div class="p-3 rounded-3 shift-card-prev h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="badge bg-secondary text-uppercase">Previous Shift</span>
                   <small class="text-muted fw-semibold">{{ three_shifts.previous_shift.time_range_display }}</small>
                 </div>
-                <div class="fw-bold text-dark mb-2">{{ three_shifts.previous_shift.shift_name }}</div>
+                <div class="fw-bold mb-2">{{ three_shifts.previous_shift.shift_name }}</div>
                 {% if three_shifts.previous_staff %}
                   <div class="small text-muted">
                     {% for st in three_shifts.previous_staff %}
@@ -146,14 +146,14 @@
 
             <!-- Next Shift -->
             <div class="col-md-6">
-              <div class="p-3 rounded-3 bg-light border border-primary border-opacity-25 h-100">
+              <div class="p-3 rounded-3 shift-card-next h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="badge bg-primary text-uppercase">Next Upcoming Shift</span>
                   <small class="text-primary fw-semibold">{{ three_shifts.next_shift.time_range_display }}</small>
                 </div>
-                <div class="fw-bold text-dark mb-2">{{ three_shifts.next_shift.shift_name }}</div>
+                <div class="fw-bold mb-2">{{ three_shifts.next_shift.shift_name }}</div>
                 {% if three_shifts.next_staff %}
-                  <div class="small text-dark">
+                  <div class="small">
                     {% for st in three_shifts.next_staff %}
                     <div><i class="fas fa-user-clock fa-xs text-primary me-1"></i><strong>{{ st.full_name }}</strong> <span class="text-muted">({{ st.role_in_shift }})</span></div>
                     {% endfor %}

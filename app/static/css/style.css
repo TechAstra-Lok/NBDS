@@ -597,11 +597,49 @@ a.hover-lift {
   background: rgba(99, 102, 241, 0.1) !important;
 }
 
-/* ── Dark Mode Overrides (Crisp High-Contrast Visibility) ─────── */
+/* ── Shift Operations Cards (Clean Light & Dark Theme) ── */
+.shift-card {
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+
+.shift-card-prev {
+  background-color: var(--bg-page, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.shift-card-curr {
+  background-color: rgba(22, 163, 74, 0.06);
+  border: 2px solid #16a34a;
+}
+
+.shift-card-next {
+  background-color: var(--bg-page, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+[data-bs-theme="dark"] .shift-card-prev,
+[data-bs-theme="dark"] .shift-card-next {
+  background-color: #182234 !important;
+  border-color: #334155 !important;
+}
+
+[data-bs-theme="dark"] .shift-card-curr {
+  background-color: rgba(22, 163, 74, 0.16) !important;
+  border-color: #22c55e !important;
+}
+
+/* ── Dark Mode Overrides (Clean, Accessible Contrast) ─────── */
 [data-bs-theme="dark"] {
   color-scheme: dark;
   background-color: #0f172a !important;
   color: #f8fafc !important;
+  --bb-body-bg: #0f172a;
+  --bb-card-bg: #1e293b;
+  --bb-sidebar-bg: #0b1329;
+  --bb-text: #f8fafc;
+  --bb-text-muted: #94a3b8;
+  --bb-border: #334155;
 }
 
 [data-bs-theme="dark"] body {
@@ -609,7 +647,8 @@ a.hover-lift {
   color: #f8fafc !important;
 }
 
-[data-bs-theme="dark"] .card {
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .bb-card {
   background: #1e293b !important;
   color: #f8fafc !important;
   border-color: #334155 !important;

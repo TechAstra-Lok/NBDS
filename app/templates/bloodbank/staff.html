@@ -30,7 +30,7 @@
     <div class="col-6 col-md-3">
       <div class="card bb-card p-3 border-start border-4 border-primary">
         <div class="small text-muted fw-semibold text-uppercase">Total Staff</div>
-        <div class="fw-bold fs-4 text-dark mt-1">{{ total_staff }}</div>
+        <div class="fw-bold fs-4 mt-1">{{ total_staff }}</div>
         <div class="small text-muted mt-1"><i class="fas fa-hospital-user me-1"></i>Registered Records</div>
       </div>
     </div>
@@ -87,7 +87,7 @@
 
   <!-- Staff Table -->
   <div class="card bb-card border-0 shadow-sm overflow-hidden mb-4">
-    <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+    <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
       <h6 class="fw-bold mb-0"><i class="fas fa-users-gear text-danger me-2"></i>Staff Directory</h6>
       <span class="badge bg-light text-muted border">{{ pagination.total if pagination else 0 }} Members</span>
     </div>
@@ -111,7 +111,7 @@
                 <div class="d-flex align-items-center gap-3">
                   <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}" class="rounded-circle border shadow-sm" style="width: 46px; height: 46px; object-fit: cover;">
                   <div>
-                    <div class="fw-bold text-dark">{{ member.full_name }}</div>
+                    <div class="fw-bold">{{ member.full_name }}</div>
                     {% if member.registration_number %}
                     <div class="small text-muted"><i class="fas fa-id-badge fa-xs me-1"></i>Reg: {{ member.registration_number }}</div>
                     {% endif %}
@@ -125,7 +125,7 @@
                 {% endif %}
               </td>
               <td>
-                <div class="small text-dark"><i class="fas fa-phone text-success fa-xs me-1"></i>{{ member.contact_number or 'N/A' }}</div>
+                <div class="small"><i class="fas fa-phone text-success fa-xs me-1"></i>{{ member.contact_number or 'N/A' }}</div>
                 {% if member.emergency_contact %}
                 <div class="small text-danger mt-1"><i class="fas fa-phone-volume fa-xs me-1"></i>Emerg: {{ member.emergency_contact }}</div>
                 {% endif %}
@@ -182,7 +182,7 @@
       </table>
     </div>
     {% if pagination and pagination.pages > 1 %}
-    <div class="card-footer bg-white border-top py-3 d-flex justify-content-center">
+    <div class="card-footer border-top py-3 d-flex justify-content-center">
       {{ pagination.links }}
     </div>
     {% endif %}

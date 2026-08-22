@@ -2,18 +2,18 @@
 {% block title %}Set Your New PIN | NBDS Donor Portal{% endblock %}
 
 {% block content %}
-<section class="py-5" style="min-height: 70vh; background: linear-gradient(135deg, #fff8f0 0%, #fff3e0 100%);">
+<section class="py-5">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-6 col-md-8">
 
         <!-- Security Alert Banner -->
         <div class="alert alert-warning border-0 shadow-sm rounded-4 d-flex align-items-center gap-3 p-4 mb-4">
-          <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-20 rounded-circle flex-shrink-0" style="width:52px;height:52px;">
-            <i class="fas fa-shield-exclamation text-warning fa-xl"></i>
+          <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-20 rounded-circle flex-shrink-0" style="width:48px;height:48px;">
+            <i class="fas fa-shield-exclamation text-warning fa-lg"></i>
           </div>
           <div>
-            <h6 class="fw-bold mb-1 text-dark">Security Action Required</h6>
+            <h6 class="fw-bold mb-1">Security Action Required</h6>
             <p class="mb-0 small text-muted">
               Your PIN was reset by an administrator. For your account security, you must set a new private 4-digit PIN before accessing your donor dashboard.
             </p>
@@ -23,8 +23,8 @@
         <!-- Donor Info Header -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
           <div class="card-header bg-danger text-white py-3 px-4 d-flex align-items-center gap-3">
-            <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
-              <i class="fas fa-lock text-white fa-lg"></i>
+            <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+              <i class="fas fa-lock text-white"></i>
             </div>
             <div>
               <div class="fw-bold fs-5">Set Your New Donor PIN</div>
@@ -49,8 +49,8 @@
               {{ form.hidden_tag() }}
 
               <!-- Rules Info Box -->
-              <div class="p-3 bg-light border border-warning border-opacity-25 rounded-3 mb-4">
-                <h6 class="fw-bold text-dark mb-2 small"><i class="fas fa-circle-info text-warning me-1"></i>PIN Requirements:</h6>
+              <div class="p-3 shift-card-prev border border-warning border-opacity-25 rounded-3 mb-4">
+                <h6 class="fw-bold mb-2 small"><i class="fas fa-circle-info text-warning me-1"></i>PIN Requirements:</h6>
                 <ul class="small text-muted mb-0 ps-3">
                   <li>Exactly 4 numeric digits (0-9)</li>
                   <li>Cannot be <code>1234</code>, <code>4321</code>, or <code>0000</code></li>

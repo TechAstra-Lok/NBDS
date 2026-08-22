@@ -32,11 +32,11 @@
     
     <!-- 1. PREVIOUS SHIFT -->
     <div class="col-lg-4">
-      <div class="card bb-card border-0 shadow-sm h-100 border-top border-4 border-secondary">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+      <div class="card bb-card h-100 border-top border-4 border-secondary">
+        <div class="card-header py-3 border-bottom d-flex justify-content-between align-items-center">
           <div>
             <span class="badge bg-secondary text-white text-uppercase px-2 py-1">1. Previous Shift</span>
-            <h6 class="fw-bold text-dark mb-0 mt-1">{{ three_shifts.previous_shift.shift_name }}</h6>
+            <h6 class="fw-bold mb-0 mt-1">{{ three_shifts.previous_shift.shift_name }}</h6>
           </div>
           <div class="text-end text-muted small">
             <i class="fas fa-clock fa-xs me-1"></i>{{ three_shifts.previous_shift.time_range_display }}
@@ -47,11 +47,11 @@
           {% if three_shifts.previous_staff %}
             <div class="list-group list-group-flush">
               {% for st in three_shifts.previous_staff %}
-              <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0">
+              <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0 bg-transparent">
                 <div class="d-flex align-items-center gap-2">
                   <img loading="lazy" src="{{ st.image_url }}" alt="{{ st.full_name }}" class="rounded-circle border" style="width:36px;height:36px;object-fit:cover;">
                   <div>
-                    <div class="fw-bold text-dark small">{{ st.full_name }}</div>
+                    <div class="fw-bold small">{{ st.full_name }}</div>
                     <div class="text-muted" style="font-size:0.75rem;">{{ st.role_in_shift }}</div>
                   </div>
                 </div>
@@ -63,7 +63,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <div class="p-3 bg-light rounded text-center text-muted small">
+            <div class="p-3 shift-card-prev rounded text-center text-muted small">
               <i class="fas fa-user-slash me-1"></i>No staff assigned to this shift.
             </div>
           {% endif %}
@@ -73,10 +73,10 @@
 
     <!-- 2. CURRENT SHIFT (ACTIVE NOW) -->
     <div class="col-lg-4">
-      <div class="card bb-card border-0 shadow h-100 border-top border-4 border-success" style="background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+      <div class="card bb-card h-100 border-top border-4 border-success shift-card-curr">
+        <div class="card-header py-3 border-bottom d-flex justify-content-between align-items-center">
           <div>
-            <span class="badge bg-success text-white text-uppercase px-2 py-1 animate__animated animate__pulse animate__infinite">
+            <span class="badge bg-success text-white text-uppercase px-2 py-1">
               <i class="fas fa-circle-play me-1"></i>2. Current Shift (ON DUTY NOW)
             </span>
             <h5 class="fw-bold text-success mb-0 mt-1">{{ three_shifts.current_shift.shift_name }}</h5>
@@ -94,7 +94,7 @@
                 <div class="d-flex align-items-center gap-2">
                   <img loading="lazy" src="{{ st.image_url }}" alt="{{ st.full_name }}" class="rounded-circle border border-2 border-success shadow-sm" style="width:42px;height:42px;object-fit:cover;">
                   <div>
-                    <div class="fw-bold text-dark">{{ st.full_name }}</div>
+                    <div class="fw-bold">{{ st.full_name }}</div>
                     <div class="text-success small fw-semibold"><i class="fas fa-stethoscope fa-xs me-1"></i>{{ st.role_in_shift }}</div>
                     {% if st.contact_number %}
                     <div class="small text-muted"><i class="fas fa-phone fa-xs me-1 text-success"></i>{{ st.contact_number }}</div>
@@ -109,9 +109,9 @@
               {% endfor %}
             </div>
           {% else %}
-            <div class="p-3 bg-white border border-success border-opacity-25 rounded text-center text-muted small">
+            <div class="p-3 bg-body border border-success border-opacity-25 rounded text-center text-muted small">
               <i class="fas fa-triangle-exclamation text-warning fa-2x mb-2 d-block"></i>
-              <strong class="text-dark">No staff currently assigned on duty!</strong>
+              <strong>No staff currently assigned on duty!</strong>
               <div class="mt-2">
                 <button class="btn btn-success btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#assignStaffModal">
                   <i class="fas fa-user-plus me-1"></i> Assign Duty Staff
@@ -125,11 +125,11 @@
 
     <!-- 3. NEXT SHIFT -->
     <div class="col-lg-4">
-      <div class="card bb-card border-0 shadow-sm h-100 border-top border-4 border-primary">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+      <div class="card bb-card h-100 border-top border-4 border-primary">
+        <div class="card-header py-3 border-bottom d-flex justify-content-between align-items-center">
           <div>
             <span class="badge bg-primary text-white text-uppercase px-2 py-1">3. Next Shift</span>
-            <h6 class="fw-bold text-dark mb-0 mt-1">{{ three_shifts.next_shift.shift_name }}</h6>
+            <h6 class="fw-bold mb-0 mt-1">{{ three_shifts.next_shift.shift_name }}</h6>
           </div>
           <div class="text-end text-muted small">
             <i class="fas fa-clock fa-xs me-1"></i>{{ three_shifts.next_shift.time_range_display }}

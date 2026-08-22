@@ -22,7 +22,7 @@
       --bb-navy: #0f172a;
       --bb-navy-light: #1e293b;
       --bb-sidebar-bg: #0b1329;
-      --bb-primary: #1e40af;
+      --bb-primary: #2563eb;
       --bb-primary-hover: #1d4ed8;
       --bb-blood: #dc2626;
       --bb-blood-hover: #b91c1c;
@@ -31,20 +31,21 @@
       --bb-amber: #d97706;
       --bb-body-bg: #f8fafc;
       --bb-card-bg: #ffffff;
-      --bb-text: #1e293b;
+      --bb-text: #0f172a;
       --bb-text-muted: #64748b;
       --bb-border: #e2e8f0;
       --sidebar-width: 260px;
     }
 
     [data-bs-theme="dark"] {
-      --bb-body-bg: #090e17;
-      --bb-card-bg: #111827;
-      --bb-sidebar-bg: #070c18;
-      --bb-text: #f1f5f9;
+      --bb-body-bg: #0f172a;
+      --bb-card-bg: #1e293b;
+      --bb-sidebar-bg: #0b1329;
+      --bb-text: #f8fafc;
       --bb-text-muted: #94a3b8;
-      --bb-border: #1f293d;
-      --bb-blood-subtle: #450a0a;
+      --bb-border: #334155;
+      --bb-blood-subtle: #3b1111;
+      --bb-primary: #3b82f6;
     }
 
     body {
@@ -54,6 +55,20 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+    }
+
+    [data-bs-theme="dark"] .text-dark {
+      color: #f8fafc !important;
+    }
+
+    [data-bs-theme="dark"] .bg-white {
+      background-color: #1e293b !important;
+      color: #f8fafc !important;
+    }
+
+    [data-bs-theme="dark"] .bg-light {
+      background-color: #182234 !important;
+      color: #f8fafc !important;
     }
 
     /* Enterprise App Wrapper */

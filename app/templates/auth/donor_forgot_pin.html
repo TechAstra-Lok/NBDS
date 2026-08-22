@@ -2,19 +2,19 @@
 {% block title %}Forgot PIN — Contact Admin | NBDS Donor Portal{% endblock %}
 
 {% block content %}
-<section class="py-5" style="min-height: 70vh; background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);">
+<section class="py-5">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-7 col-md-9">
 
         <!-- Lock Icon Banner -->
-        <div class="text-center mb-5">
+        <div class="text-center mb-4">
           <div
             class="d-inline-flex align-items-center justify-content-center mb-3 rounded-circle bg-danger bg-opacity-10"
-            style="width:80px;height:80px;">
+            style="width:72px;height:72px;">
             <i class="fas fa-lock-open text-danger fa-2x"></i>
           </div>
-          <h2 class="fw-bold text-dark mb-2">Forgot Your Donor PIN?</h2>
+          <h2 class="fw-bold mb-2">Forgot Your Donor PIN?</h2>
           <p class="text-muted mb-0">
             For your security, PINs cannot be reset online.
             Please contact our authorized administrators directly — they will reset your PIN and guide you through
@@ -73,7 +73,7 @@
             <div class="row g-3">
               <div class="col-sm-6">
                 <a href="tel:+9779816003020"
-                  class="btn btn-outline-dark w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                  class="btn btn-outline-secondary w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
                   <i class="fas fa-phone-volume"></i>
                   <div class="text-start">
                     <div class="small text-muted">Call Super Admin</div>
@@ -97,14 +97,14 @@
         </div>
 
         <!-- What happens next -->
-        <div class="card border-0 bg-light rounded-4 p-4 mb-4">
-          <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-list-check text-danger me-2"></i>What happens after you
-            contact us?</h6>
-          <ol class="text-muted small ps-3">
+        <div class="card border-0 shift-card-prev rounded-4 p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="fas fa-list-check text-danger me-2"></i>What happens after you contact us?
+          </h6>
+          <ol class="text-muted small ps-3 mb-0">
             <li class="mb-2">The Admin will verify your identity (your Donor ID, registered phone, or full name).</li>
-            <li class="mb-2">Your PIN will be reset to a temporary PIN.</li>
-            <li class="mb-2">You log in using your phone/email and the temporary PIN.</li>
-            <li class="mb-2">You will be immediately prompted to set your own private 4-digit PIN before accessing your
+            <li class="mb-2">Your PIN will be reset to a temporary PIN <code>1234</code>.</li>
+            <li class="mb-2">You log in using your phone/email and the temporary PIN <code>1234</code>.</li>
+            <li class="mb-0">You will be immediately prompted to set your own private 4-digit PIN before accessing your
               account.</li>
           </ol>
         </div>
