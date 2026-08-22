@@ -2,11 +2,13 @@
 <div class="py-2">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div>
-      <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-id-card text-danger me-2"></i>Official Digital Blood Donor ID Card</h6>
+      <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-id-card text-danger me-2"></i>Official Digital Blood Donor ID
+        Card</h6>
       <small class="text-muted">National Blood Donors Society Nepal (NBDS) • Verified Identity</small>
     </div>
     <div>
-      <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" id="downloadCardBtn" onclick="downloadDonorCard()">
+      <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" id="downloadCardBtn"
+        onclick="downloadDonorCard()">
         <i class="fas fa-download me-2"></i> Download Card (PNG)
       </button>
     </div>
@@ -16,7 +18,7 @@
   <div class="card-export-container" id="nbdsCardContainer">
     <div class="nbds-card-scaler" id="nbdsCardScaler">
       <div id="nbdsDonorCard" class="nbds-id-card" data-bs-theme="light">
-        
+
         <!-- Top Right Red Wave with Heartbeat -->
         <div class="nbds-top-right-decor">
           <svg viewBox="0 0 200 100" class="nbds-top-swoosh" preserveAspectRatio="none">
@@ -25,14 +27,17 @@
           <div class="nbds-ecg-heart-wrap">
             <svg class="nbds-ecg-svg" viewBox="0 0 140 40">
               <!-- ECG Pulse Line -->
-              <path d="M 5,20 L 30,20 L 36,9 L 41,30 L 46,15 L 49,22 L 54,20 L 63,20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M 5,20 L 30,20 L 36,9 L 41,30 L 46,15 L 49,22 L 54,20 L 63,20" fill="none" stroke="#ffffff"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
               <!-- Heart with droplet inside -->
               <g transform="translate(70, 20)">
-                <path d="M 0, -10 A 6.5,6.5 0 0,1 11,0 Q 11,6.5 0,13 Q -11,6.5 -11,0 A 6.5,6.5 0 0,1 0,-10 Z" fill="#ffffff"/>
-                <path d="M 0, -5 C 2.5,-1 5,2.5 5,5 A 5,5 0 0,1 -5,5 C -5,2.5 -2.5,-1 0,-5 Z" fill="#990000"/>
+                <path d="M 0, -10 A 6.5,6.5 0 0,1 11,0 Q 11,6.5 0,13 Q -11,6.5 -11,0 A 6.5,6.5 0 0,1 0,-10 Z"
+                  fill="#ffffff" />
+                <path d="M 0, -5 C 2.5,-1 5,2.5 5,5 A 5,5 0 0,1 -5,5 C -5,2.5 -2.5,-1 0,-5 Z" fill="#990000" />
               </g>
               <!-- Right ECG Pulse Line -->
-              <path d="M 85,20 L 95,20 L 100,9 L 105,30 L 110,15 L 113,22 L 118,20 L 135,20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M 85,20 L 95,20 L 100,9 L 105,30 L 110,15 L 113,22 L 118,20 L 135,20" fill="none"
+                stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
         </div>
@@ -40,15 +45,17 @@
         <!-- Top Left Logo Emblem -->
         <div class="nbds-top-left-logo">
           <svg viewBox="0 0 100 120" class="nbds-drop-logo-svg">
-            <path d="M 50,2 C 50,2 10,65 10,88 A 40,40 0 0,0 90,88 C 90,65 50,2 50,2 Z" fill="#990000"/>
-            <path d="M 50,7 C 50,7 14,66 14,88 A 36,36 0 0,0 86,88 C 86,66 50,7 50,7 Z" fill="#ffffff" opacity="0.15"/>
+            <path d="M 50,2 C 50,2 10,65 10,88 A 40,40 0 0,0 90,88 C 90,65 50,2 50,2 Z" fill="#990000" />
+            <path d="M 50,7 C 50,7 14,66 14,88 A 36,36 0 0,0 86,88 C 86,66 50,7 50,7 Z" fill="#ffffff" opacity="0.15" />
             <g fill="#ffffff">
-              <rect x="36" y="34" width="28" height="12" rx="3" transform="rotate(-30 50 40)"/>
-              <circle cx="50" cy="58" r="4.5"/>
-              <circle cx="41" cy="67" r="3.5"/>
-              <circle cx="59" cy="67" r="3.5"/>
-              <path d="M 28,78 C 30,95 45,102 50,103 C 55,102 70,95 72,78 C 66,85 58,89 50,89 C 42,89 34,85 28,78 Z"/>
-              <path d="M 22,86 C 28,102 44,107 50,108 C 56,107 72,102 78,86 C 72,96 61,102 50,102 C 39,102 28,96 22,86 Z" opacity="0.6"/>
+              <rect x="36" y="34" width="28" height="12" rx="3" transform="rotate(-30 50 40)" />
+              <circle cx="50" cy="58" r="4.5" />
+              <circle cx="41" cy="67" r="3.5" />
+              <circle cx="59" cy="67" r="3.5" />
+              <path d="M 28,78 C 30,95 45,102 50,103 C 55,102 70,95 72,78 C 66,85 58,89 50,89 C 42,89 34,85 28,78 Z" />
+              <path
+                d="M 22,86 C 28,102 44,107 50,108 C 56,107 72,102 78,86 C 72,96 61,102 50,102 C 39,102 28,96 22,86 Z"
+                opacity="0.6" />
             </g>
           </svg>
         </div>
@@ -57,7 +64,7 @@
         <div class="nbds-header-center">
           <h1 class="nbds-main-title">NATIONAL BLOOD DONORS SOCIETY</h1>
           <h2 class="nbds-nepali-title">राष्ट्रिय रक्तदाता समाज</h2>
-          
+
           <div class="nbds-slogan-wrap">
             <span class="nbds-slogan-line"></span>
             <span class="nbds-slogan-text">Donate Blood, <i class="fas fa-droplet text-danger"></i> Save Lives</span>
@@ -79,27 +86,28 @@
 
         <!-- Main Body Columns -->
         <div class="nbds-card-body">
-          
+
           <!-- Left: Photo Frame -->
           <div class="nbds-photo-box">
             <div class="nbds-photo-border">
               {% if donor.profile_photo_data %}
-                <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" alt="{{ donor.full_name }}" class="nbds-actual-photo" crossorigin="anonymous">
+              <img src="{{ url_for('public.donor_photo', donor_id=donor.donor_id) }}" alt="{{ donor.full_name }}"
+                class="nbds-actual-photo" crossorigin="anonymous">
               {% else %}
-                <div class="nbds-photo-placeholder">
-                  <svg viewBox="0 0 100 120" class="nbds-silhouette-svg">
-                    <circle cx="50" cy="42" r="23" fill="#cbd5e1"/>
-                    <path d="M 18,110 C 18,78 82,78 82,110 Z" fill="#cbd5e1"/>
-                  </svg>
-                </div>
+              <div class="nbds-photo-placeholder">
+                <svg viewBox="0 0 100 120" class="nbds-silhouette-svg">
+                  <circle cx="50" cy="42" r="23" fill="#cbd5e1" />
+                  <path d="M 18,110 C 18,78 82,78 82,110 Z" fill="#cbd5e1" />
+                </svg>
+              </div>
               {% endif %}
             </div>
-            <div class="nbds-photo-caption">PROFILE PHOTO</div>
+            <!-- <div class="nbds-photo-caption">PROFILE PHOTO</div> -->
           </div>
 
           <!-- Middle: Clean Data Rows (Without trailing empty dots) -->
           <div class="nbds-data-box">
-            
+
             <!-- DONOR ID -->
             <div class="nbds-row">
               <div class="nbds-icon-col">
@@ -156,7 +164,8 @@
               <div class="nbds-label-col">ISSUED</div>
               <div class="nbds-sep-col">:</div>
               <div class="nbds-value-col">
-                <span class="nbds-val-text nbds-issued-val">{{ donor.created_at.strftime('%Y-%m-%d') if donor.created_at else 'Active Record' }}</span>
+                <span class="nbds-val-text nbds-issued-val">{{ donor.created_at.strftime('%Y-%m-%d') if donor.created_at
+                  else 'Active Record' }}</span>
               </div>
             </div>
 
@@ -166,7 +175,8 @@
           <div class="nbds-qr-box">
             <div class="nbds-qr-frame">
               <div class="nbds-qr-img-pad">
-                <img src="{{ url_for('public.donor_qr', donor_id=donor.donor_id) }}" alt="Verify QR" class="nbds-qr-code" crossorigin="anonymous">
+                <img src="{{ url_for('public.donor_qr', donor_id=donor.donor_id) }}" alt="Verify QR"
+                  class="nbds-qr-code" crossorigin="anonymous">
               </div>
               <div class="nbds-qr-label-banner">
                 <div class="nbds-qr-lbl-1">SCAN TO VERIFY</div>
@@ -180,18 +190,20 @@
         <!-- Bottom Red Curved Wave Footer -->
         <div class="nbds-bottom-footer-wrap">
           <svg viewBox="0 0 700 46" preserveAspectRatio="none" class="nbds-footer-swoosh">
-            <path d="M 0,18 Q 350,-8 700,18 L 700,46 L 0,46 Z" fill="#990000"/>
+            <path d="M 0,18 Q 350,-8 700,18 L 700,46 L 0,46 Z" fill="#990000" />
           </svg>
-          
+
           <div class="nbds-footer-text-overlay">
             <!-- Left ECG & Heart -->
             <div class="nbds-ecg-heart-group">
               <svg class="nbds-mini-ecg" viewBox="0 0 55 20">
-                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <i class="far fa-heart nbds-white-heart"></i>
               <svg class="nbds-mini-ecg" viewBox="0 0 55 20">
-                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
 
@@ -202,7 +214,8 @@
             <div class="nbds-ecg-heart-group">
               <i class="far fa-heart nbds-white-heart"></i>
               <svg class="nbds-mini-ecg" viewBox="0 0 55 20">
-                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 2,10 L 16,10 L 20,3 L 24,17 L 28,7 L 31,12 L 34,10 L 53,10" fill="none" stroke="#ffffff"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
               <span class="nbds-dash-tail">―</span>
             </div>
@@ -216,493 +229,537 @@
 
 <!-- Compact, Clean, Beautiful CSS Styles for NBDS Blood Donor ID Card -->
 <style>
-.nbds-id-card {
-  width: 700px;
-  min-width: 700px;
-  height: 440px;
-  min-height: 440px;
-  background: #ffffff !important;
-  border-radius: 24px;
-  border: 2.5px solid #990000;
-  box-shadow: 0 10px 30px rgba(153, 0, 0, 0.16), 0 3px 10px rgba(0,0,0,0.06);
-  position: relative;
-  overflow: hidden;
-  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-  color: #111827 !important;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
+  .nbds-id-card {
+    width: 700px;
+    min-width: 700px;
+    height: 440px;
+    min-height: 440px;
+    background: #ffffff !important;
+    border-radius: 24px;
+    border: 2.5px solid #990000;
+    box-shadow: 0 10px 30px rgba(153, 0, 0, 0.16), 0 3px 10px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #111827 !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
 
-/* Top Right Swoosh */
-.nbds-top-right-decor {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 190px;
-  height: 95px;
-  z-index: 1;
-  pointer-events: none;
-}
-.nbds-top-swoosh {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-.nbds-ecg-heart-wrap {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-}
-.nbds-ecg-svg {
-  width: 125px;
-  height: 36px;
-}
+  /* Top Right Swoosh */
+  .nbds-top-right-decor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 190px;
+    height: 95px;
+    z-index: 1;
+    pointer-events: none;
+  }
 
-/* Top Left Logo */
-.nbds-top-left-logo {
-  position: absolute;
-  top: 10px;
-  left: 14px;
-  z-index: 2;
-}
-.nbds-drop-logo-svg {
-  width: 60px;
-  height: 75px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
+  .nbds-top-swoosh {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 
-/* Header Center */
-.nbds-header-center {
-  text-align: center;
-  padding-top: 10px;
-  padding-left: 80px;
-  padding-right: 130px;
-  position: relative;
-  z-index: 2;
-}
-.nbds-main-title {
-  font-size: 1.28rem;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #990000 !important;
-  margin: 0;
-  line-height: 1.15;
-}
-.nbds-nepali-title {
-  font-size: 1.32rem;
-  font-weight: 800;
-  color: #800000 !important;
-  margin: 1px 0 0 0;
-  line-height: 1.2;
-}
-.nbds-slogan-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 2px 0 4px 0;
-}
-.nbds-slogan-line {
-  height: 1.2px;
-  width: 60px;
-  background: #990000;
-  opacity: 0.75;
-}
-.nbds-slogan-text {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #333333 !important;
-}
+  .nbds-ecg-heart-wrap {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+  }
 
-/* 3D Ribbon Banner */
-.nbds-ribbon-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  margin-top: 1px;
-}
-.nbds-ribbon-3d {
-  background: #990000 !important;
-  color: #ffffff !important;
-  font-size: 1.02rem;
-  font-weight: 900;
-  letter-spacing: 1.2px;
-  padding: 3px 34px;
-  position: relative;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.22);
-  clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
-}
-.nbds-ribbon-subtitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  color: #990000 !important;
-  font-size: 0.88rem;
-  font-weight: 800;
-  padding: 0 14px;
-  border-left: 2px solid #990000;
-  border-right: 2px solid #990000;
-}
-.nbds-sub-ornament {
-  font-size: 0.7rem;
-  opacity: 0.85;
-}
-.nbds-sub-text {
-  letter-spacing: 0.4px;
-}
+  .nbds-ecg-svg {
+    width: 125px;
+    height: 36px;
+  }
 
-/* Main Body Layout */
-.nbds-card-body {
-  display: flex;
-  padding: 4px 22px 0 22px;
-  gap: 16px;
-  align-items: center;
-  flex: 1;
-}
+  /* Top Left Logo */
+  .nbds-top-left-logo {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 2;
+  }
 
-/* Left Photo */
-.nbds-photo-box {
-  width: 125px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.nbds-photo-border {
-  width: 120px;
-  height: 145px;
-  border-radius: 14px;
-  border: 2px solid #990000;
-  background: #f8fafc;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-}
-.nbds-actual-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.nbds-photo-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f1f5f9;
-}
-.nbds-silhouette-svg {
-  width: 78%;
-  height: 78%;
-}
-.nbds-photo-caption {
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: #334155 !important;
-  letter-spacing: 0.6px;
-  margin-top: 4px;
-}
+  .nbds-drop-logo-svg {
+    width: 60px;
+    height: 75px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
 
-/* Middle Data - Compact & Clean */
-.nbds-data-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 0 2px;
-}
-.nbds-row {
-  display: flex;
-  align-items: center;
-  font-size: 0.86rem;
-  line-height: 1.2;
-}
-.nbds-icon-col {
-  width: 28px;
-  display: flex;
-  align-items: center;
-}
-.nbds-row-badge {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  background: #990000 !important;
-  color: #ffffff !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-}
-.nbds-badge-calendar {
-  background: #b91c1c !important;
-}
-.nbds-label-col {
-  width: 105px;
-  font-weight: 900;
-  color: #0f172a !important;
-  font-size: 0.78rem;
-  letter-spacing: 0.3px;
-}
-.nbds-sep-col {
-  width: 14px;
-  font-weight: 900;
-  color: #0f172a !important;
-}
-.nbds-value-col {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-.nbds-val-text {
-  color: #0f172a !important;
-  font-weight: 800 !important;
-  font-size: 0.88rem;
-  letter-spacing: 0.3px;
-}
-.nbds-name-text {
-  color: #0f172a !important;
-  font-size: 0.92rem;
-  font-weight: 900 !important;
-  text-transform: uppercase;
-}
-.nbds-blood-text {
-  color: #b91c1c !important;
-  font-size: 1.1rem;
-  font-weight: 900 !important;
-}
-.nbds-type-text {
-  color: #0f172a !important;
-  font-size: 0.88rem;
-  font-weight: 800 !important;
-  text-transform: capitalize;
-}
-.nbds-status-text {
-  color: #15803d !important;
-  font-size: 0.88rem;
-  font-weight: 800 !important;
-}
-.nbds-issued-val {
-  color: #1e293b !important;
-  font-size: 0.84rem;
-  font-weight: 700 !important;
-}
+  /* Header Center */
+  .nbds-header-center {
+    text-align: center;
+    padding-top: 10px;
+    padding-left: 80px;
+    padding-right: 130px;
+    position: relative;
+    z-index: 2;
+  }
 
-/* Right QR Frame */
-.nbds-qr-box {
-  width: 135px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.nbds-qr-frame {
-  width: 130px;
-  border-radius: 14px;
-  border: 2px solid #990000;
-  overflow: hidden;
-  background: #ffffff !important;
-  box-shadow: 0 3px 10px rgba(153, 0, 0, 0.14);
-}
-.nbds-qr-img-pad {
-  padding: 8px;
-  background: #ffffff !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.nbds-qr-code {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1/1;
-  display: block;
-}
-.nbds-qr-label-banner {
-  background: #990000 !important;
-  color: #ffffff !important;
-  text-align: center;
-  padding: 4px 2px;
-}
-.nbds-qr-lbl-1 {
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  line-height: 1.1;
-  color: #ffffff !important;
-}
-.nbds-qr-lbl-2 {
-  font-size: 0.55rem;
-  font-weight: 700;
-  opacity: 0.95;
-  letter-spacing: 0.2px;
-  color: #ffffff !important;
-}
+  .nbds-main-title {
+    font-size: 1.28rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: #990000 !important;
+    margin: 0;
+    line-height: 1.15;
+  }
 
-/* Bottom Red Wave Footer */
-.nbds-bottom-footer-wrap {
-  position: relative;
-  height: 44px;
-  width: 100%;
-}
-.nbds-footer-swoosh {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 44px;
-}
-.nbds-footer-text-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #ffffff !important;
-  padding-top: 8px;
-}
-.nbds-ecg-heart-group {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.nbds-mini-ecg {
-  width: 48px;
-  height: 18px;
-}
-.nbds-white-heart {
-  font-size: 1rem;
-  color: #ffffff !important;
-}
-.nbds-nepali-slogan {
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  color: #ffffff !important;
-}
-.nbds-dash-tail {
-  font-size: 1.1rem;
-  color: #ffffff !important;
-}
+  .nbds-nepali-title {
+    font-size: 1.32rem;
+    font-weight: 800;
+    color: #800000 !important;
+    margin: 1px 0 0 0;
+    line-height: 1.2;
+  }
 
-/* Proportional Responsive Scaling for Mobile & Tablets */
-.card-export-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow: visible;
-  padding: 6px 0;
-}
+  .nbds-slogan-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 2px 0 4px 0;
+  }
 
-.nbds-card-scaler {
-  width: 100%;
-  max-width: 700px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  position: relative;
-}
+  .nbds-slogan-line {
+    height: 1.2px;
+    width: 60px;
+    background: #990000;
+    opacity: 0.75;
+  }
 
-.nbds-id-card {
-  transform-origin: top center;
-  transition: transform 0.15s ease-out;
-  flex-shrink: 0;
-}
+  .nbds-slogan-text {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #333333 !important;
+  }
 
-.nbds-header-center,
-.nbds-card-body,
-.nbds-photo-box,
-.nbds-data-box,
-.nbds-qr-box,
-.nbds-bottom-footer-wrap {
-  flex-shrink: 0;
-}
+  /* 3D Ribbon Banner */
+  .nbds-ribbon-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    margin-top: 1px;
+  }
+
+  .nbds-ribbon-3d {
+    background: #990000 !important;
+    color: #ffffff !important;
+    font-size: 1.02rem;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    padding: 3px 34px;
+    position: relative;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.22);
+    clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
+  }
+
+  .nbds-ribbon-subtitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    color: #990000 !important;
+    font-size: 0.88rem;
+    font-weight: 800;
+    padding: 0 14px;
+    border-left: 2px solid #990000;
+    border-right: 2px solid #990000;
+  }
+
+  .nbds-sub-ornament {
+    font-size: 0.7rem;
+    opacity: 0.85;
+  }
+
+  .nbds-sub-text {
+    letter-spacing: 0.4px;
+  }
+
+  /* Main Body Layout */
+  .nbds-card-body {
+    display: flex;
+    padding: 4px 22px 0 22px;
+    gap: 16px;
+    align-items: center;
+    flex: 1;
+  }
+
+  /* Left Photo */
+  .nbds-photo-box {
+    width: 125px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .nbds-photo-border {
+    width: 120px;
+    height: 145px;
+    border-radius: 14px;
+    border: 2px solid #990000;
+    background: #f8fafc;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
+
+  .nbds-actual-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .nbds-photo-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+  }
+
+  .nbds-silhouette-svg {
+    width: 78%;
+    height: 78%;
+  }
+
+  .nbds-photo-caption {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #334155 !important;
+    letter-spacing: 0.6px;
+    margin-top: 4px;
+  }
+
+  /* Middle Data - Compact & Clean */
+  .nbds-data-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 0 2px;
+  }
+
+  .nbds-row {
+    display: flex;
+    align-items: center;
+    font-size: 0.86rem;
+    line-height: 1.2;
+  }
+
+  .nbds-icon-col {
+    width: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  .nbds-row-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: #990000 !important;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+  }
+
+  .nbds-badge-calendar {
+    background: #b91c1c !important;
+  }
+
+  .nbds-label-col {
+    width: 105px;
+    font-weight: 900;
+    color: #0f172a !important;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+  }
+
+  .nbds-sep-col {
+    width: 14px;
+    font-weight: 900;
+    color: #0f172a !important;
+  }
+
+  .nbds-value-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .nbds-val-text {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 0.88rem;
+    letter-spacing: 0.3px;
+  }
+
+  .nbds-name-text {
+    color: #0f172a !important;
+    font-size: 0.92rem;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+  }
+
+  .nbds-blood-text {
+    color: #b91c1c !important;
+    font-size: 1.1rem;
+    font-weight: 900 !important;
+  }
+
+  .nbds-type-text {
+    color: #0f172a !important;
+    font-size: 0.88rem;
+    font-weight: 800 !important;
+    text-transform: capitalize;
+  }
+
+  .nbds-status-text {
+    color: #15803d !important;
+    font-size: 0.88rem;
+    font-weight: 800 !important;
+  }
+
+  .nbds-issued-val {
+    color: #1e293b !important;
+    font-size: 0.84rem;
+    font-weight: 700 !important;
+  }
+
+  /* Right QR Frame */
+  .nbds-qr-box {
+    width: 135px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .nbds-qr-frame {
+    width: 130px;
+    border-radius: 14px;
+    border: 2px solid #990000;
+    overflow: hidden;
+    background: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(153, 0, 0, 0.14);
+  }
+
+  .nbds-qr-img-pad {
+    padding: 8px;
+    background: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nbds-qr-code {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+    display: block;
+  }
+
+  .nbds-qr-label-banner {
+    background: #990000 !important;
+    color: #ffffff !important;
+    text-align: center;
+    padding: 4px 2px;
+  }
+
+  .nbds-qr-lbl-1 {
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+    color: #ffffff !important;
+  }
+
+  .nbds-qr-lbl-2 {
+    font-size: 0.55rem;
+    font-weight: 700;
+    opacity: 0.95;
+    letter-spacing: 0.2px;
+    color: #ffffff !important;
+  }
+
+  /* Bottom Red Wave Footer */
+  .nbds-bottom-footer-wrap {
+    position: relative;
+    height: 44px;
+    width: 100%;
+  }
+
+  .nbds-footer-swoosh {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 44px;
+  }
+
+  .nbds-footer-text-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #ffffff !important;
+    padding-top: 8px;
+  }
+
+  .nbds-ecg-heart-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .nbds-mini-ecg {
+    width: 48px;
+    height: 18px;
+  }
+
+  .nbds-white-heart {
+    font-size: 1rem;
+    color: #ffffff !important;
+  }
+
+  .nbds-nepali-slogan {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    color: #ffffff !important;
+  }
+
+  .nbds-dash-tail {
+    font-size: 1.1rem;
+    color: #ffffff !important;
+  }
+
+  /* Proportional Responsive Scaling for Mobile & Tablets */
+  .card-export-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: visible;
+    padding: 6px 0;
+  }
+
+  .nbds-card-scaler {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .nbds-id-card {
+    transform-origin: top center;
+    transition: transform 0.15s ease-out;
+    flex-shrink: 0;
+  }
+
+  .nbds-header-center,
+  .nbds-card-body,
+  .nbds-photo-box,
+  .nbds-data-box,
+  .nbds-qr-box,
+  .nbds-bottom-footer-wrap {
+    flex-shrink: 0;
+  }
 </style>
 
 <!-- html2canvas and Dynamic Responsive Scaling Script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-function resizeDonorCard() {
-  const container = document.getElementById('nbdsCardContainer');
-  const scaler = document.getElementById('nbdsCardScaler');
-  const card = document.getElementById('nbdsDonorCard');
-  if (!container || !scaler || !card) return;
+  function resizeDonorCard() {
+    const container = document.getElementById('nbdsCardContainer');
+    const scaler = document.getElementById('nbdsCardScaler');
+    const card = document.getElementById('nbdsDonorCard');
+    if (!container || !scaler || !card) return;
 
-  const availableWidth = container.parentElement ? container.parentElement.clientWidth - 16 : container.clientWidth;
-  const CARD_WIDTH = 700;
-  const CARD_HEIGHT = 440;
+    const availableWidth = container.parentElement ? container.parentElement.clientWidth - 16 : container.clientWidth;
+    const CARD_WIDTH = 700;
+    const CARD_HEIGHT = 440;
 
-  if (availableWidth < CARD_WIDTH && availableWidth > 0) {
-    const scale = Math.max(0.35, availableWidth / CARD_WIDTH);
-    card.style.transform = 'scale(' + scale + ')';
-    scaler.style.height = (CARD_HEIGHT * scale) + 'px';
-    scaler.style.width = availableWidth + 'px';
-  } else {
-    card.style.transform = 'none';
-    scaler.style.height = CARD_HEIGHT + 'px';
-    scaler.style.width = '100%';
+    if (availableWidth < CARD_WIDTH && availableWidth > 0) {
+      const scale = Math.max(0.35, availableWidth / CARD_WIDTH);
+      card.style.transform = 'scale(' + scale + ')';
+      scaler.style.height = (CARD_HEIGHT * scale) + 'px';
+      scaler.style.width = availableWidth + 'px';
+    } else {
+      card.style.transform = 'none';
+      scaler.style.height = CARD_HEIGHT + 'px';
+      scaler.style.width = '100%';
+    }
   }
-}
 
-// Attach listener for resize, tab switch, and orientation change
-window.addEventListener('resize', resizeDonorCard);
-window.addEventListener('orientationchange', resizeDonorCard);
-document.addEventListener('DOMContentLoaded', resizeDonorCard);
+  // Attach listener for resize, tab switch, and orientation change
+  window.addEventListener('resize', resizeDonorCard);
+  window.addEventListener('orientationchange', resizeDonorCard);
+  document.addEventListener('DOMContentLoaded', resizeDonorCard);
 
-// Also re-trigger when digital card tab is activated
-document.addEventListener('shown.bs.tab', function(e) {
-  if (e.target && e.target.getAttribute('href') === '#card' || e.target.id === 'card-tab') {
-    setTimeout(resizeDonorCard, 50);
-  }
-});
-setTimeout(resizeDonorCard, 100);
-
-function downloadDonorCard() {
-  const cardElement = document.getElementById('nbdsDonorCard');
-  const btn = document.getElementById('downloadCardBtn');
-  if (!cardElement) return;
-
-  const originalText = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating High-Res Card...';
-
-  // Save current transform state and reset temporarily for clean canvas capture
-  const prevTransform = cardElement.style.transform;
-  cardElement.style.transform = 'none';
-
-  // Render high-DPI image (scale 2.5) for print-ready crisp quality
-  html2canvas(cardElement, {
-    scale: 2.5,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    logging: false
-  }).then(function(canvas) {
-    // Restore transform state
-    cardElement.style.transform = prevTransform;
-
-    const link = document.createElement('a');
-    link.download = 'NBDS-Blood-Donor-Card-{{ donor.donor_id }}.png';
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-  }).catch(function(err) {
-    cardElement.style.transform = prevTransform;
-    console.error('Error generating card image:', err);
-    alert('Failed to download card. Please try again.');
-    btn.disabled = false;
-    btn.innerHTML = originalText;
+  // Also re-trigger when digital card tab is activated
+  document.addEventListener('shown.bs.tab', function (e) {
+    if (e.target && e.target.getAttribute('href') === '#card' || e.target.id === 'card-tab') {
+      setTimeout(resizeDonorCard, 50);
+    }
   });
-}
+  setTimeout(resizeDonorCard, 100);
+
+  function downloadDonorCard() {
+    const cardElement = document.getElementById('nbdsDonorCard');
+    const btn = document.getElementById('downloadCardBtn');
+    if (!cardElement) return;
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating High-Res Card...';
+
+    // Save current transform state and reset temporarily for clean canvas capture
+    const prevTransform = cardElement.style.transform;
+    cardElement.style.transform = 'none';
+
+    // Render high-DPI image (scale 2.5) for print-ready crisp quality
+    html2canvas(cardElement, {
+      scale: 2.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    }).then(function (canvas) {
+      // Restore transform state
+      cardElement.style.transform = prevTransform;
+
+      const link = document.createElement('a');
+      link.download = 'NBDS-Blood-Donor-Card-{{ donor.donor_id }}.png';
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }).catch(function (err) {
+      cardElement.style.transform = prevTransform;
+      console.error('Error generating card image:', err);
+      alert('Failed to download card. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    });
+  }
 </script>
