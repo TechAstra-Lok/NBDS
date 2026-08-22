@@ -71,7 +71,7 @@
               <i class="fas fa-droplet fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ total_available.units }}</h3>
+          <h3 class="fw-bold mb-0">{{ total_available.units }}</h3>
           <div class="small text-success mt-1">
             <i class="fas fa-shield-check me-1"></i>Ready for Dispatch
           </div>
@@ -89,7 +89,7 @@
               <i class="fas fa-lock fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ total_available.reserved }}</h3>
+          <h3 class="fw-bold mb-0">{{ total_available.reserved }}</h3>
           <div class="small text-muted mt-1">
             <i class="fas fa-hourglass-half me-1"></i>Locked for Patients
           </div>
@@ -107,7 +107,7 @@
               <i class="fas fa-triangle-exclamation fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ total_available.low_stock }}</h3>
+          <h3 class="fw-bold mb-0">{{ total_available.low_stock }}</h3>
           <div class="small text-danger mt-1">
             <i class="fas fa-arrow-trend-down me-1"></i>Below Minimum Threshold
           </div>
@@ -125,7 +125,7 @@
               <i class="fas fa-clipboard-question fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ reservations_count }}</h3>
+          <h3 class="fw-bold mb-0">{{ reservations_count }}</h3>
           <div class="small text-primary mt-1">
             <i class="fas fa-user-clock me-1"></i>Awaiting Medical Review
           </div>
@@ -143,7 +143,7 @@
               <i class="fas fa-user-doctor fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ on_duty_count }} <span class="fs-6 text-muted fw-normal">/ {{ active_staff_count }}</span></h3>
+          <h3 class="fw-bold mb-0">{{ on_duty_count }} <span class="fs-6 text-muted fw-normal">/ {{ active_staff_count }}</span></h3>
           <div class="small text-success mt-1">
             <i class="fas fa-circle-check me-1"></i>{{ three_shifts.current_shift.shift_name if three_shifts else 'Active Shift' }}
           </div>
@@ -161,7 +161,7 @@
               <i class="fas fa-truck-ramp-box fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ transfers_count or 0 }}</h3>
+          <h3 class="fw-bold mb-0">{{ transfers_count or 0 }}</h3>
           <div class="small text-muted mt-1">
             <i class="fas fa-hospital-user me-1"></i>Regional Bank Sync
           </div>
@@ -189,14 +189,14 @@
 
     <!-- 8. Operations Health -->
     <div class="col-6 col-lg-3">
-      <div class="card bb-card p-3 h-100 border-start border-4 border-dark">
+      <div class="card bb-card p-3 h-100 border-start border-4 border-secondary">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <span class="text-muted small fw-semibold text-uppercase">Three-Shift Status</span>
-          <div class="bg-dark text-white p-2 rounded-3">
+          <div class="bg-secondary text-white p-2 rounded-3">
             <i class="fas fa-clock-rotate-left fa-lg"></i>
           </div>
         </div>
-        <h3 class="fw-bold mb-0 text-dark">ACTIVE</h3>
+        <h3 class="fw-bold mb-0">ACTIVE</h3>
         <div class="small text-muted mt-1">
           <i class="fas fa-cloud-check text-success me-1"></i>Nepal Standard Time
         </div>
@@ -450,6 +450,10 @@
       }
     }
 
+    var isDark = (document.documentElement.getAttribute('data-bs-theme') === 'dark');
+    var textColor = isDark ? '#cbd5e1' : '#475569';
+    var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
     new Chart(ctx, {
       type: 'bar',
       data: {
@@ -478,6 +482,7 @@
           legend: {
             position: 'top',
             labels: {
+              color: textColor,
               font: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: 600 },
               usePointStyle: true,
               pointStyle: 'circle'
@@ -487,11 +492,12 @@
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { weight: 700 } }
+            ticks: { color: textColor, font: { weight: 700 } }
           },
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 2 }
+            grid: { color: gridColor },
+            ticks: { color: textColor, stepSize: 2 }
           }
         }
       }

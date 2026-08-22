@@ -820,11 +820,67 @@ a.hover-lift {
   color: #f8fafc !important;
 }
 
-/* Badges in Dark Mode */
+/* Badges & Pills in Dark Mode */
 [data-bs-theme="dark"] .badge.bg-light {
   background-color: #334155 !important;
   color: #f8fafc !important;
   border-color: #475569 !important;
+}
+
+[data-bs-theme="dark"] .bg-primary-subtle {
+  background-color: rgba(37, 99, 235, 0.2) !important;
+  color: #93c5fd !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .bg-success-subtle {
+  background-color: rgba(22, 163, 74, 0.2) !important;
+  color: #86efac !important;
+  border-color: rgba(22, 163, 74, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .bg-danger-subtle {
+  background-color: rgba(220, 38, 38, 0.2) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(220, 38, 38, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .bg-warning-subtle {
+  background-color: rgba(217, 119, 6, 0.2) !important;
+  color: #fde047 !important;
+  border-color: rgba(217, 119, 6, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .bg-info-subtle {
+  background-color: rgba(14, 165, 233, 0.2) !important;
+  color: #7dd3fc !important;
+  border-color: rgba(14, 165, 233, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .bg-secondary-subtle {
+  background-color: rgba(100, 116, 139, 0.2) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(100, 116, 139, 0.35) !important;
+}
+
+[data-bs-theme="dark"] .table-light {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+[data-bs-theme="dark"] .table-light th,
+[data-bs-theme="dark"] .table-light td {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+[data-bs-theme="dark"] .nav-pills .nav-link:not(.active) {
+  color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .nav-pills .nav-link:not(.active):hover {
+  color: #f8fafc !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* Outlined buttons in Dark Mode */

@@ -14,7 +14,7 @@
               <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 mb-2">
                 <i class="fas fa-hospital me-1"></i>{{ blood_bank.service_type or 'Blood Bank' }}
               </span>
-              <h1 class="h3 fw-bold text-dark mb-1">{{ blood_bank.display_name }}</h1>
+              <h1 class="h3 fw-bold mb-1">{{ blood_bank.display_name }}</h1>
               <p class="text-muted mb-0"><i class="fas fa-map-marker-alt text-danger me-2"></i>{{ blood_bank.district or 'N/A' }}, {{ blood_bank.province or 'N/A' }}{% if blood_bank.city %}, {{ blood_bank.city }}{% endif %}</p>
             </div>
             <span class="badge {{ 'bg-success' if blood_bank.is_operational else 'bg-secondary' }} px-3 py-2 rounded-pill">{{ blood_bank.status|title }}</span>
@@ -24,7 +24,7 @@
             {% if blood_bank.phone or blood_bank.contact_number %}
             <div class="col-sm-6">
               <div class="small text-muted">Primary Phone</div>
-              <a href="tel:{{ blood_bank.contact_number or blood_bank.phone }}" class="fw-bold text-dark text-decoration-none">
+              <a href="tel:{{ blood_bank.contact_number or blood_bank.phone }}" class="fw-bold text-decoration-none">
                 <i class="fas fa-phone text-success me-1"></i>{{ blood_bank.contact_number or blood_bank.phone }}
               </a>
             </div>
@@ -32,7 +32,7 @@
             {% if blood_bank.email %}
             <div class="col-sm-6">
               <div class="small text-muted">Email Address</div>
-              <a href="mailto:{{ blood_bank.email }}" class="fw-bold text-dark text-decoration-none">
+              <a href="mailto:{{ blood_bank.email }}" class="fw-bold text-decoration-none">
                 <i class="fas fa-envelope text-primary me-1"></i>{{ blood_bank.email }}
               </a>
             </div>
@@ -62,9 +62,9 @@
       <!-- ═══════════════════════════════════════════════════ -->
       {% if three_shifts %}
       <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+        <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
           <div>
-            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+            <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
               <i class="fas fa-clock-rotate-left text-danger"></i>
               <span>Live Three-Shift Clinical Duty Roster</span>
             </h5>
@@ -78,7 +78,7 @@
         <div class="card-body p-4">
           
           <!-- CURRENT SHIFT (ON DUTY NOW) -->
-          <div class="mb-4 p-3 rounded-3 border border-success border-2" style="background: #f0fdf4;">
+          <div class="mb-4 p-3 rounded-3 shift-card-curr">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <span class="badge bg-success text-white text-uppercase px-3 py-1">
@@ -87,7 +87,7 @@
                 <h6 class="fw-bold text-success mb-0 mt-2 fs-5">{{ three_shifts.current_shift.shift_name }}</h6>
               </div>
               <div class="text-end">
-                <div class="badge bg-white text-success border border-success fw-bold px-3 py-2 fs-6">
+                <div class="badge bg-body text-success border border-success fw-bold px-3 py-2 fs-6">
                   <i class="fas fa-clock me-1"></i>{{ three_shifts.current_shift.time_range_display }}
                 </div>
               </div>
@@ -173,7 +173,7 @@
       <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes-stacked text-danger me-2"></i>Live Inventory Summary</h5>
+            <h5 class="fw-bold mb-0"><i class="fas fa-boxes-stacked text-danger me-2"></i>Live Inventory Summary</h5>
             <a href="{{ url_for('public.reserve_blood', bank_id=blood_bank.id) }}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
               <i class="fas fa-hand-holding-droplet me-1"></i> Reserve Blood
             </a>
@@ -208,7 +208,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
         <div class="card-body p-4">
-          <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-circle-info text-danger me-2"></i>Facility & Emergency Info</h5>
+          <h5 class="fw-bold mb-3"><i class="fas fa-circle-info text-danger me-2"></i>Facility & Emergency Info</h5>
           <ul class="list-unstyled small mb-0">
             <li class="mb-3 d-flex align-items-start gap-2">
               <i class="fas fa-hospital text-danger mt-1"></i>
@@ -246,13 +246,13 @@
       {% if staff_members %}
       <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
         <div class="card-body p-4">
-          <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-users text-danger me-2"></i>Medical & Lab Team</h6>
+          <h6 class="fw-bold mb-3"><i class="fas fa-users text-danger me-2"></i>Medical & Lab Team</h6>
           <div class="d-flex flex-column gap-3">
             {% for member in staff_members %}
-            <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light">
+            <div class="d-flex align-items-center gap-3 p-2 rounded-3 shift-card-prev">
               <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}" class="rounded-circle border" style="width:44px;height:44px;object-fit:cover;">
               <div>
-                <div class="fw-bold small text-dark">{{ member.full_name }}</div>
+                <div class="fw-bold small">{{ member.full_name }}</div>
                 <div class="text-muted" style="font-size:0.75rem;">{{ member.designation }}</div>
                 {% if member.contact_number %}
                 <div class="small mt-1"><a href="tel:{{ member.contact_number }}" class="text-success text-decoration-none"><i class="fas fa-phone fa-xs me-1"></i>{{ member.contact_number }}</a></div>
