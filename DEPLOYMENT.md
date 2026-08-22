@@ -25,7 +25,7 @@ Complete guide to run the app locally and deploy it live at `raktadata.lokeshpra
 
 ```bash
 # 1. Activate the virtual environment (Windows)
-blood\Scripts\activate
+.\blood\Scripts\activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
