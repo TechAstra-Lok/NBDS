@@ -1,0 +1,65 @@
+{% extends "bloodbank/layout.html" %}
+{% block title %}{{ action }} Shift — {{ bank.resolved_display_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="fas fa-clock text-danger me-2"></i>{{ action }} Shift Schedule</h4>
+      <p class="text-muted small mb-0">{{ bank.resolved_display_name }} • Operational Shift Hours</p>
+    </div>
+    <a href="{{ url_for('bloodbank.shifts') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+      <i class="fas fa-arrow-left me-1"></i> Back to 3-Shift Board
+    </a>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card bb-card border-0 shadow-sm p-4">
+        <form method="POST" action="">
+          {{ form.hidden_tag() }}
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              {{ form.shift_name.label(class="form-label fw-semibold small") }}
+              {{ form.shift_name(class="form-control" + (" is-invalid" if form.shift_name.errors else ""), placeholder="e.g. Morning Shift / Evening Shift") }}
+              {% for error in form.shift_name.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              {{ form.shift_type.label(class="form-label fw-semibold small") }}
+              {{ form.shift_type(class="form-select") }}
+            </div>
+            <div class="col-md-6">
+              {{ form.start_time.label(class="form-label fw-semibold small") }}
+              {{ form.start_time(class="form-control" + (" is-invalid" if form.start_time.errors else ""), placeholder="06:00") }}
+              <div class="form-text">24-hour time format (e.g. 06:00, 14:00, 22:00)</div>
+              {% for error in form.start_time.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              {{ form.end_time.label(class="form-label fw-semibold small") }}
+              {{ form.end_time(class="form-control" + (" is-invalid" if form.end_time.errors else ""), placeholder="14:00") }}
+              <div class="form-text">24-hour time format (e.g. 14:00, 22:00, 06:00)</div>
+              {% for error in form.end_time.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              {{ form.notes.label(class="form-label fw-semibold small") }}
+              {{ form.notes(class="form-control", placeholder="Operational details, emergency contacts, lab coverage...") }}
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                {{ form.is_active(class="form-check-input") }}
+                {{ form.is_active.label(class="form-check-label fw-semibold") }}
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('bloodbank.shifts') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+            {{ form.submit(class="btn btn-danger px-4 fw-bold") }}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

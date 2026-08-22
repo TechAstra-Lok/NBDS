@@ -277,9 +277,15 @@
         </a>
       </li>
       <li class="nav-item">
-        <a href="{{ url_for('bloodbank.staff') }}" class="nav-link {% if 'staff' in request.endpoint %}active{% endif %}">
+        <a href="{{ url_for('bloodbank.staff') }}" class="nav-link {% if request.endpoint in ['bloodbank.staff', 'bloodbank.add_staff', 'bloodbank.edit_staff'] %}active{% endif %}">
           <i class="fas fa-user-doctor"></i>
-          <span>Staff & Shifts</span>
+          <span>Staff Directory</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.shifts') }}" class="nav-link {% if request.endpoint in ['bloodbank.shifts', 'bloodbank.add_shift', 'bloodbank.edit_shift'] %}active{% endif %}">
+          <i class="fas fa-clock-rotate-left"></i>
+          <span>3-Shift Management</span>
         </a>
       </li>
     </ul>

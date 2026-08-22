@@ -128,7 +128,7 @@ def is_text_safe(title, content):
             response_format={ "type": "json_object" }
         )
         
-        result = json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content or '{}')
         
         if result.get("is_safe"):
             return True, "Safe"
@@ -558,18 +558,24 @@ def blood_bank_detail(bank_id):
                         'units_reserved': reserved_units
                     })
     
-    # Resolve tenant DB and fetch staff members
-    staff_members = []
-    if blood_bank.tenant_id:
-        try:
-            from app.services.tenant_service import TenantResolutionService
-            from app.models import StaffMember
-            TenantResolutionService.resolve_tenant(blood_bank.tenant_id)
-            staff_members = StaffMember.query.filter_by(is_active=True).order_by(StaffMember.created_at.desc()).all()
-        except Exception:
-            pass  # Tenant not provisioned or inactive — just skip staff
+    # Fetch 3-Shift breakdown and publicly visible staff members strictly for this blood bank
+    from app.services.shift_service import ShiftService
+    from app.models import StaffMember
+    
+    three_shifts = ShiftService.get_three_shifts(blood_bank.id)
+    staff_members = StaffMember.query.filter_by(
+        blood_bank_id=blood_bank.id,
+        is_active=True,
+        profile_visibility='public'
+    ).order_by(StaffMember.created_at.desc()).all()
                 
-    return render_template('blood_bank_detail.html', blood_bank=blood_bank, inventory_items=inventory_items, staff_members=staff_members)
+    return render_template(
+        'blood_bank_detail.html',
+        blood_bank=blood_bank,
+        inventory_items=inventory_items,
+        staff_members=staff_members,
+        three_shifts=three_shifts
+    )
 
 
 @public_bp.route('/blood-banks/<int:bank_id>/reserve', methods=['GET', 'POST'])
@@ -996,10 +1002,27 @@ def become_donor():
     return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS)
 
 
+# ── Donor PIN Security Interceptor ────────────────────────
+@public_bp.before_request
+def enforce_donor_forced_pin_change():
+    if current_user.is_authenticated and hasattr(current_user, 'donor_id') and getattr(current_user, 'pin_reset_required', False):
+        allowed_endpoints = [
+            'public.donor_force_change_pin',
+            'public.logout',
+            'public.donor_photo',
+            'public.donor_qr',
+            'static'
+        ]
+        if request.endpoint and request.endpoint not in allowed_endpoints:
+            return redirect(url_for('public.donor_force_change_pin'))
+
+
 @public_bp.route('/donor/login', methods=['GET', 'POST'])
 @rate_limit(limit=10, window=60)  # 10 attempts per minute
 def donor_login():
     if current_user.is_authenticated and hasattr(current_user, 'donor_id'):
+        if getattr(current_user, 'pin_reset_required', False):
+            return redirect(url_for('public.donor_force_change_pin'))
         return redirect(url_for('public.donor_profile', donor_id=current_user.donor_id))
         
     form = DonorLoginForm()
@@ -1007,7 +1030,6 @@ def donor_login():
         login_val = (form.login_id.data or '').strip()
         
         # Check if login_val is phone or email
-        # To normalize phone, reuse the normalize logic if it looks like a phone
         normalized_phone = login_val
         if login_val.isdigit() or (login_val.startswith('+') and login_val[1:].isdigit()):
             from app.forms import _normalize_nepal_mobile
@@ -1019,6 +1041,12 @@ def donor_login():
         if donor and check_password_hash(donor.pin_hash, form.pin.data or ''):
             session.permanent = True
             login_user(donor, remember=True)
+            
+            # Forced PIN change enforcement
+            if donor.pin_reset_required:
+                flash('Your PIN has been reset by an administrator. Please create a new PIN to access your account.', 'warning')
+                return redirect(url_for('public.donor_force_change_pin'))
+                
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
@@ -1026,6 +1054,50 @@ def donor_login():
             flash('Login Unsuccessful. Please check your mobile number / email and PIN.', 'danger')
             
     return render_template('auth/donor_login.html', form=form)
+
+
+@public_bp.route('/donor/forgot-pin')
+def donor_forgot_pin():
+    """Contact portal for donor PIN reset assistance through Admin and Super Admin."""
+    return render_template('auth/donor_forgot_pin.html')
+
+
+@public_bp.route('/donor/force-change-pin', methods=['GET', 'POST'])
+@login_required
+def donor_force_change_pin():
+    """Mandatory PIN change page for donors whose PIN was reset by an administrator."""
+    if not hasattr(current_user, 'donor_id'):
+        return redirect(url_for('public.index'))
+    
+    donor = current_user
+    if not getattr(donor, 'pin_reset_required', False):
+        return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+        
+    from app.forms import DonorForcedPinChangeForm
+    form = DonorForcedPinChangeForm()
+    
+    if form.validate_on_submit():
+        new_pin = (form.new_pin.data or '').strip()
+        donor.set_pin(new_pin)
+        donor.pin_reset_required = False
+        donor.pin_last_changed_at = datetime.now(timezone.utc)
+        donor.failed_pin_attempts = 0
+        donor.pin_locked_until = None
+        
+        from app.models import AuditLog
+        log = AuditLog(
+            action='DONOR_PIN_CHANGED_AFTER_ADMIN_RESET',
+            entity_id=donor.id,
+            details=f"Donor {donor.donor_id} ({donor.full_name}) successfully changed temporary PIN 1234 to new private PIN.",
+            actor=donor.donor_id
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        flash('🎉 PIN changed successfully! You can now access your full donor dashboard and donor card.', 'success')
+        return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+        
+    return render_template('auth/donor_force_change_pin.html', form=form, donor=donor)
 
 
 @public_bp.route('/become-volunteer', methods=['GET', 'POST'])

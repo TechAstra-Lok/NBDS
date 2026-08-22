@@ -44,6 +44,11 @@
                 </form>
                 
                 <div class="text-center mt-4">
+                    <p class="mb-1 small">
+                      <a href="{{ url_for('public.donor_forgot_pin') }}" class="text-muted text-decoration-none">
+                        <i class="fas fa-lock me-1"></i>Forgot your PIN? Contact Admin
+                      </a>
+                    </p>
                     <p class="mb-0 small">Not a donor yet? <a href="{{ url_for('public.become_donor') }}" class="text-danger fw-bold text-decoration-none">Register Here</a></p>
                 </div>
             </div>

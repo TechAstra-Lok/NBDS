@@ -242,6 +242,9 @@ def _ensure_legacy_schema_columns(app):
             NotificationDeliveryLog,
             DonorNotificationPreference,
             PublicBloodBankCache,
+            StaffMember,
+            BloodBankShift,
+            BloodBankShiftAssignment,
         )
 
         db.create_all()
@@ -264,6 +267,9 @@ def _ensure_legacy_schema_columns(app):
             ('notification_delivery_logs', NotificationDeliveryLog),
             ('donor_notification_preferences', DonorNotificationPreference),
             ('public_blood_bank_cache', PublicBloodBankCache),
+            ('staff_members', StaffMember),
+            ('blood_bank_shifts', BloodBankShift),
+            ('blood_bank_shift_assignments', BloodBankShiftAssignment),
         ]
 
         for table_name, model_cls in model_tables:

@@ -135,7 +135,7 @@
 
     <!-- 5. Active Staff On Duty -->
     <div class="col-6 col-lg-3">
-      <a href="{{ url_for('bloodbank.staff') }}" class="text-decoration-none">
+      <a href="{{ url_for('bloodbank.shifts') }}" class="text-decoration-none">
         <div class="card bb-card bb-card-hover p-3 h-100 border-start border-4 border-success">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="text-muted small fw-semibold text-uppercase">Staff On Duty</span>
@@ -143,9 +143,9 @@
               <i class="fas fa-user-doctor fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-dark">{{ staff_count }}</h3>
+          <h3 class="fw-bold mb-0 text-dark">{{ on_duty_count }} <span class="fs-6 text-muted fw-normal">/ {{ active_staff_count }}</span></h3>
           <div class="small text-success mt-1">
-            <i class="fas fa-circle-check me-1"></i>Active Shifts Handover
+            <i class="fas fa-circle-check me-1"></i>{{ three_shifts.current_shift.shift_name if three_shifts else 'Active Shift' }}
           </div>
         </div>
       </a>
@@ -174,14 +174,14 @@
       <a href="{{ url_for('public.blood_request_board') }}?emergency=true" target="_blank" class="text-decoration-none">
         <div class="card bb-card bb-card-hover p-3 h-100 border-start border-4 border-danger">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted small fw-semibold text-uppercase">Emergency SOS</span>
-            <div class="bg-danger text-white p-2 rounded-3">
-              <i class="fas fa-truck-medical fa-lg"></i>
+            <span class="text-muted small fw-semibold text-uppercase">Emergency Standby</span>
+            <div class="bg-danger-subtle text-danger p-2 rounded-3">
+              <i class="fas fa-phone-volume fa-lg"></i>
             </div>
           </div>
-          <h3 class="fw-bold mb-0 text-danger">LIVE</h3>
+          <h3 class="fw-bold mb-0 text-danger">{{ emergency_count }} <span class="fs-6 text-muted fw-normal">Staff</span></h3>
           <div class="small text-danger mt-1">
-            <i class="fas fa-satellite-dish me-1"></i>National Public Board
+            <i class="fas fa-bolt me-1"></i>Ready for Emergency Call
           </div>
         </div>
       </a>
@@ -189,21 +189,96 @@
 
     <!-- 8. Operations Health -->
     <div class="col-6 col-lg-3">
-      <div class="card bb-card p-3 h-100 border-start border-4 border-secondary">
+      <div class="card bb-card p-3 h-100 border-start border-4 border-dark">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-muted small fw-semibold text-uppercase">System Status</span>
-          <div class="bg-secondary-subtle text-secondary p-2 rounded-3">
-            <i class="fas fa-server fa-lg"></i>
+          <span class="text-muted small fw-semibold text-uppercase">Three-Shift Status</span>
+          <div class="bg-dark text-white p-2 rounded-3">
+            <i class="fas fa-clock-rotate-left fa-lg"></i>
           </div>
         </div>
-        <h3 class="fw-bold mb-0 text-success">100%</h3>
+        <h3 class="fw-bold mb-0 text-dark">ACTIVE</h3>
         <div class="small text-muted mt-1">
-          <i class="fas fa-cloud-check text-success me-1"></i>Audit Ledger Synced
+          <i class="fas fa-cloud-check text-success me-1"></i>Nepal Standard Time
         </div>
       </div>
     </div>
 
   </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- THREE-SHIFT LIVE SUMMARY STRIP                     -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  {% if three_shifts %}
+  <div class="card bb-card border-0 shadow-sm p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+      <div>
+        <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+          <i class="fas fa-clock-rotate-left text-danger"></i>
+          <span>Live Three-Shift Operations</span>
+          <span class="badge bg-success small">Real-Time Duty</span>
+        </h6>
+        <small class="text-muted">Previous, Current, and Next shifts synchronized with Nepal Standard Time.</small>
+      </div>
+      <a href="{{ url_for('bloodbank.shifts') }}" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+        Manage 3-Shift Board <i class="fas fa-arrow-right ms-1"></i>
+      </a>
+    </div>
+    
+    <div class="row g-3">
+      <!-- Previous Shift -->
+      <div class="col-md-4">
+        <div class="p-3 rounded-3 bg-light border border-secondary border-opacity-25 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-secondary text-white text-uppercase" style="font-size:0.7rem;">Previous Shift</span>
+            <small class="text-muted">{{ three_shifts.previous_shift.time_range_display }}</small>
+          </div>
+          <div class="fw-bold text-dark">{{ three_shifts.previous_shift.shift_name }}</div>
+          <div class="small text-muted mt-1">
+            <i class="fas fa-users fa-xs me-1"></i>{{ three_shifts.previous_staff|length }} Personnel Completed
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Shift -->
+      <div class="col-md-4">
+        <div class="p-3 rounded-3 border border-success border-2 h-100" style="background: #f0fdf4;">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-success text-white text-uppercase" style="font-size:0.7rem;"><i class="fas fa-circle-play me-1"></i>Current Shift (Active Now)</span>
+            <small class="text-success fw-bold">{{ three_shifts.current_shift.time_range_display }}</small>
+          </div>
+          <div class="fw-bold text-success fs-6">{{ three_shifts.current_shift.shift_name }}</div>
+          <div class="small text-dark mt-1">
+            <i class="fas fa-user-doctor fa-xs me-1 text-success"></i><strong>{{ three_shifts.current_staff|length }}</strong> On-Duty Staff Assigned
+          </div>
+          {% if three_shifts.current_staff %}
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            {% for st in three_shifts.current_staff[:3] %}
+            <span class="badge bg-white text-dark border small">{{ st.full_name }} ({{ st.role_in_shift }})</span>
+            {% endfor %}
+            {% if three_shifts.current_staff|length > 3 %}
+            <span class="badge bg-success-subtle text-success small">+{{ three_shifts.current_staff|length - 3 }} more</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Next Shift -->
+      <div class="col-md-4">
+        <div class="p-3 rounded-3 bg-light border border-primary border-opacity-25 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge bg-primary text-white text-uppercase" style="font-size:0.7rem;">Next Shift</span>
+            <small class="text-muted">{{ three_shifts.next_shift.time_range_display }}</small>
+          </div>
+          <div class="fw-bold text-dark">{{ three_shifts.next_shift.shift_name }}</div>
+          <div class="small text-muted mt-1">
+            <i class="fas fa-user-clock fa-xs me-1"></i>{{ three_shifts.next_staff|length }} Upcoming Personnel
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Charts & Visual Stock Matrix -->
   <div class="row g-4 mb-4">
@@ -346,23 +421,34 @@
 {% endblock %}
 
 {% block extra_js %}
+{# Inventory data island — parsed by Jinja, invisible to the IDE JS parser #}
+<script type="application/json" id="inv-data">
+{
+  "groups": {{ inventory_items | map(attribute='blood_group') | list | tojson }},
+  "available": {{ inventory_items | map(attribute='available_units') | list | tojson }},
+  "reserved": {{ inventory_items | map(attribute='units_reserved') | list | tojson }}
+}
+</script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('bloodStockChart');
     if (!ctx) return;
 
-    // Aggregate inventory by Blood Group
-    const groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-    const availableData = [0, 0, 0, 0, 0, 0, 0, 0];
-    const reservedData = [0, 0, 0, 0, 0, 0, 0, 0];
+    // Read server-side data from the JSON data island (no Jinja inside JS)
+    var _data = JSON.parse(document.getElementById('inv-data').textContent);
 
-    {% for item in inventory_items %}
-      const gIndex_{{ loop.index }} = groups.indexOf("{{ item.blood_group }}");
-      if (gIndex_{{ loop.index }} !== -1) {
-        availableData[gIndex_{{ loop.index }}] += {{ item.available_units }};
-        reservedData[gIndex_{{ loop.index }}] += {{ item.units_reserved }};
+    // Aggregate by the 8 standard blood groups
+    var groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    var availableData = [0, 0, 0, 0, 0, 0, 0, 0];
+    var reservedData  = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (var i = 0; i < _data.groups.length; i++) {
+      var gi = groups.indexOf(_data.groups[i]);
+      if (gi !== -1) {
+        availableData[gi] += (_data.available[i] || 0);
+        reservedData[gi]  += (_data.reserved[i]  || 0);
       }
-    {% endfor %}
+    }
 
     new Chart(ctx, {
       type: 'bar',

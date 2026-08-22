@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Forgot PIN — Contact Admin | NBDS Donor Portal{% endblock %}
+
+{% block content %}
+<section class="py-5" style="min-height: 70vh; background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-7 col-md-9">
+
+        <!-- Lock Icon Banner -->
+        <div class="text-center mb-5">
+          <div
+            class="d-inline-flex align-items-center justify-content-center mb-3 rounded-circle bg-danger bg-opacity-10"
+            style="width:80px;height:80px;">
+            <i class="fas fa-lock-open text-danger fa-2x"></i>
+          </div>
+          <h2 class="fw-bold text-dark mb-2">Forgot Your Donor PIN?</h2>
+          <p class="text-muted mb-0">
+            For your security, PINs cannot be reset online.
+            Please contact our authorized administrators directly — they will reset your PIN and guide you through
+            setting a new one.
+          </p>
+        </div>
+
+        <!-- Contact Admin Card -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+          <div class="card-header bg-danger text-white py-3 px-4 d-flex align-items-center gap-2">
+            <i class="fas fa-user-shield fa-lg"></i>
+            <h5 class="fw-bold mb-0">Contact Admin — Kushal Mani Khadka</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-muted mb-3 small">
+              <i class="fas fa-info-circle text-primary me-1"></i>
+              Our administrative staff can verify your identity and reset your PIN during business hours.
+            </p>
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <a href="tel:+9779824915245"
+                  class="btn btn-outline-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                  <i class="fas fa-phone-volume"></i>
+                  <div class="text-start">
+                    <div class="small text-muted">Call Admin</div>
+                    <div>+977 982-491-5245</div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-sm-6">
+                <a href="https://wa.me/9779824915245?text=Hello%2C%20I%20need%20help%20resetting%20my%20NBDS%20Donor%20Portal%20PIN."
+                  target="_blank"
+                  class="btn btn-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                  <i class="fab fa-whatsapp fa-lg"></i>
+                  <div class="text-start">
+                    <div class="small text-white-50">WhatsApp Admin</div>
+                    <div>+977 982-491-5245</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Super Admin Card -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+          <div class="card-header bg-dark text-white py-3 px-4 d-flex align-items-center gap-2">
+            <i class="fas fa-user-gear fa-lg"></i>
+            <h5 class="fw-bold mb-0">Contact Super Admin — Lokesh Prasai</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-muted mb-3 small">
+              <i class="fas fa-shield-halved text-warning me-1"></i>
+              For escalations or if you cannot reach the admin, contact the Super Administrator directly.
+            </p>
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <a href="tel:+9779816003020"
+                  class="btn btn-outline-dark w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                  <i class="fas fa-phone-volume"></i>
+                  <div class="text-start">
+                    <div class="small text-muted">Call Super Admin</div>
+                    <div>+977 981-600-3020</div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-sm-6">
+                <a href="https://wa.me/9779816003020?text=Hello%2C%20I%20need%20help%20resetting%20my%20NBDS%20Donor%20Portal%20PIN."
+                  target="_blank"
+                  class="btn btn-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                  <i class="fab fa-whatsapp fa-lg"></i>
+                  <div class="text-start">
+                    <div class="small text-white-50">WhatsApp Super Admin</div>
+                    <div>+977 981-600-3020</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- What happens next -->
+        <div class="card border-0 bg-light rounded-4 p-4 mb-4">
+          <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-list-check text-danger me-2"></i>What happens after you
+            contact us?</h6>
+          <ol class="text-muted small ps-3">
+            <li class="mb-2">The Admin will verify your identity (your Donor ID, registered phone, or full name).</li>
+            <li class="mb-2">Your PIN will be reset to a temporary PIN.</li>
+            <li class="mb-2">You log in using your phone/email and the temporary PIN.</li>
+            <li class="mb-2">You will be immediately prompted to set your own private 4-digit PIN before accessing your
+              account.</li>
+          </ol>
+        </div>
+
+        <div class="text-center">
+          <a href="{{ url_for('public.donor_login') }}" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="fas fa-arrow-left me-1"></i> Back to Donor Login
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -88,6 +88,23 @@ def process_notification_queue(app):
             logger.error("Notification queue processing error: %s", e)
 
 
+def sync_shift_staff_statuses(app):
+    """
+    Synchronize staff availability_status based on current active shift assignments.
+    Runs every 5 minutes aligned to Nepal Standard Time (UTC+5:45).
+    """
+    with app.app_context():
+        try:
+            from app.services.shift_service import ShiftService
+            updated = ShiftService.sync_staff_statuses()
+            if updated > 0:
+                logger.info("Shift Status Sync: Updated %d staff duty statuses.", updated)
+            else:
+                logger.debug("Shift Status Sync: No status changes detected.")
+        except Exception as e:
+            logger.error("Shift staff status sync error: %s", e)
+
+
 def schedule_jobs(app, scheduler):
     """
     Configures and starts all APScheduler background jobs.
@@ -110,6 +127,17 @@ def schedule_jobs(app, scheduler):
         args=[app],
         trigger='interval',
         minutes=2,
+        next_run_time=datetime.now(),
+        replace_existing=True,
+    )
+
+    # Job 3: Sync blood bank staff duty statuses every 5 minutes (Nepal 3-Shift system)
+    scheduler.add_job(
+        id='sync_shift_staff_statuses_job',
+        func=sync_shift_staff_statuses,
+        args=[app],
+        trigger='interval',
+        minutes=5,
         next_run_time=datetime.now(),
         replace_existing=True,
     )

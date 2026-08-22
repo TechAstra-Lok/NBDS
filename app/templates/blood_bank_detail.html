@@ -5,92 +5,266 @@
 <div class="container py-5">
   <div class="row g-4">
     <div class="col-lg-8">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
+      
+      <!-- Blood Bank Header Card -->
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-              <h1 class="h3 fw-bold text-danger mb-1">{{ blood_bank.display_name }}</h1>
-              <p class="text-muted mb-0">{{ blood_bank.service_type }}</p>
+              <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 mb-2">
+                <i class="fas fa-hospital me-1"></i>{{ blood_bank.service_type or 'Blood Bank' }}
+              </span>
+              <h1 class="h3 fw-bold text-dark mb-1">{{ blood_bank.display_name }}</h1>
+              <p class="text-muted mb-0"><i class="fas fa-map-marker-alt text-danger me-2"></i>{{ blood_bank.district or 'N/A' }}, {{ blood_bank.province or 'N/A' }}{% if blood_bank.city %}, {{ blood_bank.city }}{% endif %}</p>
             </div>
-            <span class="badge {{ 'bg-success' if blood_bank.is_operational else 'bg-secondary' }}">{{ blood_bank.status|title }}</span>
+            <span class="badge {{ 'bg-success' if blood_bank.is_operational else 'bg-secondary' }} px-3 py-2 rounded-pill">{{ blood_bank.status|title }}</span>
           </div>
-          <p class="mb-3"><i class="fas fa-map-marker-alt me-2"></i>{{ blood_bank.district or 'N/A' }}, {{ blood_bank.province or 'N/A' }}</p>
-          <div class="row g-3">
-            {% if blood_bank.phone %}<div class="col-sm-6"><strong>Phone:</strong> {{ blood_bank.phone }}</div>{% endif %}
-            {% if blood_bank.email %}<div class="col-sm-6"><strong>Email:</strong> {{ blood_bank.email }}</div>{% endif %}
-            {% if blood_bank.website %}<div class="col-sm-6"><strong>Website:</strong> <a href="{{ blood_bank.website }}">{{ blood_bank.website }}</a></div>{% endif %}
-            {% if blood_bank.google_maps %}<div class="col-sm-6"><strong>Maps:</strong> <a href="{{ blood_bank.google_maps }}" target="_blank">Open in Maps</a></div>{% endif %}
+
+          <div class="row g-3 pt-3 border-top mt-2">
+            {% if blood_bank.phone or blood_bank.contact_number %}
+            <div class="col-sm-6">
+              <div class="small text-muted">Primary Phone</div>
+              <a href="tel:{{ blood_bank.contact_number or blood_bank.phone }}" class="fw-bold text-dark text-decoration-none">
+                <i class="fas fa-phone text-success me-1"></i>{{ blood_bank.contact_number or blood_bank.phone }}
+              </a>
+            </div>
+            {% endif %}
+            {% if blood_bank.email %}
+            <div class="col-sm-6">
+              <div class="small text-muted">Email Address</div>
+              <a href="mailto:{{ blood_bank.email }}" class="fw-bold text-dark text-decoration-none">
+                <i class="fas fa-envelope text-primary me-1"></i>{{ blood_bank.email }}
+              </a>
+            </div>
+            {% endif %}
+            {% if blood_bank.website %}
+            <div class="col-sm-6">
+              <div class="small text-muted">Official Website</div>
+              <a href="{{ blood_bank.website }}" target="_blank" class="fw-bold text-danger text-decoration-none">
+                <i class="fas fa-globe me-1"></i>{{ blood_bank.website }}
+              </a>
+            </div>
+            {% endif %}
+            {% if blood_bank.google_maps or blood_bank.google_maps_url %}
+            <div class="col-sm-6">
+              <div class="small text-muted">Location Map</div>
+              <a href="{{ blood_bank.google_maps_url }}" target="_blank" class="fw-bold text-danger text-decoration-none">
+                <i class="fas fa-location-arrow me-1"></i>Open Directions
+              </a>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
 
-      <div class="card shadow-sm border-0 mt-4">
-        <div class="card-body">
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- THREE-SHIFT CLINICAL DUTY ROSTER (LIVE)             -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      {% if three_shifts %}
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+          <div>
+            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="fas fa-clock-rotate-left text-danger"></i>
+              <span>Live Three-Shift Clinical Duty Roster</span>
+            </h5>
+            <small class="text-muted">Real-time medical officer and lab technician shift tracking</small>
+          </div>
+          <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
+            <i class="fas fa-circle-check me-1"></i>Live Synchronized
+          </span>
+        </div>
+
+        <div class="card-body p-4">
+          
+          <!-- CURRENT SHIFT (ON DUTY NOW) -->
+          <div class="mb-4 p-3 rounded-3 border border-success border-2" style="background: #f0fdf4;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="badge bg-success text-white text-uppercase px-3 py-1">
+                  <i class="fas fa-circle-play me-1"></i>Current Shift — On Duty Now
+                </span>
+                <h6 class="fw-bold text-success mb-0 mt-2 fs-5">{{ three_shifts.current_shift.shift_name }}</h6>
+              </div>
+              <div class="text-end">
+                <div class="badge bg-white text-success border border-success fw-bold px-3 py-2 fs-6">
+                  <i class="fas fa-clock me-1"></i>{{ three_shifts.current_shift.time_range_display }}
+                </div>
+              </div>
+            </div>
+
+            {% if three_shifts.current_staff %}
+            <div class="row g-3">
+              {% for st in three_shifts.current_staff %}
+              <div class="col-md-6">
+                <div class="d-flex align-items-center p-3 rounded-3 bg-white shadow-sm border border-success border-opacity-25 h-100">
+                  <img loading="lazy" src="{{ st.image_url }}" alt="{{ st.full_name }}" class="rounded-circle border border-2 border-success me-3" style="width:52px;height:52px;object-fit:cover;">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-0 fw-bold text-dark">{{ st.full_name }}</h6>
+                    <div class="text-success small fw-semibold"><i class="fas fa-stethoscope fa-xs me-1"></i>{{ st.role_in_shift }}</div>
+                    {% if st.qualification %}
+                    <div class="text-muted" style="font-size:0.75rem;">{{ st.qualification }}</div>
+                    {% endif %}
+                    {% if st.contact_number %}
+                    <div class="small mt-1">
+                      <a href="tel:{{ st.contact_number }}" class="text-success fw-bold text-decoration-none">
+                        <i class="fas fa-phone fa-xs me-1"></i>{{ st.contact_number }}
+                      </a>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i>General duty staff available on-site. Contact emergency reception.</p>
+            {% endif %}
+          </div>
+
+          <!-- PREVIOUS & NEXT SHIFTS ROW -->
+          <div class="row g-3">
+            <!-- Previous Shift -->
+            <div class="col-md-6">
+              <div class="p-3 rounded-3 bg-light border h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-secondary text-uppercase">Previous Shift</span>
+                  <small class="text-muted fw-semibold">{{ three_shifts.previous_shift.time_range_display }}</small>
+                </div>
+                <div class="fw-bold text-dark mb-2">{{ three_shifts.previous_shift.shift_name }}</div>
+                {% if three_shifts.previous_staff %}
+                  <div class="small text-muted">
+                    {% for st in three_shifts.previous_staff %}
+                    <div><i class="fas fa-user-check fa-xs text-muted me-1"></i>{{ st.full_name }} <span class="text-secondary">({{ st.role_in_shift }})</span></div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="small text-muted">No specific staff logged for previous shift.</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Next Shift -->
+            <div class="col-md-6">
+              <div class="p-3 rounded-3 bg-light border border-primary border-opacity-25 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge bg-primary text-uppercase">Next Upcoming Shift</span>
+                  <small class="text-primary fw-semibold">{{ three_shifts.next_shift.time_range_display }}</small>
+                </div>
+                <div class="fw-bold text-dark mb-2">{{ three_shifts.next_shift.shift_name }}</div>
+                {% if three_shifts.next_staff %}
+                  <div class="small text-dark">
+                    {% for st in three_shifts.next_staff %}
+                    <div><i class="fas fa-user-clock fa-xs text-primary me-1"></i><strong>{{ st.full_name }}</strong> <span class="text-muted">({{ st.role_in_shift }})</span></div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="small text-muted">Upcoming roster scheduled.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Inventory Summary -->
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0">Inventory Summary</h5>
-            <a href="{{ url_for('public.reserve_blood', bank_id=blood_bank.id) }}" class="btn btn-danger btn-sm">Reserve Blood</a>
+            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes-stacked text-danger me-2"></i>Live Inventory Summary</h5>
+            <a href="{{ url_for('public.reserve_blood', bank_id=blood_bank.id) }}" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
+              <i class="fas fa-hand-holding-droplet me-1"></i> Reserve Blood
+            </a>
           </div>
           {% if inventory_items %}
           <div class="table-responsive">
-            <table class="table table-sm align-middle">
-              <thead><tr><th>Group</th><th>Component</th><th>Available</th><th>Reserved</th></tr></thead>
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light small text-uppercase">
+                <tr><th>Blood Group</th><th>Component</th><th>Available Units</th><th>Reserved</th></tr>
+              </thead>
               <tbody>
                 {% for item in inventory_items %}
                 <tr>
-                  <td>{{ item.blood_group }}</td>
-                  <td>{{ item.component }}</td>
-                  <td>{{ item.available_units }}</td>
-                  <td>{{ item.units_reserved }}</td>
+                  <td><span class="badge bg-danger fs-6 px-3 py-1">{{ item.blood_group }}</span></td>
+                  <td class="fw-semibold">{{ item.component }}</td>
+                  <td><span class="fw-bold text-success">{{ item.available_units }} units</span></td>
+                  <td><span class="text-muted">{{ item.units_reserved }} units</span></td>
                 </tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
           {% else %}
-          <p class="text-muted mb-0">No inventory entries have been added yet.</p>
+          <p class="text-muted mb-0">Inventory information is updated directly by the blood bank clinical team.</p>
           {% endif %}
         </div>
       </div>
 
-      <!-- Staff Members -->
-      <div class="card shadow-sm border-0 mt-4">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3"><i class="fas fa-users me-2 text-danger"></i>Staff Members</h5>
-          {% if staff_members %}
-          <div class="row g-3">
+    </div>
+
+    <!-- Right Sidebar Quick Info -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-circle-info text-danger me-2"></i>Facility & Emergency Info</h5>
+          <ul class="list-unstyled small mb-0">
+            <li class="mb-3 d-flex align-items-start gap-2">
+              <i class="fas fa-hospital text-danger mt-1"></i>
+              <div>
+                <strong>Associated Hospital:</strong>
+                <div>{{ blood_bank.hospital_name or 'Independent Facility' }}</div>
+              </div>
+            </li>
+            <li class="mb-3 d-flex align-items-start gap-2">
+              <i class="fas fa-building text-danger mt-1"></i>
+              <div>
+                <strong>Parent Organization:</strong>
+                <div>{{ blood_bank.parent_organization or 'National Blood Donors Society' }}</div>
+              </div>
+            </li>
+            <li class="mb-3 d-flex align-items-start gap-2">
+              <i class="fas fa-phone-volume text-danger mt-1"></i>
+              <div>
+                <strong>Emergency Helpline:</strong>
+                <div class="text-danger fw-bold fs-6">{{ blood_bank.phone or blood_bank.contact_number or '+977 981-6003020' }}</div>
+              </div>
+            </li>
+            <li class="mb-2 d-flex align-items-start gap-2">
+              <i class="fas fa-bolt text-warning mt-1"></i>
+              <div>
+                <strong>24/7 Emergency Support:</strong>
+                <div>{% if blood_bank.emergency_available %}Available 24/7 Emergency Response{% else %}Standard Clinical Hours{% endif %}</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Public Staff Team List -->
+      {% if staff_members %}
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-users text-danger me-2"></i>Medical & Lab Team</h6>
+          <div class="d-flex flex-column gap-3">
             {% for member in staff_members %}
-            <div class="col-md-6">
-              <div class="d-flex align-items-center p-3 rounded-3 bg-light">
-                <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}"
-                  class="rounded-circle me-3" style="width:50px;height:50px;object-fit:cover;">
-                <div>
-                  <h6 class="mb-0 fw-bold">{{ member.full_name }}</h6>
-                  <span class="text-muted small">{{ member.designation }}</span>
-                  {% if member.contact_number %}
-                  <div class="small mt-1"><i class="fas fa-phone fa-sm text-muted me-1"></i>{{ member.contact_number }}</div>
-                  {% endif %}
-                </div>
+            <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light">
+              <img loading="lazy" src="{{ member.image_url }}" alt="{{ member.full_name }}" class="rounded-circle border" style="width:44px;height:44px;object-fit:cover;">
+              <div>
+                <div class="fw-bold small text-dark">{{ member.full_name }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{{ member.designation }}</div>
+                {% if member.contact_number %}
+                <div class="small mt-1"><a href="tel:{{ member.contact_number }}" class="text-success text-decoration-none"><i class="fas fa-phone fa-xs me-1"></i>{{ member.contact_number }}</a></div>
+                {% endif %}
               </div>
             </div>
             {% endfor %}
           </div>
-          {% else %}
-          <p class="text-muted mb-0">No staff information available.</p>
-          {% endif %}
         </div>
       </div>
-    </div>
-    <div class="col-lg-4">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">Quick Info</h5>
-          <ul class="list-unstyled small mb-0">
-            <li class="mb-2"><i class="fas fa-hospital me-2 text-danger"></i>{{ blood_bank.hospital_name or 'Hospital linked' }}</li>
-            <li class="mb-2"><i class="fas fa-building me-2 text-danger"></i>{{ blood_bank.parent_organization or 'Independent facility' }}</li>
-            <li class="mb-2"><i class="fas fa-bolt me-2 text-warning"></i>{% if blood_bank.emergency_available %}Emergency support available{% else %}Routine services only{% endif %}</li>
-          </ul>
-        </div>
-      </div>
+      {% endif %}
+
     </div>
   </div>
 </div>

@@ -10,7 +10,7 @@ from flask import (
 from app import db
 from app.models import BloodBankAccount, BloodBankLoginHistory, BloodBankPasswordHistory
 from app.services.auth_service import AuthService
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 bloodbank_bp = Blueprint('bloodbank', __name__, template_folder='../templates/bloodbank')
@@ -62,15 +62,10 @@ def login():
         # Record login attempt
         def record_login(acct, status):
             entry = BloodBankLoginHistory(
-                # pyrefly: ignore [unexpected-keyword]
                 account_id=acct.id,
-                # pyrefly: ignore [unexpected-keyword]
-                login_time=datetime.utcnow(),
-                # pyrefly: ignore [unexpected-keyword]
+                login_time=datetime.now(timezone.utc),
                 ip_address=request.remote_addr,
-                # pyrefly: ignore [unexpected-keyword]
                 user_agent=request.headers.get('User-Agent', '')[:255],
-                # pyrefly: ignore [unexpected-keyword]
                 status=status
             )
             db.session.add(entry)
@@ -81,7 +76,7 @@ def login():
 
         # Check lock status
         if account.is_locked:
-            if account.locked_until and datetime.utcnow() > account.locked_until:
+            if account.locked_until and datetime.now(timezone.utc) > account.locked_until:
                 # Auto-unlock after lockout period
                 account.is_locked = False
                 account.failed_login_attempts = 0
@@ -103,7 +98,7 @@ def login():
             account.failed_login_attempts = (account.failed_login_attempts or 0) + 1
             if account.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
                 account.is_locked = True
-                account.locked_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+                account.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
                 record_login(account, 'locked')
                 db.session.commit()
                 flash(f'Account locked after {MAX_FAILED_ATTEMPTS} failed attempts. Try again in {LOCKOUT_DURATION_MINUTES} minutes.', 'danger')
@@ -116,7 +111,7 @@ def login():
 
         # Success — reset counters
         account.failed_login_attempts = 0
-        account.last_login_at = datetime.utcnow()
+        account.last_login_at = datetime.now(timezone.utc)
         if account.account_status == 'pending':
             account.account_status = 'active'
         record_login(account, 'success')
@@ -153,6 +148,7 @@ def logout():
 @bloodbank_login_required
 def change_password():
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
 
     if request.method == 'POST':
         current_password = request.form.get('current_password', '')
@@ -179,16 +175,13 @@ def change_password():
         account.set_password(new_password)
         account.temp_password = None
         account.password_change_required = False
-        # pyrefly: ignore [deprecated, missing-attribute]
-        account.password_changed_at = datetime.utcnow()
+        
+        account.password_changed_at = datetime.now(timezone.utc)
 
         history = BloodBankPasswordHistory(
-            # pyrefly: ignore [unexpected-keyword]
             account_id=account.id,
-            # pyrefly: ignore [unexpected-keyword]
             password_hash=account.password_hash,
-            # pyrefly: ignore [unexpected-keyword]
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.session.add(history)
         db.session.commit()
@@ -205,6 +198,7 @@ def reservations():
     from app.models import BloodReservation
     from app.utils import paginate_query
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')
@@ -222,6 +216,7 @@ def reservations():
 def add_reservation():
     from app.models import BloodReservation
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     
     hospital_name = request.form.get('hospital_name', '').strip()
     patient_name = request.form.get('patient_name', '').strip()
@@ -259,6 +254,7 @@ def update_reservation_status(id):
     from app.models import BloodReservation, BloodInventory, BloodInventoryMovement, AuditLog
     from app.services.inventory_service import InventoryService
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     
     reservation = BloodReservation.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
     new_status = request.form.get('status', '').strip().lower()
@@ -289,7 +285,7 @@ def update_reservation_status(id):
         
         # Atomically reserve inventory units
         inventory.units_reserved += reservation.units
-        inventory.last_updated = datetime.utcnow()
+        inventory.last_updated = datetime.now(timezone.utc)
         
         # Log inventory movement
         movement = BloodInventoryMovement(
@@ -297,7 +293,7 @@ def update_reservation_status(id):
             movement_type='reservation_lock',
             units=reservation.units,
             note=f"Locked for Reservation #{reservation.id} ({reservation.patient_name})",
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.session.add(movement)
         
@@ -305,14 +301,14 @@ def update_reservation_status(id):
         if inventory:
             # Free up the reserved units
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
-            inventory.last_updated = datetime.utcnow()
+            inventory.last_updated = datetime.now(timezone.utc)
             
             movement = BloodInventoryMovement(
                 inventory_id=inventory.id,
                 movement_type='reservation_release',
                 units=reservation.units,
                 note=f"Released from Reservation #{reservation.id} (Status changed to {new_status})",
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.session.add(movement)
             
@@ -321,19 +317,19 @@ def update_reservation_status(id):
             # Physically deduct from stock and release reservation lock
             inventory.units_reserved = max(0, inventory.units_reserved - reservation.units)
             inventory.units_available = max(0, inventory.units_available - reservation.units)
-            inventory.last_updated = datetime.utcnow()
+            inventory.last_updated = datetime.now(timezone.utc)
             
             movement = BloodInventoryMovement(
                 inventory_id=inventory.id,
                 movement_type='issue_fulfilled',
                 units=reservation.units,
                 note=f"Issued & Dispensed for Reservation #{reservation.id} ({reservation.hospital_name})",
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.session.add(movement)
             
     reservation.status = new_status
-    reservation.updated_at = datetime.utcnow()
+    reservation.updated_at = datetime.now(timezone.utc)
 
     # Create immutable audit log
     audit = AuditLog(
@@ -363,25 +359,59 @@ def update_reservation_status(id):
     return redirect(url_for('bloodbank.reservations'))
 
 
-# ── Staff Management ─────────────────────────────────────
+# ── Staff Management (Strict Blood Bank Isolation) ─────────────
 @bloodbank_bp.route('/staff')
 @bloodbank_login_required
 def staff():
     from app.models import StaffMember
     from app.utils import paginate_query
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '').strip()
+    status = request.args.get('status', '').strip()
+    
+    query = StaffMember.query.filter_by(blood_bank_id=account.blood_bank_id)
+    if search:
+        query = query.filter(
+            (StaffMember.full_name.ilike(f"%{search}%")) |
+            (StaffMember.designation.ilike(f"%{search}%")) |
+            (StaffMember.contact_number.ilike(f"%{search}%"))
+        )
+    if status:
+        query = query.filter_by(availability_status=status)
+        
     pagination = paginate_query(
-        StaffMember.query.order_by(StaffMember.created_at.desc()), page, 15
+        query.order_by(StaffMember.created_at.desc()), page, 15
     )
-    return render_template('bloodbank/staff.html', pagination=pagination)
+    
+    total_staff = StaffMember.query.filter_by(blood_bank_id=account.blood_bank_id).count()
+    active_staff = StaffMember.query.filter_by(blood_bank_id=account.blood_bank_id, is_active=True, employment_status='active').count()
+    on_duty_staff = StaffMember.query.filter_by(blood_bank_id=account.blood_bank_id, availability_status='on_duty').count()
+    emergency_staff = StaffMember.query.filter_by(blood_bank_id=account.blood_bank_id, availability_status='emergency_standby').count()
+
+    return render_template(
+        'bloodbank/staff.html',
+        pagination=pagination,
+        account=account,
+        bank=account.blood_bank,
+        total_staff=total_staff,
+        active_staff=active_staff,
+        on_duty_staff=on_duty_staff,
+        emergency_staff=emergency_staff,
+        search=search,
+        selected_status=status
+    )
 
 
 @bloodbank_bp.route('/staff/add', methods=['GET', 'POST'])
 @bloodbank_login_required
 def add_staff():
-    from app.models import StaffMember
+    from app.models import StaffMember, AuditLog
     from app.forms import StaffMemberForm
     from app.utils import save_image
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     
     form = StaffMemberForm()
     if form.validate_on_submit():
@@ -390,34 +420,54 @@ def add_staff():
             photo_file = save_image(form.profile_photo.data, 'staff')
         
         member = StaffMember(
-            full_name=form.full_name.data.strip(),
-            designation=form.designation.data.strip(),
+            blood_bank_id=account.blood_bank_id,
+            full_name=(form.full_name.data or "").strip(),
+            designation=(form.designation.data or "").strip(),
+            qualification=form.qualification.data.strip() if form.qualification.data else None,
+            registration_number=form.registration_number.data.strip() if form.registration_number.data else None,
             email=form.email.data.strip() if form.email.data else None,
             contact_number=form.contact_number.data.strip() if form.contact_number.data else None,
+            secondary_contact=form.secondary_contact.data.strip() if form.secondary_contact.data else None,
+            emergency_contact=form.emergency_contact.data.strip() if form.emergency_contact.data else None,
             profile_photo=photo_file,
+            availability_status=form.availability_status.data or 'available',
+            employment_status=form.employment_status.data or 'active',
+            profile_visibility=form.profile_visibility.data or 'public',
             province=form.province.data or None,
             district=form.district.data or None,
             local_level=form.local_level.data or None,
             ward_number=form.ward_number.data or None,
             tole=form.tole.data or None,
-            is_active=form.is_active.data
+            is_active=form.is_active.data,
+            created_by=account.login_id
         )
         db.session.add(member)
+        
+        log = AuditLog(
+            action='BLOOD_BANK_STAFF_CREATED',
+            entity_id=account.blood_bank_id,
+            details=f"Created staff member '{member.full_name}' ({member.designation}) for Blood Bank {account.blood_bank.name}.",
+            actor=account.login_id
+        )
+        db.session.add(log)
         db.session.commit()
-        flash('Staff member added successfully!', 'success')
+        
+        flash(f'Staff member "{member.full_name}" added successfully!', 'success')
         return redirect(url_for('bloodbank.staff'))
     
-    return render_template('bloodbank/staff_form.html', form=form, action='Add')
+    return render_template('bloodbank/staff_form.html', form=form, account=account, bank=account.blood_bank, action='Add')
 
 
 @bloodbank_bp.route('/staff/<int:id>/edit', methods=['GET', 'POST'])
 @bloodbank_login_required
 def edit_staff(id):
-    from app.models import StaffMember
+    from app.models import StaffMember, AuditLog
     from app.forms import StaffMemberForm
     from app.utils import save_image, delete_file
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
 
-    member = StaffMember.query.get_or_404(id)
+    member = StaffMember.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
     form = StaffMemberForm(obj=member)
     
     if form.validate_on_submit():
@@ -426,40 +476,227 @@ def edit_staff(id):
                 delete_file(member.profile_photo, 'staff')
             member.profile_photo = save_image(form.profile_photo.data, 'staff')
             
-        member.full_name = form.full_name.data.strip()
-        member.designation = form.designation.data.strip()
+        member.full_name = (form.full_name.data or "").strip()
+        member.designation = (form.designation.data or "").strip()
+        member.qualification = form.qualification.data.strip() if form.qualification.data else None
+        member.registration_number = form.registration_number.data.strip() if form.registration_number.data else None
         member.email = form.email.data.strip() if form.email.data else None
         member.contact_number = form.contact_number.data.strip() if form.contact_number.data else None
+        member.secondary_contact = form.secondary_contact.data.strip() if form.secondary_contact.data else None
+        member.emergency_contact = form.emergency_contact.data.strip() if form.emergency_contact.data else None
+        member.availability_status = form.availability_status.data or member.availability_status
+        member.employment_status = form.employment_status.data or member.employment_status
+        member.profile_visibility = form.profile_visibility.data or member.profile_visibility
         member.province = form.province.data or None
         member.district = form.district.data or None
         member.local_level = form.local_level.data or None
         member.ward_number = form.ward_number.data or None
         member.tole = form.tole.data or None
         member.is_active = form.is_active.data
+        member.updated_by = account.login_id
         
+        log = AuditLog(
+            action='BLOOD_BANK_STAFF_UPDATED',
+            entity_id=account.blood_bank_id,
+            details=f"Updated staff member '{member.full_name}' (ID: {member.id}).",
+            actor=account.login_id
+        )
+        db.session.add(log)
         db.session.commit()
-        flash('Staff member updated successfully!', 'success')
+        flash(f'Staff member "{member.full_name}" updated successfully!', 'success')
         return redirect(url_for('bloodbank.staff'))
         
-    return render_template('bloodbank/staff_form.html', form=form, member=member, action='Edit')
+    return render_template('bloodbank/staff_form.html', form=form, member=member, account=account, bank=account.blood_bank, action='Edit')
 
 
 @bloodbank_bp.route('/staff/<int:id>/delete', methods=['POST'])
 @bloodbank_login_required
 def delete_staff(id):
-    from app.models import StaffMember
-    from app.utils import delete_file
+    from app.models import StaffMember, AuditLog
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
 
-    member = StaffMember.query.get_or_404(id)
+    member = StaffMember.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
     
-    if member.profile_photo:
-        delete_file(member.profile_photo, 'staff')
-        
-    db.session.delete(member)
+    # Soft archive instead of destroying historical shift records
+    member.is_active = False
+    member.employment_status = 'archived'
+    member.availability_status = 'inactive'
+    member.updated_by = account.login_id
+    
+    log = AuditLog(
+        action='BLOOD_BANK_STAFF_DEACTIVATED',
+        entity_id=account.blood_bank_id,
+        details=f"Deactivated and archived staff member '{member.full_name}' (ID: {member.id}).",
+        actor=account.login_id
+    )
+    db.session.add(log)
     db.session.commit()
     
-    flash(f'Staff member "{member.full_name}" has been removed.', 'success')
+    flash(f'Staff member "{member.full_name}" has been deactivated and archived.', 'info')
     return redirect(url_for('bloodbank.staff'))
+
+
+# ── Three-Shift Management (Previous / Current / Next) ────────
+@bloodbank_bp.route('/shifts')
+@bloodbank_login_required
+def shifts():
+    from app.models import BloodBankShift, StaffMember
+    from app.services.shift_service import ShiftService
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
+    bank_id = account.blood_bank_id
+
+    # 3-Shift Board calculation
+    three_shifts = ShiftService.get_three_shifts(bank_id)
+    
+    # All active shifts configured for this bank
+    all_shifts = BloodBankShift.query.filter_by(blood_bank_id=bank_id).order_by(BloodBankShift.start_time).all()
+    
+    # All active staff available for assignment
+    available_staff = StaffMember.query.filter_by(
+        blood_bank_id=bank_id,
+        is_active=True,
+        employment_status='active'
+    ).order_by(StaffMember.full_name).all()
+
+    return render_template(
+        'bloodbank/shifts.html',
+        account=account,
+        bank=account.blood_bank,
+        three_shifts=three_shifts,
+        all_shifts=all_shifts,
+        available_staff=available_staff
+    )
+
+
+@bloodbank_bp.route('/shifts/add', methods=['GET', 'POST'])
+@bloodbank_login_required
+def add_shift():
+    from app.models import BloodBankShift, AuditLog
+    from app.forms import BloodBankShiftForm
+    from datetime import datetime
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
+    
+    form = BloodBankShiftForm()
+    if form.validate_on_submit():
+        st_parts = (form.start_time.data or "").strip().split(':')
+        et_parts = (form.end_time.data or "").strip().split(':')
+        start_t = datetime.strptime((form.start_time.data or "").strip(), '%H:%M').time()
+        end_t = datetime.strptime((form.end_time.data or "").strip(), '%H:%M').time()
+        
+        shift = BloodBankShift(
+            blood_bank_id=account.blood_bank_id,
+            shift_name=(form.shift_name.data or "").strip(),
+            shift_type=form.shift_type.data,
+            start_time=start_t,
+            end_time=end_t,
+            notes=form.notes.data.strip() if form.notes.data else None,
+            is_active=form.is_active.data,
+            created_by=account.login_id
+        )
+        db.session.add(shift)
+        
+        log = AuditLog(
+            action='BLOOD_BANK_SHIFT_CREATED',
+            entity_id=account.blood_bank_id,
+            details=f"Created shift '{shift.shift_name}' ({form.start_time.data} - {form.end_time.data}) for Blood Bank {account.blood_bank.name}.",
+            actor=account.login_id
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        flash(f'Shift "{shift.shift_name}" created successfully!', 'success')
+        return redirect(url_for('bloodbank.shifts'))
+        
+    return render_template('bloodbank/shift_form.html', form=form, account=account, bank=account.blood_bank, action='Add')
+
+
+@bloodbank_bp.route('/shifts/<int:id>/edit', methods=['GET', 'POST'])
+@bloodbank_login_required
+def edit_shift(id):
+    from app.models import BloodBankShift, AuditLog
+    from app.forms import BloodBankShiftForm
+    from datetime import datetime
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
+    
+    shift = BloodBankShift.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
+    form = BloodBankShiftForm(obj=shift)
+    
+    if request.method == 'GET':
+        form.start_time.data = shift.start_time.strftime('%H:%M') if shift.start_time else ''
+        form.end_time.data = shift.end_time.strftime('%H:%M') if shift.end_time else ''
+
+    if form.validate_on_submit():
+        start_t = datetime.strptime((form.start_time.data or "").strip(), '%H:%M').time()
+        end_t = datetime.strptime((form.end_time.data or "").strip(), '%H:%M').time()
+        
+        shift.shift_name = (form.shift_name.data or "").strip()
+        shift.shift_type = form.shift_type.data
+        shift.start_time = start_t
+        shift.end_time = end_t
+        shift.notes = form.notes.data.strip() if form.notes.data else None
+        shift.is_active = form.is_active.data
+        shift.updated_by = account.login_id
+        
+        log = AuditLog(
+            action='BLOOD_BANK_SHIFT_UPDATED',
+            entity_id=account.blood_bank_id,
+            details=f"Updated shift '{shift.shift_name}' (ID: {shift.id}).",
+            actor=account.login_id
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        flash(f'Shift "{shift.shift_name}" updated successfully!', 'success')
+        return redirect(url_for('bloodbank.shifts'))
+        
+    return render_template('bloodbank/shift_form.html', form=form, shift=shift, account=account, bank=account.blood_bank, action='Edit')
+
+
+@bloodbank_bp.route('/shifts/assign', methods=['POST'])
+@bloodbank_login_required
+def assign_staff_shift():
+    from app.services.shift_service import ShiftService
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
+    
+    shift_id = request.form.get('shift_id', type=int)
+    staff_id = request.form.get('staff_id', type=int)
+    role_in_shift = request.form.get('role_in_shift', '').strip()
+    
+    if not shift_id or not staff_id:
+        flash('Please select both a Shift and a Staff member.', 'danger')
+        return redirect(url_for('bloodbank.shifts'))
+        
+    ok, msg = ShiftService.assign_staff(
+        blood_bank_id=account.blood_bank_id,
+        shift_id=shift_id,
+        staff_id=staff_id,
+        role_in_shift=role_in_shift,
+        actor=account.login_id
+    )
+    
+    flash(msg, 'success' if ok else 'danger')
+    return redirect(url_for('bloodbank.shifts'))
+
+
+@bloodbank_bp.route('/shifts/assignment/<int:id>/remove', methods=['POST'])
+@bloodbank_login_required
+def remove_staff_shift(id):
+    from app.services.shift_service import ShiftService
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
+    
+    ok, msg = ShiftService.remove_assignment(
+        blood_bank_id=account.blood_bank_id,
+        assignment_id=id,
+        actor=account.login_id
+    )
+    flash(msg, 'info' if ok else 'danger')
+    return redirect(url_for('bloodbank.shifts'))
 
 
 # ── Dashboard ─────────────────────────────────────
@@ -467,24 +704,41 @@ def delete_staff(id):
 @bloodbank_login_required
 def dashboard():
     from app.models import BloodInventory, StaffMember, BloodReservation, BloodTransfer
+    from app.services.shift_service import ShiftService
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     # Force password change if still required
     if account.password_change_required:
         return redirect(url_for('bloodbank.change_password'))
         
-    inventory_items = BloodInventory.query.filter_by(blood_bank_id=account.blood_bank_id).all()
-    # Dashboard detailed stats
-    staff_count = StaffMember.query.count()
-    reservations_count = BloodReservation.query.filter_by(blood_bank_id=account.blood_bank_id, status='pending').count()
-    transfers_count = BloodTransfer.query.filter_by(source_bank_id=account.blood_bank_id, status='pending').count()
+    bank_id = account.blood_bank_id
+    inventory_items = BloodInventory.query.filter_by(blood_bank_id=bank_id).all()
     
-    return render_template('bloodbank/dashboard.html', 
-                           account=account, 
-                           bank=account.blood_bank, 
-                           inventory_items=inventory_items,
-                           staff_count=staff_count,
-                           reservations_count=reservations_count,
-                           transfers_count=transfers_count)
+    # Staff stats strictly isolated for this blood bank
+    staff_count = StaffMember.query.filter_by(blood_bank_id=bank_id).count()
+    active_staff_count = StaffMember.query.filter_by(blood_bank_id=bank_id, is_active=True, employment_status='active').count()
+    on_duty_count = StaffMember.query.filter_by(blood_bank_id=bank_id, availability_status='on_duty').count()
+    emergency_count = StaffMember.query.filter_by(blood_bank_id=bank_id, availability_status='emergency_standby').count()
+    
+    reservations_count = BloodReservation.query.filter_by(blood_bank_id=bank_id, status='pending').count()
+    transfers_count = BloodTransfer.query.filter_by(source_bank_id=bank_id, status='pending').count()
+    
+    # Real-time 3-shift roster
+    three_shifts = ShiftService.get_three_shifts(bank_id)
+    
+    return render_template(
+        'bloodbank/dashboard.html', 
+        account=account, 
+        bank=account.blood_bank, 
+        inventory_items=inventory_items,
+        staff_count=staff_count,
+        active_staff_count=active_staff_count,
+        on_duty_count=on_duty_count,
+        emergency_count=emergency_count,
+        reservations_count=reservations_count,
+        transfers_count=transfers_count,
+        three_shifts=three_shifts
+    )
 
 
 # ── Inventory Management ──────────────────────────
@@ -493,6 +747,7 @@ def dashboard():
 def inventory():
     from app.models import BloodInventory
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     items = BloodInventory.query.filter_by(blood_bank_id=account.blood_bank_id).order_by(BloodInventory.blood_group).all()
     return render_template('bloodbank/inventory.html', account=account, bank=account.blood_bank, items=items)
 
@@ -502,6 +757,7 @@ def inventory():
 def add_inventory():
     from app.models import BloodInventory, BloodInventoryMovement
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
 
     if request.method == 'POST':
         blood_group = request.form.get('blood_group', '').strip()
@@ -531,7 +787,7 @@ def add_inventory():
             units_available=units,
             minimum_stock=minimum_stock,
             maximum_stock=maximum_stock,
-            last_updated=datetime.utcnow()
+            last_updated=datetime.now(timezone.utc)
         )
         db.session.add(item)
         db.session.flush()
@@ -543,7 +799,7 @@ def add_inventory():
                 movement_type='addition',
                 units=units,
                 note='Initial stock setup',
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.session.add(movement)
 
@@ -564,6 +820,7 @@ def add_inventory():
 def edit_inventory(id):
     from app.models import BloodInventory, BloodInventoryMovement
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     item = BloodInventory.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
 
     if request.method == 'POST':
@@ -579,14 +836,14 @@ def edit_inventory(id):
                 movement_type='addition' if diff > 0 else 'removal',
                 units=abs(diff),
                 note=note or ('Stock adjusted' if diff != 0 else ''),
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.session.add(movement)
 
         item.units_available = new_units
         item.minimum_stock = minimum_stock
         item.maximum_stock = maximum_stock
-        item.last_updated = datetime.utcnow()
+        item.last_updated = datetime.now(timezone.utc)
         db.session.commit()
 
         # Sync public cache
@@ -605,6 +862,7 @@ def edit_inventory(id):
 def delete_inventory(id):
     from app.models import BloodInventory
     account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None  # guaranteed by @bloodbank_login_required
     item = BloodInventory.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
 
     if item.units_reserved > 0:

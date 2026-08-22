@@ -1343,23 +1343,28 @@ def delete_donor(id):
 @permission_required('manage_donors')
 def reset_donor_pin(id):
     """Reset a donor's 4-digit login PIN to the default temporary value (1234).
-    The donor must change it on next login via their profile.
+    Enforces mandatory PIN change on next login.
     """
     donor = Donor.query.get_or_404(id)
     temp_pin = '1234'
     donor.set_pin(temp_pin)
+    donor.pin_reset_required = True
+    donor.pin_last_reset_at = datetime.now(timezone.utc)
+    donor.pin_last_reset_by = current_user.username if hasattr(current_user, 'username') else 'admin'
+    donor.failed_pin_attempts = 0
+    donor.pin_locked_until = None
     db.session.commit()
 
     log_audit_event(
-        'RESET_DONOR_PIN', donor.id,
-        f'PIN reset for donor {donor.donor_id} ({donor.full_name})',
-        actor=current_user.username
+        'DONOR_PIN_RESET', donor.id,
+        f'PIN reset to temporary 1234 with forced change required for donor {donor.donor_id} ({donor.full_name})',
+        actor=current_user.username if hasattr(current_user, 'username') else 'admin'
     )
 
     flash(
         f'PIN for donor <strong>{donor.full_name}</strong> ({donor.donor_id}) '
-        f'has been reset to <code>1234</code>. '
-        f'Please notify the donor to change their PIN on next login.',
+        f'has been reset to temporary PIN <code>1234</code>. '
+        f'The donor will be strictly forced to set a new private 4-digit PIN upon logging in.',
         'success'
     )
     return redirect(url_for('admin.donors'))
@@ -2440,61 +2445,87 @@ def staff():
 @admin_bp.route('/staff/add', methods=['GET', 'POST'])
 @permission_required('manage_staff')
 def add_staff():
+    from app.models import BloodBank
     form = StaffMemberForm()
+    all_banks = BloodBank.query.filter_by(is_active=True).order_by(BloodBank.name).all()
+    
     if form.validate_on_submit():
         photo_file = None
         if form.profile_photo.data and form.profile_photo.data.filename:
             photo_file = save_image(form.profile_photo.data, 'staff')
         
+        blood_bank_id = request.form.get('blood_bank_id', type=int) or None
+        
         member = StaffMember(
+            blood_bank_id=blood_bank_id,
             full_name=(form.full_name.data or '').strip(),
             designation=(form.designation.data or '').strip(),
+            qualification=(form.qualification.data or '').strip() if form.qualification.data else None,
+            registration_number=(form.registration_number.data or '').strip() if form.registration_number.data else None,
             email=(form.email.data or '').strip() if form.email.data else None,
             contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
+            secondary_contact=(form.secondary_contact.data or '').strip() if form.secondary_contact.data else None,
+            emergency_contact=(form.emergency_contact.data or '').strip() if form.emergency_contact.data else None,
             profile_photo=photo_file,
+            availability_status=form.availability_status.data or 'available',
+            employment_status=form.employment_status.data or 'active',
+            profile_visibility=form.profile_visibility.data or 'public',
             province=form.province.data or None,
             district=form.district.data or None,
             local_level=form.local_level.data or None,
             ward_number=form.ward_number.data or None,
             tole=form.tole.data or None,
-            is_active=form.is_active.data
+            is_active=form.is_active.data,
+            created_by=current_user.username if hasattr(current_user, 'username') else 'admin'
         )
         db.session.add(member)
         db.session.commit()
         flash('✅ Staff member added successfully!', 'success')
         return redirect(url_for('admin.staff'))
     
-    return render_template('admin/staff_form.html', form=form, action='Add')
+    return render_template('admin/staff_form.html', form=form, action='Add', all_banks=all_banks)
 
 
 @admin_bp.route('/staff/<int:id>/edit', methods=['GET', 'POST'])
 @permission_required('manage_staff')
 def edit_staff(id):
+    from app.models import BloodBank
     member = StaffMember.query.get_or_404(id)
     form = StaffMemberForm(obj=member)
+    all_banks = BloodBank.query.filter_by(is_active=True).order_by(BloodBank.name).all()
     
     if form.validate_on_submit():
         if form.profile_photo.data and form.profile_photo.data.filename:
             if member.profile_photo:
                 delete_file(member.profile_photo, 'staff')
             member.profile_photo = save_image(form.profile_photo.data, 'staff')
-            
+        
+        blood_bank_id = request.form.get('blood_bank_id', type=int) or None
+        member.blood_bank_id = blood_bank_id
         member.full_name = (form.full_name.data or '').strip()
         member.designation = (form.designation.data or '').strip()
+        member.qualification = (form.qualification.data or '').strip() if form.qualification.data else None
+        member.registration_number = (form.registration_number.data or '').strip() if form.registration_number.data else None
         member.email = (form.email.data or '').strip() if form.email.data else None
         member.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
+        member.secondary_contact = (form.secondary_contact.data or '').strip() if form.secondary_contact.data else None
+        member.emergency_contact = (form.emergency_contact.data or '').strip() if form.emergency_contact.data else None
+        member.availability_status = form.availability_status.data or member.availability_status
+        member.employment_status = form.employment_status.data or member.employment_status
+        member.profile_visibility = form.profile_visibility.data or member.profile_visibility
         member.province = form.province.data or None
         member.district = form.district.data or None
         member.local_level = form.local_level.data or None
         member.ward_number = form.ward_number.data or None
         member.tole = form.tole.data or None
         member.is_active = form.is_active.data
+        member.updated_by = current_user.username if hasattr(current_user, 'username') else 'admin'
         
         db.session.commit()
         flash('✅ Staff member updated successfully!', 'success')
         return redirect(url_for('admin.staff'))
         
-    return render_template('admin/staff_form.html', form=form, member=member, action='Edit')
+    return render_template('admin/staff_form.html', form=form, member=member, action='Edit', all_banks=all_banks)
 
 
 @admin_bp.route('/staff/<int:id>/delete', methods=['POST'])

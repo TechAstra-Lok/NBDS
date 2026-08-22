@@ -1,10 +1,15 @@
 from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
+from sqlalchemy import func
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+def utc_today():
+    return datetime.now(timezone.utc).date()
+
 import uuid
 
 
@@ -97,6 +102,10 @@ class BloodBank(db.Model):
     db_name = db.Column(db.String(100), unique=True)
     schema_version = db.Column(db.String(50))
     tenant_status = db.Column(db.String(20), default='Provisioning') # Provisioning, Active, Suspended, Deprovisioned
+
+    # Blood Bank Staff and Shift Relationships
+    staff_members = db.relationship('StaffMember', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
+    shifts = db.relationship('BloodBankShift', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
 
     # Note: Tenant models (BloodInventory, etc.) are in separate databases, so we cannot use cross-db relationships.
     # We remove the relationships to BloodInventory, BloodReservation, BloodTransfer, LowStockAlert here.
@@ -195,6 +204,13 @@ class BloodBankPasswordHistory(db.Model):
     
     account = db.relationship('BloodBankAccount', backref=db.backref('password_history', lazy=True, cascade='all, delete-orphan'))
 
+    def __init__(self, account_id: int, password_hash: str, created_at=None, **kwargs):
+        super().__init__(**kwargs)
+        self.account_id = account_id
+        self.password_hash = password_hash
+        if created_at is not None:
+            self.created_at = created_at
+
 
 class BloodBankLoginHistory(db.Model):
     __tablename__ = 'blood_bank_login_history'
@@ -207,6 +223,16 @@ class BloodBankLoginHistory(db.Model):
     status = db.Column(db.String(20)) # success, failed, locked
     
     account = db.relationship('BloodBankAccount', backref=db.backref('login_history', lazy=True, cascade='all, delete-orphan'))
+
+    def __init__(self, account_id: int, login_time=None, ip_address: str | None = None,
+                 user_agent: str | None = None, status: str | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.account_id = account_id
+        if login_time is not None:
+            self.login_time = login_time
+        self.ip_address = ip_address
+        self.user_agent = user_agent
+        self.status = status
 
 
 class PublicBloodBankCache(db.Model):
@@ -644,6 +670,14 @@ class Donor(UserMixin, db.Model):
     created_at              = db.Column(db.DateTime, default=utc_now, index=True)
     updated_at              = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
+    # PIN Security & Admin Reset Tracking
+    pin_reset_required      = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    pin_last_changed_at     = db.Column(db.DateTime)
+    pin_last_reset_at       = db.Column(db.DateTime)
+    pin_last_reset_by       = db.Column(db.String(100))
+    failed_pin_attempts     = db.Column(db.Integer, default=0)
+    pin_locked_until        = db.Column(db.DateTime)
+    
     # Relationships
     donation_history        = db.relationship('DonorDonationHistory', backref='donor', lazy=True, cascade='all, delete-orphan')
     notifications           = db.relationship('Notification', backref='donor', lazy=True, cascade='all, delete-orphan')
@@ -891,34 +925,175 @@ class Volunteer(UserMixin, db.Model):
 
 
 # ─────────────────────────────────────────────
-# STAFF MODEL
+# STAFF MODEL (BLOOD BANK OWNERSHIP & 3-SHIFT SYSTEM)
 # ─────────────────────────────────────────────
 class StaffMember(db.Model):
     __tablename__ = 'staff_members'
-    # __bind_key__ = 'tenant'
     
-    id              = db.Column(db.Integer, primary_key=True)
-    full_name       = db.Column(db.String(150), nullable=False)
-    designation     = db.Column(db.String(100), nullable=False)
-    email           = db.Column(db.String(120))
-    contact_number  = db.Column(db.String(20))
-    profile_photo   = db.Column(db.String(255))
+    id                  = db.Column(db.Integer, primary_key=True)
+    blood_bank_id       = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=True, index=True)
+    
+    full_name           = db.Column(db.String(150), nullable=False)
+    designation         = db.Column(db.String(100), nullable=False)
+    qualification       = db.Column(db.String(150))
+    registration_number = db.Column(db.String(100))
+    
+    email               = db.Column(db.String(120))
+    contact_number      = db.Column(db.String(20))
+    secondary_contact   = db.Column(db.String(20))
+    emergency_contact   = db.Column(db.String(20))
+    profile_photo       = db.Column(db.String(255))
     
     # Address
-    province        = db.Column(db.String(60))
-    district        = db.Column(db.String(80))
-    local_level     = db.Column(db.String(100))
-    ward_number     = db.Column(db.String(10))
-    tole            = db.Column(db.String(100))
+    province            = db.Column(db.String(60))
+    district            = db.Column(db.String(80))
+    local_level         = db.Column(db.String(100))
+    ward_number         = db.Column(db.String(10))
+    tole                = db.Column(db.String(100))
     
-    is_active       = db.Column(db.Boolean, default=True)
-    created_at      = db.Column(db.DateTime, default=utc_now)
+    # Status & Visibility
+    availability_status = db.Column(db.String(30), default='available', index=True)  # available, on_duty, off_duty, on_leave, emergency_standby, unavailable, inactive
+    employment_status   = db.Column(db.String(30), default='active', index=True)     # active, inactive, on_leave, resigned, archived
+    profile_visibility  = db.Column(db.String(20), default='public', index=True)     # public, private
+    is_active           = db.Column(db.Boolean, default=True, index=True)
     
+    created_by          = db.Column(db.String(100))
+    updated_by          = db.Column(db.String(100))
+    created_at          = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at          = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+    
+    # Relationships
+    shift_assignments   = db.relationship('BloodBankShiftAssignment', backref='_staff_member_backref', lazy=True, cascade='all, delete-orphan', overlaps='staff_member')
+
     @property
     def image_url(self):
         if self.profile_photo:
             return f"/static/uploads/staff/{self.profile_photo}"
         return "/static/images/default-avatar.jpg"
+
+    @property
+    def is_publicly_visible(self):
+        return bool(self.is_active and self.employment_status == 'active' and self.profile_visibility == 'public')
+
+    def to_dict(self, public_only=True):
+        data = {
+            'id': self.id,
+            'blood_bank_id': self.blood_bank_id,
+            'full_name': self.full_name,
+            'designation': self.designation,
+            'image_url': self.image_url,
+            'availability_status': self.availability_status,
+            'employment_status': self.employment_status,
+        }
+        if self.profile_visibility == 'public' or not public_only:
+            data['qualification'] = self.qualification
+            data['contact_number'] = self.contact_number
+        if not public_only:
+            data['email'] = self.email
+            data['secondary_contact'] = self.secondary_contact
+            data['emergency_contact'] = self.emergency_contact
+            data['registration_number'] = self.registration_number
+            data['is_active'] = self.is_active
+            data['profile_visibility'] = self.profile_visibility
+        return data
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+# ─────────────────────────────────────────────
+# BLOOD BANK SHIFTS & ASSIGNMENTS
+# ─────────────────────────────────────────────
+class BloodBankShift(db.Model):
+    __tablename__ = 'blood_bank_shifts'
+    
+    id              = db.Column(db.Integer, primary_key=True)
+    blood_bank_id   = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    
+    shift_name      = db.Column(db.String(100), nullable=False)   # e.g., "Morning Shift", "Evening Shift", "Night Shift"
+    shift_type      = db.Column(db.String(50), default='morning') # morning, evening, night, emergency, custom
+    start_time      = db.Column(db.Time, nullable=False)          # e.g., 06:00:00
+    end_time        = db.Column(db.Time, nullable=False)          # e.g., 14:00:00
+    shift_date      = db.Column(db.Date, nullable=False, default=func.current_date, index=True)
+    
+    is_active       = db.Column(db.Boolean, default=True, index=True)
+    notes           = db.Column(db.Text)
+    created_by      = db.Column(db.String(100))
+    updated_by      = db.Column(db.String(100))
+    created_at      = db.Column(db.DateTime, default=utc_now)
+    updated_at      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+    
+    # Relationships
+    assignments     = db.relationship('BloodBankShiftAssignment', backref='shift', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def time_range_display(self):
+        st = self.start_time.strftime('%I:%M %p') if self.start_time else ''
+        et = self.end_time.strftime('%I:%M %p') if self.end_time else ''
+        return f"{st} - {et}"
+
+    @property
+    def assigned_staff_count(self) -> int:
+        rel = getattr(self, 'assignments', None)
+        if rel is None:
+            return 0
+        if isinstance(rel, (list, tuple)):
+            return len(rel)
+        if hasattr(rel, 'count'):
+            return rel.count()
+        return 0
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'blood_bank_id': self.blood_bank_id,
+            'shift_name': self.shift_name,
+            'shift_type': self.shift_type,
+            'start_time': self.start_time.strftime('%H:%M') if self.start_time else None,
+            'end_time': self.end_time.strftime('%H:%M') if self.end_time else None,
+            'time_range': self.time_range_display,
+            'shift_date': self.shift_date.strftime('%Y-%m-%d') if self.shift_date else None,
+            'is_active': self.is_active,
+            'assigned_staff_count': self.assigned_staff_count
+        }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodBankShiftAssignment(db.Model):
+    __tablename__ = 'blood_bank_shift_assignments'
+    
+    id              = db.Column(db.Integer, primary_key=True)
+    shift_id        = db.Column(db.Integer, db.ForeignKey('blood_bank_shifts.id'), nullable=False, index=True)
+    staff_id        = db.Column(db.Integer, db.ForeignKey('staff_members.id'), nullable=False, index=True)
+    blood_bank_id   = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    
+    role_in_shift   = db.Column(db.String(100))  # e.g., "Duty Medical Officer", "Duty Lab Technician", "Staff Nurse"
+    status          = db.Column(db.String(30), default='assigned') # assigned, completed, replaced, absent
+    notes           = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=utc_now)
+
+    # Explicit relationship so type checkers recognise the staff_member attribute
+    staff_member    = db.relationship(
+        'StaffMember',
+        foreign_keys=[staff_id],
+        overlaps='_staff_member_backref,shift_assignments',
+        lazy='joined',
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'shift_id': self.shift_id,
+            'staff_id': self.staff_id,
+            'blood_bank_id': self.blood_bank_id,
+            'role_in_shift': self.role_in_shift,
+            'status': self.status,
+            'staff_name': self.staff_member.full_name if self.staff_member else None,
+            'designation': self.staff_member.designation if self.staff_member else None,
+            'image_url': self.staff_member.image_url if self.staff_member else None
+        }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -485,19 +485,115 @@ class AdminUserForm(FlaskForm):
 
 
 # ─── Staff & Partner Forms ───────────────────
+STAFF_DESIGNATION_CHOICES = [
+    ('', '-- Select Designation --'),
+    ('Medical Officer', 'Medical Officer / Duty Doctor'),
+    ('Lab Technician', 'Lab Technician'),
+    ('Senior Lab Technologist', 'Senior Lab Technologist'),
+    ('Blood Collection Officer', 'Blood Collection Officer / Phlebotomist'),
+    ('Nurse', 'Staff Nurse / Nursing Officer'),
+    ('Receptionist', 'Receptionist / Front Desk'),
+    ('Emergency Coordinator', 'Emergency Coordinator'),
+    ('Ambulance Driver', 'Ambulance Driver'),
+    ('Counselor', 'Donor Counselor'),
+    ('Quality Manager', 'Quality Control Manager'),
+    ('Volunteer', 'Volunteer / Intern'),
+    ('Other', 'Other Designation'),
+]
+
+STAFF_AVAILABILITY_CHOICES = [
+    ('available', 'Available (Off-Duty Standard)'),
+    ('on_duty', 'Currently On Duty'),
+    ('emergency_standby', 'Emergency Standby (Ready to Deploy)'),
+    ('on_leave', 'On Leave'),
+    ('off_duty', 'Off Duty'),
+    ('unavailable', 'Unavailable'),
+]
+
+STAFF_EMPLOYMENT_CHOICES = [
+    ('active', 'Active Employee'),
+    ('on_leave', 'On Leave'),
+    ('inactive', 'Inactive / Suspended'),
+    ('resigned', 'Resigned / Former Staff'),
+]
+
+STAFF_VISIBILITY_CHOICES = [
+    ('public', 'Public (Visible on Blood Bank Public Profile)'),
+    ('private', 'Private (Internal Blood Bank & Admin Only)'),
+]
+
 class StaffMemberForm(FlaskForm):
-    full_name       = StringField('Full Name *', validators=[DataRequired(), Length(max=150)])
-    designation     = StringField('Designation *', validators=[DataRequired(), Length(max=100)])
-    email           = StringField('Email', validators=[Optional(), Email()])
-    contact_number  = StringField('Contact Number', validators=[Optional(), validate_nepal_mobile])
-    profile_photo   = FileField('Profile Photo', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'webp'])])
-    province        = SelectField('Province', choices=PROVINCE_CHOICES, validators=[Optional()])
-    district        = SelectField('District', choices=[('', '-- Select District --')], validate_choice=False, validators=[Optional()])
-    local_level     = SelectField('Local Level', choices=[('', '-- Select Municipality --')], validate_choice=False, validators=[Optional()])
-    ward_number     = StringField('Ward No', validators=[Optional(), Length(max=10)])
-    tole            = StringField('Tole', validators=[Optional(), Length(max=100)])
-    is_active       = BooleanField('Active', default=True)
-    submit          = SubmitField('Save Staff Member')
+    full_name           = StringField('Full Name *', validators=[DataRequired(), Length(max=150)])
+    designation         = StringField('Designation *', validators=[DataRequired(), Length(max=100)])
+    qualification       = StringField('Qualification / Degree', validators=[Optional(), Length(max=150)])
+    registration_number = StringField('Medical / NMC / NHPC Reg. No.', validators=[Optional(), Length(max=100)])
+    
+    email               = StringField('Email', validators=[Optional(), Email()])
+    contact_number      = StringField('Primary Contact Number', validators=[Optional(), validate_nepal_mobile])
+    secondary_contact   = StringField('Secondary Contact Number', validators=[Optional(), validate_nepal_mobile])
+    emergency_contact   = StringField('Emergency Contact Number', validators=[Optional(), validate_nepal_mobile])
+    
+    profile_photo       = FileField('Profile Photo', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'webp'])])
+    
+    # Status & Privacy
+    availability_status = SelectField('Availability Status', choices=STAFF_AVAILABILITY_CHOICES, default='available')
+    employment_status   = SelectField('Employment Status', choices=STAFF_EMPLOYMENT_CHOICES, default='active')
+    profile_visibility  = SelectField('Profile Visibility', choices=STAFF_VISIBILITY_CHOICES, default='public')
+    is_active           = BooleanField('System Active', default=True)
+
+    # Address
+    province            = SelectField('Province', choices=PROVINCE_CHOICES, validators=[Optional()])
+    district            = SelectField('District', choices=[('', '-- Select District --')], validate_choice=False, validators=[Optional()])
+    local_level         = SelectField('Local Level', choices=[('', '-- Select Municipality --')], validate_choice=False, validators=[Optional()])
+    ward_number         = StringField('Ward No', validators=[Optional(), Length(max=10)])
+    tole                = StringField('Tole / Street', validators=[Optional(), Length(max=100)])
+    
+    submit              = SubmitField('Save Staff Member')
+
+
+class BloodBankShiftForm(FlaskForm):
+    shift_name          = StringField('Shift Name *', validators=[DataRequired(), Length(max=100)])
+    shift_type          = SelectField('Shift Type', choices=[
+        ('morning', 'Morning Shift'),
+        ('evening', 'Evening Shift'),
+        ('night', 'Night Shift'),
+        ('emergency', 'Emergency Shift'),
+        ('custom', 'Custom Shift'),
+    ], default='morning')
+    start_time          = StringField('Start Time (HH:MM) *', validators=[
+        DataRequired(), Regexp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$', message="Enter time in 24-hour format (e.g. 06:00, 14:00)")
+    ])
+    end_time            = StringField('End Time (HH:MM) *', validators=[
+        DataRequired(), Regexp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$', message="Enter time in 24-hour format (e.g. 14:00, 22:00)")
+    ])
+    notes               = TextAreaField('Shift Notes / Description', validators=[Optional()], render_kw={"rows": 2})
+    is_active           = BooleanField('Active', default=True)
+    submit              = SubmitField('Save Shift')
+
+
+class BloodBankShiftAssignmentForm(FlaskForm):
+    shift_id            = SelectField('Shift *', coerce=int, validators=[DataRequired()])
+    staff_id            = SelectField('Staff Member *', coerce=int, validators=[DataRequired()])
+    role_in_shift       = StringField('Role In Shift', validators=[Optional(), Length(max=100)])
+    submit              = SubmitField('Assign Staff to Shift')
+
+
+class DonorForcedPinChangeForm(FlaskForm):
+    new_pin             = PasswordField('New 4-Digit PIN *', validators=[
+        DataRequired(),
+        Regexp(r'^\d{4}$', message="PIN must be exactly 4 digits (numeric 0-9).")
+    ])
+    confirm_pin         = PasswordField('Confirm New PIN *', validators=[
+        DataRequired(),
+        EqualTo('new_pin', message="PIN confirmation does not match.")
+    ])
+    submit              = SubmitField('Set New PIN & Continue')
+
+    def validate_new_pin(self, field):
+        val = str(field.data or '').strip()
+        WEAK_PINS = {'1234', '4321', '0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999'}
+        if val in WEAK_PINS:
+            raise ValidationError("Please choose a stronger PIN. Sequences like 1234 or repeating digits like 1111 are not allowed.")
 
 
 class PartnerForm(FlaskForm):
