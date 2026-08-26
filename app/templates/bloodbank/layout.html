@@ -299,6 +299,13 @@
         </a>
       </li>
       <li class="nav-item">
+        <a href="{{ url_for('bloodbank.notifications') }}" class="nav-link {% if request.endpoint == 'bloodbank.notifications' %}active{% endif %}">
+          <i class="fas fa-bell"></i>
+          <span>Notification Center</span>
+          <span class="badge bg-danger badge-counter d-none" id="bbNotifBadge">0</span>
+        </a>
+      </li>
+      <li class="nav-item">
         <a href="{{ url_for('bloodbank.shifts') }}" class="nav-link {% if request.endpoint in ['bloodbank.shifts', 'bloodbank.add_shift', 'bloodbank.edit_shift'] %}active{% endif %}">
           <i class="fas fa-clock-rotate-left"></i>
           <span>3-Shift Management</span>
@@ -330,8 +337,14 @@
     </ul>
 
     <!-- Account & Security -->
-    <div class="sidebar-section-title">Account</div>
+    <div class="sidebar-section-title">Account & Settings</div>
     <ul class="sidebar-nav mb-4">
+      <li class="nav-item">
+        <a href="{{ url_for('bloodbank.alert_settings') }}" class="nav-link {% if request.endpoint == 'bloodbank.alert_settings' %}active{% endif %}">
+          <i class="fas fa-sliders"></i>
+          <span>Alert Preferences</span>
+        </a>
+      </li>
       <li class="nav-item">
         <a href="{{ url_for('bloodbank.change_password') }}" class="nav-link {% if request.endpoint == 'bloodbank.change_password' %}active{% endif %}">
           <i class="fas fa-shield-halved"></i>
@@ -390,6 +403,19 @@
 
       <!-- Right Action Items -->
       <div class="d-flex align-items-center gap-2">
+        <!-- Audio Sound Toggle -->
+        <button id="bbSoundToggle" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;" title="Audio Alerts: ON">
+          <i class="fas fa-volume-high text-success" id="bbSoundIcon"></i>
+        </button>
+
+        <!-- Notification Bell -->
+        <a href="{{ url_for('bloodbank.notifications') }}" class="btn btn-sm btn-outline-secondary position-relative rounded-circle" style="width:36px;height:36px;" title="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="bbNotifBadgeTopbar" style="font-size:0.65rem;">
+            0
+          </span>
+        </a>
+
         <!-- Emergency Indicator -->
         <a href="{{ url_for('bloodbank.reservations') }}?status=pending" class="btn btn-sm btn-outline-danger d-none d-sm-inline-flex align-items-center gap-1 pulse-emergency" title="Emergency Operations">
           <i class="fas fa-truck-medical"></i>
@@ -411,6 +437,7 @@
             <li class="dropdown-header small text-muted">Signed in as</li>
             <li class="px-3 py-1 fw-bold small text-dark">{{ session.get('bloodbank_bank_name') }}</li>
             <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item small" href="{{ url_for('bloodbank.alert_settings') }}"><i class="fas fa-sliders me-2 text-muted"></i>Alert Settings</a></li>
             <li><a class="dropdown-item small" href="{{ url_for('bloodbank.change_password') }}"><i class="fas fa-key me-2 text-muted"></i>Change Password</a></li>
             <li><a class="dropdown-item small" href="{{ url_for('public.blood_banks') }}" target="_blank"><i class="fas fa-globe me-2 text-muted"></i>View Public Profile</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -533,6 +560,37 @@
     applyTheme(savedTheme);
   });
 </script>
+
+<!-- ═════════════════════════════════════════════════════
+     REAL-TIME POPUP MODAL (BLOOD RESERVATIONS & REQUESTS)
+══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="bbRealtimeAlertModal" tabindex="-1" aria-labelledby="bbAlertTitle" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header bg-danger text-white py-3 px-4" id="bbAlertHeader">
+        <h5 class="modal-title fw-bold fs-6" id="bbAlertTitle">
+          <i class="fas fa-bell me-2"></i>Real-Time Blood Alert
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="bbAlertBody">
+        <!-- Injected dynamically by BBAlerts JS -->
+      </div>
+      <div class="modal-footer border-top p-3 d-flex justify-content-between">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">
+          Dismiss
+        </button>
+        <button type="button" class="btn btn-danger rounded-pill px-4 shadow-sm" id="bbAlertActionBtn">
+          View Details
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Socket.IO & Real-Time Alerts Client -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/bloodbank-alerts.js') }}"></script>
 
 {% block extra_js %}{% endblock %}
 </body>

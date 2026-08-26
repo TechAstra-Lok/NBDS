@@ -254,15 +254,114 @@ function copyText(text) {
   });
 }
 
-// ── PWA Service Worker ────────────────────────
-const PWA = {
+// ── Action Opening Popup & PWA Installation ───
+const ActionPopup = {
+  STORAGE_KEY: 'nbds_action_popup_seen',
+  COOLDOWN_HOURS: 48,
+  deferredPrompt: null,
+
   init() {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.log('SW error:', err));
-      });
+    // Listen for browser install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      const btn = document.getElementById('btnInstallApp');
+      if (btn) {
+        btn.classList.remove('d-none');
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      this.recordInstalled();
+      const modal = bootstrap.Modal.getInstance(document.getElementById('nbdsActionModal'));
+      modal?.hide();
+    });
+
+    // Bind install button
+    document.getElementById('btnInstallApp')?.addEventListener('click', () => this.handleInstallClick());
+
+    // Bind dismiss button
+    document.getElementById('btnDismissActionPopup')?.addEventListener('click', () => this.recordDismissed());
+
+    // Evaluate display after DOM load
+    if (this.shouldShow()) {
+      setTimeout(() => this.show(), 1800);
+    }
+  },
+
+  isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://');
+  },
+
+  shouldShow() {
+    if (this.isStandalone()) return false;
+    
+    // Do not show on portal/admin pages
+    const path = window.location.pathname;
+    if (path.startsWith('/bloodbank') || path.startsWith('/admin')) return false;
+
+    try {
+      const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+      if (state.installed) return false;
+      if (!state.lastSeen) return true;
+
+      const hoursPassed = (Date.now() - state.lastSeen) / (1000 * 60 * 60);
+      return hoursPassed >= this.COOLDOWN_HOURS;
+    } catch (e) {
+      return true;
+    }
+  },
+
+  show() {
+    const modalEl = document.getElementById('nbdsActionModal');
+    if (!modalEl) return;
+
+    if (this.isStandalone()) {
+      document.getElementById('pwaInstallContainer')?.classList.add('d-none');
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+    this.recordSeen();
+  },
+
+  recordSeen() {
+    try {
+      const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+      state.lastSeen = Date.now();
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  },
+
+  recordDismissed() {
+    this.recordSeen();
+  },
+
+  recordInstalled() {
+    try {
+      const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+      state.installed = true;
+      state.lastSeen = Date.now();
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  },
+
+  async handleInstallClick() {
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      const choice = await this.deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        this.recordInstalled();
+      }
+      this.deferredPrompt = null;
+    } else {
+      // Manual instruction fallback (e.g. iOS Safari)
+      const manualBox = document.getElementById('installManualInstructions');
+      if (manualBox) {
+        manualBox.classList.remove('d-none');
+      }
     }
   }
 };
@@ -276,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   CounterAnimation.init();
   AdTracker.init();
   PWA.init();
+  ActionPopup.init();
   
   // Initialize Bootstrap tooltips
   document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -284,4 +384,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Bootstrap popovers
   document.querySelectorAll('[data-bs-toggle="popover"]')
     .forEach(el => new bootstrap.Popover(el));
-});
+});

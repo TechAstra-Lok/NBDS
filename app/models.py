@@ -193,6 +193,9 @@ class BloodBankAccount(UserMixin, db.Model):
         from werkzeug.security import check_password_hash
         return check_password_hash(self.password_hash, password)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class BloodBankPasswordHistory(db.Model):
     __tablename__ = 'blood_bank_password_history'
@@ -1150,6 +1153,8 @@ class BloodRequest(db.Model):
     district        = db.Column(db.String(80), index=True)
     local_level     = db.Column(db.String(100))
     ward_no         = db.Column(db.String(10))
+    latitude        = db.Column(db.Float, nullable=True)
+    longitude       = db.Column(db.Float, nullable=True)
     
     contact_person  = db.Column(db.String(150), nullable=False)
     contact_number  = db.Column(db.String(15), nullable=False)
@@ -1490,3 +1495,83 @@ class DonorResponse(db.Model):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+
+# ─────────────────────────────────────────────
+# BLOOD BANK NOTIFICATIONS & REAL-TIME ALERTS
+# ─────────────────────────────────────────────
+class BloodBankNotification(db.Model):
+    __tablename__ = 'blood_bank_notifications'
+
+    id                  = db.Column(db.Integer, primary_key=True)
+    blood_bank_id       = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), nullable=False, index=True)
+    notification_type   = db.Column(db.String(30), nullable=False, index=True) # RESERVATION | NEARBY_REQUEST | EMERGENCY | INVENTORY
+    title               = db.Column(db.String(200), nullable=False)
+    message             = db.Column(db.Text, nullable=False)
+    reservation_id      = db.Column(db.Integer, nullable=True, index=True)
+    blood_request_id    = db.Column(db.String(50), nullable=True, index=True)
+    priority            = db.Column(db.String(20), default='NORMAL', index=True) # EMERGENCY | HIGH | NORMAL
+    meta_json           = db.Column(db.Text, nullable=True) # JSON payload string
+    is_read             = db.Column(db.Boolean, default=False, index=True)
+    is_archived         = db.Column(db.Boolean, default=False, index=True)
+    created_at          = db.Column(db.DateTime, default=utc_now, index=True)
+    read_at             = db.Column(db.DateTime, nullable=True)
+    delivered_at        = db.Column(db.DateTime, nullable=True)
+
+    blood_bank = db.relationship('BloodBank', backref=db.backref('notifications', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodBankAlertSettings(db.Model):
+    __tablename__ = 'blood_bank_alert_settings'
+
+    id                              = db.Column(db.Integer, primary_key=True)
+    blood_bank_id                   = db.Column(db.Integer, db.ForeignKey('blood_banks.id'), unique=True, nullable=False, index=True)
+    reservation_alerts_enabled      = db.Column(db.Boolean, default=True)
+    nearby_request_alerts_enabled   = db.Column(db.Boolean, default=True)
+    emergency_only                  = db.Column(db.Boolean, default=False)
+    alert_radius_km                 = db.Column(db.Integer, default=25)
+    alert_blood_groups              = db.Column(db.String(100), default='') # comma-separated, empty = all
+    sound_enabled                   = db.Column(db.Boolean, default=True)
+    push_enabled                    = db.Column(db.Boolean, default=True)
+    email_enabled                   = db.Column(db.Boolean, default=False)
+    sms_enabled                     = db.Column(db.Boolean, default=False)
+    created_at                      = db.Column(db.DateTime, default=utc_now)
+    updated_at                      = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+
+    blood_bank = db.relationship('BloodBank', backref=db.backref('alert_settings', uselist=False, cascade='all, delete-orphan'))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class BloodBankNotificationDelivery(db.Model):
+    __tablename__ = 'blood_bank_notification_deliveries'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey('blood_bank_notifications.id'), nullable=False, index=True)
+    channel         = db.Column(db.String(20), nullable=False) # socket | push | email | sms
+    status          = db.Column(db.String(20), default='sent') # sent | failed | pending
+    error_message   = db.Column(db.Text, nullable=True)
+    created_at      = db.Column(db.DateTime, default=utc_now)
+
+    notification = db.relationship('BloodBankNotification', backref=db.backref('delivery_logs', cascade='all, delete-orphan'))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class SiteConfig(db.Model):
+    __tablename__ = 'site_configs'
+
+    id          = db.Column(db.Integer, primary_key=True)
+    key         = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value       = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    updated_at  = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+

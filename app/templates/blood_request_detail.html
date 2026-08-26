@@ -1,10 +1,52 @@
 {% extends "base.html" %}
 {% block title %}Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }} ({{ req.blood_group }}) — {{ site_name }}{% endblock %}
 
-{% block meta_desc %}Emergency Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }}: Need {{ req.units_needed }} unit(s) of {{ req.blood_group }} ({{ req.component_display }}) at {{ req.hospital }}, {{ req.district }}. Please share to save a life!{% endblock %}
+{% block extra_meta %}
+<meta name="description" content="Emergency Blood Request {{ req.request_id if req.request_id.startswith('REQ-') else 'REQ-' ~ req.request_id }}: Need {{ req.units_needed }} unit(s) of {{ req.blood_group }} ({{ req.component_display }}) at {{ req.hospital }}, {{ req.district }}. Please share to save a life!">
+<link rel="canonical" href="{{ request.base_url }}">
+{% if req.status != 'active' %}
+<meta name="robots" content="noindex, follow">
+{% endif %}
+<meta property="og:title" content="🩸 EMERGENCY BLOOD REQUEST: {{ req.blood_group }} ({{ req.component_display }}) Needed at {{ req.hospital }}">
+<meta property="og:description" content="Request ID: {{ req.request_id }} | Patient: {{ req.patient_name }} | Units: {{ req.units_needed }} | Component: {{ req.component_display }}. Source: Raktadata Nepal.">
+<meta property="og:url" content="{{ request.base_url }}">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Blood Request {{ req.blood_group }} | {{ site_name }}">
+<meta name="twitter:description" content="Urgent {{ req.blood_group }} blood request for {{ req.hospital }}, {{ req.district }}.">
 
-{% block og_title %}🩸 EMERGENCY BLOOD REQUEST: {{ req.blood_group }} ({{ req.component_display }}) Needed at {{ req.hospital }}{% endblock %}
-{% block og_desc %}Request ID: {{ req.request_id }} | Patient: {{ req.patient_name }} | Units: {{ req.units_needed }} | Component: {{ req.component_display }} | Contact: {{ req.contact_number }}. Source: Raktadata Blood Request System Nepal.{% endblock %}
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "{{ request.url_root.rstrip('/') }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blood Requests",
+          "item": "{{ request.url_root.rstrip('/') }}/blood-requests"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Request #{{ req.request_id }}",
+          "item": "{{ request.base_url }}"
+        }
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="container-xl py-4" style="max-width: 850px;">

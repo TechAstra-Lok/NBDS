@@ -630,6 +630,14 @@ def reserve_blood(bank_id):
 
         reservation.qr_code = generate_qr_code('reservation', reservation.id)
         db.session.commit()
+
+        # Trigger Real-Time Alert to Blood Bank Portal
+        try:
+            from app.services.bloodbank_alert_service import dispatch_reservation_alert
+            dispatch_reservation_alert(reservation)
+        except Exception as res_alert_err:
+            current_app.logger.warning("Failed to dispatch reservation alert: %s", res_alert_err)
+
         flash('Reservation request submitted successfully.', 'success')
         return redirect(url_for('public.blood_bank_detail', bank_id=blood_bank.id))
 
@@ -779,6 +787,13 @@ def blood_request_form():
             alert_matching_donors(app_obj, req.id)
         except Exception as e:
             current_app.logger.error(f"Error alerting donors: {e}")
+
+        # Trigger Real-Time Alerts to Nearby Blood Banks
+        try:
+            from app.services.bloodbank_alert_service import dispatch_nearby_request_alert
+            dispatch_nearby_request_alert(req)
+        except Exception as bb_alert_err:
+            current_app.logger.warning("Failed to dispatch nearby blood bank alerts: %s", bb_alert_err)
         
         flash(f'✅ Blood request submitted! Request ID: {req.request_id}. Donors will be notified.', 'success')
         return redirect(url_for('public.blood_request_board'))
@@ -1462,60 +1477,8 @@ def ad_click(ad_id):
 
 
 # ════════════════════════════════════════════
-#   SEO: SITEMAP & ROBOTS.TXT
+#   SEO: SITEMAP & ROBOTS.TXT (Delegated to seo_bp)
 # ════════════════════════════════════════════
-@public_bp.route('/robots.txt')
-def robots():
-    content = """User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /bloodbank/
-Disallow: /api/
-
-Sitemap: https://raktadata.lokeshprasai.com.np/sitemap.xml
-"""
-    return Response(content, mimetype='text/plain')
-
-
-@public_bp.route('/sitemap.xml', methods=['GET'])
-def sitemap():
-    today = datetime.now().date().isoformat()
-    pages = [
-        (url_for('public.index', _external=True), today, '1.0', 'daily'),
-        (url_for('public.find_donors', _external=True), today, '0.9', 'daily'),
-        (url_for('public.blood_request_board', _external=True), today, '0.9', 'hourly'),
-        (url_for('public.blood_banks', _external=True), today, '0.8', 'weekly'),
-        (url_for('public.ai_assistant', _external=True), today, '0.8', 'weekly'),
-        (url_for('public.become_donor', _external=True), today, '0.8', 'monthly'),
-        (url_for('public.news_list', _external=True), today, '0.8', 'daily'),
-        (url_for('public.about', _external=True), today, '0.6', 'monthly'),
-        (url_for('public.contact', _external=True), today, '0.6', 'monthly'),
-        (url_for('public.faq', _external=True), today, '0.6', 'monthly'),
-        (url_for('public.donor_guidelines', _external=True), today, '0.6', 'monthly'),
-        (url_for('public.success_stories', _external=True), today, '0.7', 'weekly'),
-    ]
-    
-    try:
-        for n in News.query.filter_by(is_published=True).order_by(desc(News.created_at)).limit(50).all():
-            lastmod = n.updated_at.date().isoformat() if n.updated_at else n.created_at.date().isoformat()
-            pages.append((url_for('public.news_detail', slug=n.slug, _external=True), lastmod, '0.7', 'monthly'))
-    except Exception:
-        pass
-
-    xml_parts = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-    ]
-    for loc, lastmod, prio, freq in pages:
-        xml_parts.append('  <url>')
-        xml_parts.append(f'    <loc>{loc}</loc>')
-        xml_parts.append(f'    <lastmod>{lastmod}</lastmod>')
-        xml_parts.append(f'    <changefreq>{freq}</changefreq>')
-        xml_parts.append(f'    <priority>{prio}</priority>')
-        xml_parts.append('  </url>')
-    xml_parts.append('</urlset>')
-    
-    return Response('\n'.join(xml_parts), mimetype='application/xml')
 
 
 # ════════════════════════════════════════════

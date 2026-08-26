@@ -1,0 +1,157 @@
+{% extends "bloodbank/layout.html" %}
+
+{% block title %}Notification Center — {{ bank.display_name or bank.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="fas fa-bell text-danger"></i>
+        <span>Clinical & Emergency Notifications</span>
+      </h3>
+      <p class="text-muted mb-0 small">Real-time alerts for incoming blood reservations and nearby community blood requests</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('bloodbank.alert_settings') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="fas fa-sliders me-1"></i> Alert Settings
+      </a>
+      {% if unread_count > 0 %}
+      <form method="POST" action="{{ url_for('bloodbank.mark_all_notifications_read') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">
+          <i class="fas fa-check-double me-1"></i> Mark All as Read
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Notification Tabs -->
+  <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+    <div class="card-body p-2 border-bottom">
+      <ul class="nav nav-pills gap-1">
+        <li class="nav-item">
+          <a class="nav-link rounded-pill py-2 px-3 small fw-semibold {% if tab == 'unread' %}active bg-danger text-white{% else %}text-muted{% endif %}"
+             href="{{ url_for('bloodbank.notifications', tab='unread') }}">
+            <i class="fas fa-envelope-open me-1"></i> Unread
+            {% if unread_count > 0 %}
+            <span class="badge bg-white text-danger ms-1">{{ unread_count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill py-2 px-3 small fw-semibold {% if tab == 'all' %}active bg-secondary text-white{% else %}text-muted{% endif %}"
+             href="{{ url_for('bloodbank.notifications', tab='all') }}">
+            <i class="fas fa-list me-1"></i> All Active
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link rounded-pill py-2 px-3 small fw-semibold {% if tab == 'archived' %}active bg-dark text-white{% else %}text-muted{% endif %}"
+             href="{{ url_for('bloodbank.notifications', tab='archived') }}">
+            <i class="fas fa-box-archive me-1"></i> Archived
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Notification List -->
+    <div class="card-body p-0">
+      {% if pagination.items %}
+      <div class="list-group list-group-flush">
+        {% for notif in pagination.items %}
+        <div class="list-group-item p-4 d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 {% if not notif.is_read %}bg-danger bg-opacity-10 border-start border-4 border-danger{% endif %}">
+          <div class="d-flex align-items-start gap-3 flex-grow-1">
+            <!-- Icon -->
+            <div class="p-3 rounded-circle {% if notif.priority == 'EMERGENCY' %}bg-danger text-white pulse-emergency{% elif notif.notification_type == 'RESERVATION' %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-warning{% endif %}">
+              {% if notif.notification_type == 'RESERVATION' %}
+              <i class="fas fa-hand-holding-medical fa-lg"></i>
+              {% elif notif.priority == 'EMERGENCY' %}
+              <i class="fas fa-bolt fa-lg"></i>
+              {% else %}
+              <i class="fas fa-location-dot fa-lg"></i>
+              {% endif %}
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h6 class="fw-bold mb-0 {% if not notif.is_read %}text-danger{% endif %}">{{ notif.title }}</h6>
+                {% if notif.priority == 'EMERGENCY' %}
+                <span class="badge bg-danger">EMERGENCY</span>
+                {% endif %}
+                <span class="badge bg-secondary-subtle text-secondary small">{{ notif.notification_type|replace('_', ' ')|title }}</span>
+                {% if not notif.is_read %}
+                <span class="badge bg-danger rounded-pill">New</span>
+                {% endif %}
+              </div>
+              <p class="mb-2 text-secondary">{{ notif.message }}</p>
+              <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
+                <span><i class="fas fa-clock me-1"></i>{{ notif.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+                {% if notif.reservation_id %}
+                <span class="mono-code fw-semibold text-danger">#RES-{{ "%05d"|format(notif.reservation_id) }}</span>
+                {% endif %}
+                {% if notif.blood_request_id %}
+                <span class="mono-code fw-semibold text-primary">#REQ-{{ notif.blood_request_id }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+            {% if notif.reservation_id %}
+            <a href="{{ url_for('bloodbank.reservations') }}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+              <i class="fas fa-eye me-1"></i> Review Reservation
+            </a>
+            {% elif notif.blood_request_id %}
+            <a href="{{ url_for('public.single_blood_request', request_ref=notif.blood_request_id) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+              <i class="fas fa-external-link me-1"></i> View Request
+            </a>
+            {% endif %}
+
+            {% if not notif.is_read %}
+            <form method="POST" action="{{ url_for('bloodbank.mark_notification_read', id=notif.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="btn btn-sm btn-light border rounded-pill px-3 text-muted" title="Mark as read">
+                <i class="fas fa-check"></i>
+              </button>
+            </form>
+            {% endif %}
+
+            {% if not notif.is_archived %}
+            <form method="POST" action="{{ url_for('bloodbank.archive_notification', id=notif.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="btn btn-sm btn-light border rounded-pill px-3 text-muted" title="Archive">
+                <i class="fas fa-box-archive"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if pagination.pages > 1 %}
+      <div class="p-3 border-top d-flex justify-content-center">
+        {{ render_pagination(pagination, 'bloodbank.notifications', tab=tab) }}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5">
+        <div class="p-4 rounded-circle bg-light d-inline-flex mb-3">
+          <i class="fas fa-bell-slash text-muted fa-3x"></i>
+        </div>
+        <h5 class="fw-bold">No {{ tab|title }} Notifications</h5>
+        <p class="text-muted small">You're all caught up! Incoming reservations and nearby emergencies will appear here instantly.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

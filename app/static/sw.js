@@ -53,3 +53,48 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+// ── Web Push Notifications ────────────────────
+self.addEventListener('push', event => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = {
+      title: 'Nepali Blood Donors Society',
+      body: event.data ? event.data.text() : 'New notification received.'
+    };
+  }
+
+  const title = data.title || 'NBDS Notification';
+  const options = {
+    body: data.body || data.message || '',
+    icon: data.icon || '/static/images/icon-192.png',
+    badge: '/static/images/icon-192.png',
+    vibrate: [200, 100, 200],
+    data: {
+      url: data.url || (data.payload && data.payload.request_url) || '/'
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (let client of windowClients) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+

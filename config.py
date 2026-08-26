@@ -1,6 +1,11 @@
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+try:
+    from sqlalchemy.pool import StaticPool
+    _has_static_pool = True
+except ImportError:
+    _has_static_pool = False
 
 load_dotenv()
 

@@ -1,0 +1,133 @@
+{% extends "bloodbank/layout.html" %}
+
+{% block title %}Alert Settings — {{ bank.display_name or bank.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+        <i class="fas fa-sliders text-danger"></i>
+        <span>Real-Time Alert & Notification Preferences</span>
+      </h3>
+      <p class="text-muted mb-0 small">Customize which alerts your team receives and configure sound & geographical radius parameters</p>
+    </div>
+    <a href="{{ url_for('bloodbank.notifications') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+      <i class="fas fa-arrow-left me-1"></i> Back to Notifications
+    </a>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-danger text-white py-3 px-4">
+          <h5 class="fw-bold mb-0"><i class="fas fa-tower-broadcast me-2"></i>Alert Channels & Triggers</h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('bloodbank.alert_settings') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <!-- 1. Reservation Alerts -->
+            <div class="mb-4 pb-3 border-bottom">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="reservation_alerts_enabled" name="reservation_alerts_enabled" value="1" {% if settings.reservation_alerts_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-bold fs-6" for="reservation_alerts_enabled">
+                  Blood Reservation Alerts (Direct Incoming)
+                </label>
+              </div>
+              <p class="text-muted small ms-4 mb-0">
+                Receive instant real-time popups and notifications whenever a patient or hospital submits a blood reservation for this blood bank.
+              </p>
+            </div>
+
+            <!-- 2. Nearby Blood Requests -->
+            <div class="mb-4 pb-3 border-bottom">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="nearby_request_alerts_enabled" name="nearby_request_alerts_enabled" value="1" {% if settings.nearby_request_alerts_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-bold fs-6" for="nearby_request_alerts_enabled">
+                  Nearby Community Blood Request Alerts
+                </label>
+              </div>
+              <p class="text-muted small ms-4 mb-3">
+                Receive alerts when emergency or standard blood requests are posted by hospitals or patients within your vicinity.
+              </p>
+
+              <div class="row g-3 ms-2">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold" for="alert_radius_km">Alert Radius (Kilometers)</label>
+                  <div class="input-group">
+                    <input type="number" class="form-control rounded-start-3" id="alert_radius_km" name="alert_radius_km" value="{{ settings.alert_radius_km or 25 }}" min="1" max="500"/>
+                    <span class="input-group-text rounded-end-3">KM</span>
+                  </div>
+                  <div class="form-text">Defaults to 25 km around your facility coordinates.</div>
+                </div>
+
+                <div class="col-md-6 d-flex align-items-center">
+                  <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="emergency_only" name="emergency_only" value="1" {% if settings.emergency_only %}checked{% endif %}>
+                    <label class="form-check-label small fw-semibold" for="emergency_only">
+                      Emergency Only (Filter out routine non-urgent requests)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Blood Group Filter -->
+              <div class="mt-3 ms-2">
+                <label class="form-label small fw-semibold">Target Blood Groups (Leave all unchecked to receive all groups)</label>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for bg in all_groups %}
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="blood_groups" value="{{ bg }}" id="bg_{{ loop.index }}" {% if bg in current_groups %}checked{% endif %}>
+                    <label class="form-check-label badge bg-secondary-subtle text-dark border px-2 py-1" for="bg_{{ loop.index }}">{{ bg }}</label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Audio & Sound Settings -->
+            <div class="mb-4 pb-3 border-bottom">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="sound_enabled" name="sound_enabled" value="1" {% if settings.sound_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-bold fs-6" for="sound_enabled">
+                  <i class="fas fa-volume-high text-success me-1"></i> Audio Alert Chime
+                </label>
+              </div>
+              <p class="text-muted small ms-4 mb-2">
+                Play an audible notification chime when incoming reservations or emergency requests arrive while the portal is open.
+              </p>
+              <button type="button" class="btn btn-sm btn-outline-success ms-4 rounded-pill px-3" onclick="if(window.BBAlerts) window.BBAlerts.playAlert();">
+                <i class="fas fa-play me-1"></i> Test Audio Chime
+              </button>
+            </div>
+
+            <!-- 4. Browser Push -->
+            <div class="mb-4">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="push_enabled" name="push_enabled" value="1" {% if settings.push_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-bold fs-6" for="push_enabled">
+                  <i class="fas fa-mobile-screen text-primary me-1"></i> Browser Push Notifications
+                </label>
+              </div>
+              <p class="text-muted small ms-4 mb-0">
+                Allow browser desktop/mobile push notifications when the dashboard is running in the background.
+              </p>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+              <a href="{{ url_for('bloodbank.notifications') }}" class="btn btn-light rounded-pill px-4">Cancel</a>
+              <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm">
+                <i class="fas fa-save me-1"></i> Save Preferences
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

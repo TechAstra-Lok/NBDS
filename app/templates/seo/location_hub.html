@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_meta %}
+<meta name="description" content="{{ meta_desc }}">
+<link rel="canonical" href="{{ request.base_url }}">
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ meta_desc }}">
+<meta property="og:url" content="{{ request.base_url }}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ meta_desc }}">
+
+<!-- Schema.org JSON-LD BreadcrumbList & MedicalBusiness -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "{{ request.url_root.rstrip('/') }}"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blood Banks",
+          "item": "{{ request.url_root.rstrip('/') }}/blood-banks"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "{{ province_name }}",
+          "item": "{{ request.url_root.rstrip('/') }}/blood-banks/location/{{ province_slug }}"
+        }
+        {% if district_name %}
+        ,
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "{{ district_name }}",
+          "item": "{{ request.base_url }}"
+        }
+        {% endif %}
+      ]
+    },
+    {
+      "@type": "MedicalOrganization",
+      "name": "National Blood Donors Society Nepal — {{ district_name or province_name }} Blood Bank Directory",
+      "url": "{{ request.base_url }}",
+      "description": "{{ meta_desc }}",
+      "address": {
+        "@type": "PostalAddress",
+        "addressRegion": "{{ province_name }}",
+        {% if district_name %}"addressLocality": "{{ district_name }}",{% endif %}
+        "addressCountry": "NP"
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="bg-body-tertiary border-bottom py-2">
+  <div class="container">
+    <ol class="breadcrumb mb-0 small">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}" class="text-decoration-none text-muted"><i class="fas fa-home me-1"></i>Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('public.blood_banks') }}" class="text-decoration-none text-muted">Blood Banks</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('seo.location_blood_banks', province_slug=province_slug) }}" class="text-decoration-none text-muted">{{ province_name }}</a></li>
+      {% if district_name %}
+      <li class="breadcrumb-item active text-danger fw-semibold" aria-current="page">{{ district_name }}</li>
+      {% endif %}
+    </ol>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="py-4 py-md-5 bg-danger bg-opacity-10 border-bottom">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 mb-2">
+          <i class="fas fa-map-location-dot me-1"></i>Regional Blood Bank Hub
+        </span>
+        <h1 class="h2 fw-bold text-dark mb-2">{{ h1_heading }}</h1>
+        <p class="text-secondary mb-3">{{ meta_desc }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger rounded-pill px-4 shadow-sm">
+            <i class="fas fa-hand-holding-droplet me-1"></i> Post Urgent Blood Request
+          </a>
+          <a href="{{ url_for('public.find_donors') }}" class="btn btn-outline-danger rounded-pill px-4">
+            <i class="fas fa-users-viewfinder me-1"></i> Find Donors in {{ district_name or province_name }}
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-4 text-center mt-3 mt-lg-0 d-none d-lg-block">
+        <div class="p-4 rounded-4 bg-body shadow-sm border border-danger border-opacity-25">
+          <div class="text-danger fs-2 fw-bold mb-0">{{ blood_banks|length }}</div>
+          <div class="text-muted small fw-semibold">Verified Blood Centers</div>
+          <div class="small text-success mt-2"><i class="fas fa-circle-check me-1"></i>Updated in Real-Time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container py-5">
+
+  <!-- Regional Stock Availability Bar -->
+  <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+    <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+      <div>
+        <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie text-danger me-2"></i>Regional Aggregate Blood Stock Availability</h5>
+        <small class="text-muted">Total units currently in stock across verified centers in this region</small>
+      </div>
+      <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1">Live Synchronized</span>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-3 text-center">
+        {% for bg, count in stock_totals.items() %}
+        <div class="col-3 col-md-3 col-lg">
+          <div class="p-3 rounded-3 {% if count > 0 %}bg-danger bg-opacity-10 border border-danger border-opacity-25{% else %}bg-body-secondary border{% endif %}">
+            <div class="fw-bold fs-5 text-danger">{{ bg }}</div>
+            <div class="fw-bold fs-4 my-1">{{ count }}</div>
+            <div class="text-muted small">Units</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Verified Blood Banks List -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="h4 fw-bold mb-1"><i class="fas fa-hospital text-danger me-2"></i>Verified Centers ({{ blood_banks|length }})</h3>
+      <p class="text-muted small mb-0">Official blood transfusion centers, Red Cross facilities, and hospital blood banks</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-5">
+    {% for bank in blood_banks %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden d-flex flex-column">
+        <div class="card-body p-4 flex-grow-1">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 small">
+              {{ bank.service_type or 'Blood Bank' }}
+            </span>
+            <span class="badge {{ 'bg-success' if bank.is_active and bank.status == 'active' else 'bg-secondary' }} rounded-pill">
+              {{ bank.status|title }}
+            </span>
+          </div>
+
+          <h5 class="fw-bold mb-2">
+            <a href="{{ url_for('public.blood_bank_detail', bank_id=bank.id) }}" class="text-decoration-none text-dark">
+              {{ bank.display_name or bank.name }}
+            </a>
+          </h5>
+
+          <p class="text-muted small mb-3">
+            <i class="fas fa-map-pin text-danger me-1"></i>
+            {{ [bank.local_level, bank.district, bank.province]|select|join(', ') }}
+          </p>
+
+          <ul class="list-unstyled small text-secondary mb-3">
+            {% if bank.hospital_name %}
+            <li class="mb-1"><i class="fas fa-hospital text-muted me-2"></i>{{ bank.hospital_name }}</li>
+            {% endif %}
+            {% if bank.phone or bank.contact_number %}
+            <li class="mb-1">
+              <i class="fas fa-phone text-success me-2"></i>
+              <a href="tel:{{ bank.contact_number or bank.phone }}" class="text-success fw-bold text-decoration-none">
+                {{ bank.contact_number or bank.phone }}
+              </a>
+            </li>
+            {% endif %}
+            <li class="mb-1">
+              <i class="fas fa-clock text-warning me-2"></i>
+              {% if bank.emergency_available %}<strong>24/7 Emergency Support</strong>{% else %}Clinical Hours{% endif %}
+            </li>
+          </ul>
+        </div>
+
+        <div class="card-footer bg-transparent border-top p-3 d-flex gap-2">
+          <a href="{{ url_for('public.blood_bank_detail', bank_id=bank.id) }}" class="btn btn-outline-danger btn-sm rounded-pill flex-grow-1">
+            <i class="fas fa-circle-info me-1"></i> View Profile
+          </a>
+          <a href="{{ url_for('public.reserve_blood', bank_id=bank.id) }}" class="btn btn-danger btn-sm rounded-pill flex-grow-1 shadow-sm">
+            <i class="fas fa-hand-holding-droplet me-1"></i> Reserve
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Emergency Clinical Advice Banner -->
+  <div class="card shadow-sm border-0 rounded-4 bg-dark text-white p-4 p-md-5">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h4 class="fw-bold mb-2"><i class="fas fa-triangle-exclamation text-warning me-2"></i>Emergency Blood Protocol in {{ district_name or province_name }}</h4>
+        <p class="text-white-50 mb-3 small">
+          In severe clinical emergencies (trauma, surgical hemorrhage, postpartum hemorrhage), always contact the nearest verified transfusion center immediately by telephone or post an emergency request on the National Blood Donors Society real-time board.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <span class="text-warning fw-bold"><i class="fas fa-phone-volume me-1"></i> National Hotline: 102 / 1145</span>
+          <span class="text-white-50">|</span>
+          <span class="text-white"><i class="fas fa-clock me-1"></i> 24/7 Emergency Response</span>
+        </div>
+      </div>
+      <div class="col-lg-4 text-center mt-3 mt-lg-0">
+        <a href="{{ url_for('public.blood_request_form') }}?emergency=true" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold shadow">
+          <i class="fas fa-bolt me-1"></i> Emergency Blood Request
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

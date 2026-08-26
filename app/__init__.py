@@ -14,6 +14,8 @@ from flask_caching import Cache
 from flask import g
 from flask_sqlalchemy.session import Session
 
+from flask_socketio import SocketIO
+
 class TenantAwareSession(Session):
     def get_bind(self, mapper=None, clause=None, bind=None, **kwargs):
         if mapper is not None:
@@ -38,6 +40,8 @@ login_manager.login_view = 'admin.login'
 login_manager.login_message = 'Please log in to access the admin panel.'
 login_manager.login_message_category = 'warning'
 migrate = Migrate()
+socketio = SocketIO(cors_allowed_origins="*")
+
 try:
     from flask_babel import Babel, gettext as _  # type: ignore[import-untyped]
     has_babel = True
@@ -95,6 +99,7 @@ def create_app(config_name=None):
     csrf.init_app(app)
     cache.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
+    socketio.init_app(app, cors_allowed_origins="*")  # type: ignore[arg-type]
     
     @app.template_filter('to_bs')
     def to_bs_filter(dt):
@@ -120,12 +125,13 @@ def create_app(config_name=None):
         return str(dt)
     
     # Initialize and start the APScheduler
-    try:
-        scheduler.init_app(app)
-        scheduler.start()
-    except Exception:
-        # Ignore if scheduler is already running (e.g. in auto-reloader or CLI)
-        pass
+    if not app.testing:
+        try:
+            scheduler.init_app(app)
+            scheduler.start()
+        except Exception:
+            # Ignore if scheduler is already running (e.g. in auto-reloader or CLI)
+            pass
 
     # अपलोड फोल्डरहरू स्वतः सिर्जना गर्ने (तस्बिरको सुरक्षाको लागि)
     _create_upload_dirs(app)
@@ -149,12 +155,20 @@ def create_app(config_name=None):
         from app.routes.api import api_bp
         from app.routes.notifications import notifications_bp
         from app.routes.bloodbank import bloodbank_bp
+        from app.routes.seo import seo_bp
         
         app.register_blueprint(public_bp)
         app.register_blueprint(admin_bp, url_prefix='/admin')
         app.register_blueprint(api_bp, url_prefix='/api/v1')
         app.register_blueprint(notifications_bp)
         app.register_blueprint(bloodbank_bp, url_prefix='/bloodbank')
+        app.register_blueprint(seo_bp)
+        
+        # Socket.IO Event Handlers
+        try:
+            from app import sockets as _sockets  # noqa: F401
+        except Exception as sock_err:
+            app.logger.warning("Failed to import sockets: %s", sock_err)
         
         # एरर ह्यान्डलरहरू सुचारु गर्ने
         _register_error_handlers(app)
@@ -209,8 +223,9 @@ def create_app(config_name=None):
         app.jinja_env.globals['render_pagination'] = render_pagination  # type: ignore[assignment]
         
         # Schedule Background Jobs
-        from app.tasks import schedule_jobs
-        schedule_jobs(app, scheduler)
+        if not app.testing:
+            from app.tasks import schedule_jobs
+            schedule_jobs(app, scheduler)
     
     return app
 
@@ -245,6 +260,10 @@ def _ensure_legacy_schema_columns(app):
             StaffMember,
             BloodBankShift,
             BloodBankShiftAssignment,
+            BloodBankNotification,
+            BloodBankAlertSettings,
+            BloodBankNotificationDelivery,
+            SiteConfig,
         )
 
         db.create_all()
@@ -270,6 +289,10 @@ def _ensure_legacy_schema_columns(app):
             ('staff_members', StaffMember),
             ('blood_bank_shifts', BloodBankShift),
             ('blood_bank_shift_assignments', BloodBankShiftAssignment),
+            ('blood_bank_notifications', BloodBankNotification),
+            ('blood_bank_alert_settings', BloodBankAlertSettings),
+            ('blood_bank_notification_deliveries', BloodBankNotificationDelivery),
+            ('site_configs', SiteConfig),
         ]
 
         for table_name, model_cls in model_tables:
@@ -443,25 +466,26 @@ def _register_context_processors(app):
         from flask import request
         
         # भिजिटर ट्र्याकिङ प्रणाली (Visitor Tracking)
-        try:
-            visitor_ip = request.remote_addr
-            now_utc = datetime.now(timezone.utc)
-            today = now_utc.date()
-            existing = SiteVisitor.query.filter_by(
-                ip_address=visitor_ip,
-                visit_date=today
-            ).first()
-            if not existing:
-                new_visitor = SiteVisitor(
+        if not app.testing:
+            try:
+                visitor_ip = request.remote_addr
+                now_utc = datetime.now(timezone.utc)
+                today = now_utc.date()
+                existing = SiteVisitor.query.filter_by(
                     ip_address=visitor_ip,
-                    visit_date=today,
-                    user_agent=request.headers.get('User-Agent', '')[:255]
-                )
-                db.session.add(new_visitor)
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
-            pass
+                    visit_date=today
+                ).first()
+                if not existing:
+                    new_visitor = SiteVisitor(
+                        ip_address=visitor_ip,
+                        visit_date=today,
+                        user_agent=request.headers.get('User-Agent', '')[:255]
+                    )
+                    db.session.add(new_visitor)
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+                pass
         
         now_utc = datetime.now(timezone.utc)
         # सक्रिय सूचनाहरू (Active Notices)

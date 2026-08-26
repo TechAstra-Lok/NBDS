@@ -10,6 +10,7 @@ from flask import (
 from app import db
 from app.models import BloodBankAccount, BloodBankLoginHistory, BloodBankPasswordHistory
 from app.services.auth_service import AuthService
+import json
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -725,7 +726,20 @@ def dashboard():
     
     # Real-time 3-shift roster
     three_shifts = ShiftService.get_three_shifts(bank_id)
-    
+
+    # Real-time alerts and nearby requests
+    from app.models import BloodBankNotification
+    recent_notifications = BloodBankNotification.query.filter_by(
+        blood_bank_id=bank_id,
+        is_archived=False
+    ).order_by(BloodBankNotification.created_at.desc()).limit(5).all()
+
+    nearby_alerts = BloodBankNotification.query.filter_by(
+        blood_bank_id=bank_id,
+        notification_type='NEARBY_REQUEST',
+        is_archived=False
+    ).order_by(BloodBankNotification.created_at.desc()).limit(5).all()
+
     return render_template(
         'bloodbank/dashboard.html', 
         account=account, 
@@ -737,7 +751,9 @@ def dashboard():
         emergency_count=emergency_count,
         reservations_count=reservations_count,
         transfers_count=transfers_count,
-        three_shifts=three_shifts
+        three_shifts=three_shifts,
+        recent_notifications=recent_notifications,
+        nearby_alerts=nearby_alerts
     )
 
 
@@ -879,4 +895,177 @@ def delete_inventory(id):
 
     flash(f'Inventory record for {label} deleted.', 'success')
     return redirect(url_for('bloodbank.inventory'))
+
+
+# ── Notification Center & Real-Time Alerts ───────────
+@bloodbank_bp.route('/notifications')
+@bloodbank_login_required
+def notifications():
+    from app.models import BloodBankNotification
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    bank = account.blood_bank
+
+    tab = request.args.get('tab', 'unread').strip()
+    page = request.args.get('page', 1, type=int)
+
+    query = BloodBankNotification.query.filter_by(blood_bank_id=account.blood_bank_id)
+
+    if tab == 'unread':
+        query = query.filter_by(is_read=False, is_archived=False)
+    elif tab == 'archived':
+        query = query.filter_by(is_archived=True)
+    else:
+        query = query.filter_by(is_archived=False)
+
+    pagination = query.order_by(BloodBankNotification.created_at.desc()).paginate(page=page, per_page=15, error_out=False)
+    unread_count = BloodBankNotification.query.filter_by(blood_bank_id=account.blood_bank_id, is_read=False, is_archived=False).count()
+
+    return render_template(
+        'bloodbank/notifications.html',
+        account=account,
+        bank=bank,
+        pagination=pagination,
+        tab=tab,
+        unread_count=unread_count
+    )
+
+
+@bloodbank_bp.route('/notifications/<int:id>/read', methods=['POST'])
+@bloodbank_login_required
+def mark_notification_read(id):
+    from app.models import BloodBankNotification
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    notif = BloodBankNotification.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
+    notif.is_read = True
+    notif.read_at = datetime.now(timezone.utc)
+    db.session.commit()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+        return {'status': 'ok', 'id': notif.id}
+    return redirect(request.referrer or url_for('bloodbank.notifications'))
+
+
+@bloodbank_bp.route('/notifications/read-all', methods=['POST'])
+@bloodbank_login_required
+def mark_all_notifications_read():
+    from app.models import BloodBankNotification
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    now_utc = datetime.now(timezone.utc)
+    BloodBankNotification.query.filter_by(
+        blood_bank_id=account.blood_bank_id,
+        is_read=False
+    ).update({'is_read': True, 'read_at': now_utc})
+    db.session.commit()
+    flash('All notifications marked as read.', 'success')
+    return redirect(url_for('bloodbank.notifications'))
+
+
+@bloodbank_bp.route('/notifications/<int:id>/archive', methods=['POST'])
+@bloodbank_login_required
+def archive_notification(id):
+    from app.models import BloodBankNotification
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    notif = BloodBankNotification.query.filter_by(id=id, blood_bank_id=account.blood_bank_id).first_or_404()
+    notif.is_archived = True
+    db.session.commit()
+    flash('Notification archived.', 'info')
+    return redirect(url_for('bloodbank.notifications'))
+
+
+@bloodbank_bp.route('/api/notifications/poll')
+@bloodbank_login_required
+def poll_notifications():
+    """Fallback polling endpoint for real-time alerts when Socket.IO is disconnected."""
+    from app.models import BloodBankNotification
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    since_id = request.args.get('since_id', 0, type=int)
+
+    query = BloodBankNotification.query.filter(
+        BloodBankNotification.blood_bank_id == account.blood_bank_id,
+        BloodBankNotification.is_read == False,
+        BloodBankNotification.is_archived == False
+    )
+    if since_id > 0:
+        query = query.filter(BloodBankNotification.id > since_id)
+
+    new_notifs = query.order_by(BloodBankNotification.created_at.desc()).limit(10).all()
+    unread_total = BloodBankNotification.query.filter_by(
+        blood_bank_id=account.blood_bank_id,
+        is_read=False,
+        is_archived=False
+    ).count()
+
+    items = []
+    for n in new_notifs:
+        meta = {}
+        if n.meta_json:
+            try:
+                meta = json.loads(n.meta_json)
+            except Exception:
+                pass
+        items.append({
+            'id': n.id,
+            'type': n.notification_type,
+            'title': n.title,
+            'message': n.message,
+            'priority': n.priority,
+            'reservation_id': n.reservation_id,
+            'blood_request_id': n.blood_request_id,
+            'meta': meta,
+            'created_at': n.created_at.isoformat() if n.created_at else ''
+        })
+
+    return {
+        'status': 'ok',
+        'unread_count': unread_total,
+        'notifications': items
+    }
+
+
+# ── Alert Settings ──────────────────────────────────
+@bloodbank_bp.route('/settings/alerts', methods=['GET', 'POST'])
+@bloodbank_login_required
+def alert_settings():
+    from app.models import BloodBankAlertSettings
+    account = BloodBankAccount.query.get(session['bloodbank_account_id'])
+    assert account is not None
+    bank = account.blood_bank
+
+    settings = BloodBankAlertSettings.query.filter_by(blood_bank_id=account.blood_bank_id).first()
+    if not settings:
+        settings = BloodBankAlertSettings(blood_bank_id=account.blood_bank_id)
+        db.session.add(settings)
+        db.session.commit()
+
+    if request.method == 'POST':
+        settings.reservation_alerts_enabled = bool(request.form.get('reservation_alerts_enabled'))
+        settings.nearby_request_alerts_enabled = bool(request.form.get('nearby_request_alerts_enabled'))
+        settings.emergency_only = bool(request.form.get('emergency_only'))
+        settings.alert_radius_km = max(int(request.form.get('alert_radius_km', 25) or 25), 1)
+        selected_groups = request.form.getlist('blood_groups')
+        settings.alert_blood_groups = ','.join(selected_groups)
+        settings.sound_enabled = bool(request.form.get('sound_enabled'))
+        settings.push_enabled = bool(request.form.get('push_enabled'))
+        settings.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+        flash('Alert notification preferences saved successfully.', 'success')
+        return redirect(url_for('bloodbank.alert_settings'))
+
+    all_groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+    current_groups = [g.strip() for g in settings.alert_blood_groups.split(',') if g.strip()] if settings.alert_blood_groups else []
+
+    return render_template(
+        'bloodbank/alert_settings.html',
+        account=account,
+        bank=bank,
+        settings=settings,
+        all_groups=all_groups,
+        current_groups=current_groups
+    )
+
 
