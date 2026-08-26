@@ -15,16 +15,36 @@ INSTANCE_DIR = os.path.join(BASE_DIR, 'instance')
 os.makedirs(INSTANCE_DIR, exist_ok=True)
 
 
-def get_database_uri():
+def _is_cockroachdb_url(url: str) -> bool:
+    """Detect CockroachDB connection URLs by host pattern or explicit scheme."""
+    return (
+        url.startswith('cockroachdb')
+        or 'cockroachlabs.cloud' in url
+        or 'cockroachdb' in url.lower()
+    )
+
+
+def get_database_uri() -> str:
     db_url = os.environ.get('DATABASE_URL')
     if not db_url:
         instance_db = os.path.join(INSTANCE_DIR, 'nepali_blood.db')
         return f"sqlite:///{instance_db}"
-    
+
     # Fix Render/Heroku legacy postgres:// prefix → postgresql://
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
-        
+
+    # Rewrite postgresql:// → cockroachdb+psycopg2:// for CockroachDB hosts.
+    # SQLAlchemy's built-in PostgreSQL dialect cannot parse CockroachDB version
+    # strings (e.g. 'CockroachDB CCL v26.2.5 ...'), causing an AssertionError.
+    # Using the sqlalchemy-cockroachdb dialect avoids this entirely.
+    if _is_cockroachdb_url(db_url):
+        if db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "cockroachdb+psycopg2://", 1)
+        elif db_url.startswith("cockroachdb://"):
+            db_url = db_url.replace("cockroachdb://", "cockroachdb+psycopg2://", 1)
+        return db_url
+
     if db_url.startswith("sqlite:///"):
         sqlite_path = db_url.replace("sqlite:///", "")
         if sqlite_path and sqlite_path != ":memory:":
