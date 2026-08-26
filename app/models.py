@@ -1451,7 +1451,10 @@ class SiteVisitor(db.Model):
     ip_address  = db.Column(db.String(45), nullable=False, index=True)
     visit_date  = db.Column(db.Date, nullable=False, index=True)
     user_agent  = db.Column(db.String(255))
+    page_url    = db.Column(db.String(500))
+    hits        = db.Column(db.Integer, default=1, server_default='1', nullable=False)
     created_at  = db.Column(db.DateTime, default=utc_now)
+    updated_at  = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     __table_args__ = (
         db.UniqueConstraint('ip_address', 'visit_date', name='unique_daily_visitor'),

@@ -16,7 +16,7 @@ from flask_login import login_required, current_user, login_user, logout_user
 from app import db
 from app.models import (
     Donor, BloodRequest, News, Notice, Advertisement, 
-    Contact, SuccessStory, Volunteer, BloodBank, BloodReservation
+    Contact, SuccessStory, Volunteer, BloodBank, BloodReservation, SiteVisitor
 )
 from app.forms import (
     BloodRequestForm, DonorRegistrationForm, ContactForm, RequestManagementForm,
@@ -1440,7 +1440,16 @@ def news_list():
 # ════════════════════════════════════════════
 @public_bp.route('/about')
 def about():
-    return render_template('about.html')
+    total_donors    = Donor.query.count()
+    fulfilled       = BloodRequest.query.filter_by(status='fulfilled').count()
+    districts_covered = db.session.query(func.count(func.distinct(Donor.curr_district))).scalar() or 0
+    total_site_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).scalar() or 0
+    return render_template('about.html',
+        total_donors=total_donors,
+        fulfilled=fulfilled,
+        districts_covered=districts_covered,
+        total_site_visits=total_site_visits,
+    )
 
 
 @public_bp.route('/contact', methods=['GET', 'POST'])

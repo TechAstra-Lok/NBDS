@@ -252,9 +252,11 @@ def dashboard():
     # Visitor stats
     today       = datetime.now().date()
     today_visitors = SiteVisitor.query.filter_by(visit_date=today).count()
+    today_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).filter(SiteVisitor.visit_date == today).scalar() or 0
     week_ago    = today - timedelta(days=7)
     week_visitors = SiteVisitor.query.filter(SiteVisitor.visit_date >= week_ago).count()
     total_visitors = SiteVisitor.query.count()
+    total_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).scalar() or 0
     
     # Blood group breakdown
     bg_breakdown = db.session.query(
@@ -308,8 +310,10 @@ def dashboard():
         notifications_sent=notifications_sent,
         notifications_failed=notifications_failed,
         today_visitors=today_visitors,
+        today_visits=today_visits,
         week_visitors=week_visitors,
         total_visitors=total_visitors,
+        total_visits=total_visits,
         bg_breakdown=bg_breakdown,
         recent_donors=recent_donors,
         recent_requests=recent_requests,

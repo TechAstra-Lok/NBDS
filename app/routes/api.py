@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from app import db
-from app.models import Donor, BloodRequest, Advertisement, BloodBank, BloodInventory, BloodReservation, BloodTransfer, LowStockAlert
+from app.models import Donor, BloodRequest, Advertisement, BloodBank, BloodInventory, BloodReservation, BloodTransfer, LowStockAlert, SiteVisitor
 from sqlalchemy import desc, or_, func
+from datetime import datetime, timezone, date
 
 api_bp = Blueprint('api', __name__)
 
@@ -142,15 +143,24 @@ def blood_bank_alerts_api(bank_id):
 @api_bp.route('/stats')
 def stats():
     from app.models import News
+    today = datetime.now(timezone.utc).date()
+    total_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).scalar() or 0
+    today_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).filter(SiteVisitor.visit_date == today).scalar() or 0
+    today_unique = SiteVisitor.query.filter_by(visit_date=today).count()
+    total_unique = SiteVisitor.query.count()
     
     return jsonify({
-        'total_donors':     Donor.query.count(),
-        'available_donors': Donor.query.filter_by(availability_status='available').count(),
-        'active_requests':  BloodRequest.query.filter_by(status='active').count(),
-        'fulfilled':        BloodRequest.query.filter_by(status='fulfilled').count(),
-        'total_news':       News.query.filter_by(is_published=True).count(),
+        'total_donors':      Donor.query.count(),
+        'available_donors':  Donor.query.filter_by(availability_status='available').count(),
+        'active_requests':   BloodRequest.query.filter_by(status='active').count(),
+        'fulfilled':         BloodRequest.query.filter_by(status='fulfilled').count(),
+        'total_news':        News.query.filter_by(is_published=True).count(),
         'districts_covered': db.session.query(func.count(func.distinct(Donor.curr_district))).scalar() or 0,
         'active_emergencies': BloodRequest.query.filter_by(status='active', is_emergency=True).count(),
+        'total_site_visits': total_visits,
+        'today_site_visits': today_visits,
+        'today_unique_visitors': today_unique,
+        'total_unique_visitors': total_unique,
     })
 
 
@@ -402,5 +412,5 @@ def raktadata_helper_stream():
         yield f'data: {json.dumps({"candidates": [{"content": {"parts": [{"text": fallback_text}]}}]})}\n\n'
         yield 'data: [DONE]\n\n'
 
-    # pyrefly: ignore [bad-argument-type]
+    # pyrefly: ignore [bad-argument-type]  # type: ignore[arg-type]
     return Response(stream_with_context(generate()), mimetype='text/event-stream')

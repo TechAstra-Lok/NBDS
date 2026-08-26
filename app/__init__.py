@@ -264,6 +264,7 @@ def _ensure_legacy_schema_columns(app):
             BloodBankAlertSettings,
             BloodBankNotificationDelivery,
             SiteConfig,
+            SiteVisitor,
         )
 
         db.create_all()
@@ -293,6 +294,7 @@ def _ensure_legacy_schema_columns(app):
             ('blood_bank_alert_settings', BloodBankAlertSettings),
             ('blood_bank_notification_deliveries', BloodBankNotificationDelivery),
             ('site_configs', SiteConfig),
+            ('site_visitors', SiteVisitor),
         ]
 
         for table_name, model_cls in model_tables:
@@ -444,6 +446,66 @@ def _register_error_handlers(app):
         from flask import render_template
         return render_template('errors/403.html'), 403
 
+    # ── Site Visitor Tracking (Accurate Page Views & Unique Visitors) ──
+    @app.before_request
+    def track_site_visitor():
+        from flask import request
+        if request.method != 'GET':
+            return
+        path = request.path
+        # Ignore static assets, icons, service workers, and telemetry polls
+        if (path.startswith('/static') or 
+            path.startswith('/api/v1/stats') or
+            path == '/health' or 
+            path == '/favicon.ico' or 
+            path == '/sw.js' or 
+            path == '/robots.txt' or 
+            path == '/manifest.json' or
+            path.startswith('/socket.io')):
+            return
+            
+        if not app.testing:
+            from app.models import SiteVisitor, db
+            from datetime import datetime, timezone
+            try:
+                # Accurately extract client IP (supporting reverse proxies & Cloudflare)
+                visitor_ip = (
+                    request.headers.get('CF-Connecting-IP') or 
+                    request.headers.get('X-Forwarded-For', '').split(',')[0].strip() or 
+                    request.remote_addr or 
+                    '127.0.0.1'
+                )[:45]
+                
+                now_utc = datetime.now(timezone.utc)
+                today = now_utc.date()
+                ua = (request.headers.get('User-Agent') or '')[:255]
+                
+                existing = SiteVisitor.query.filter_by(
+                    ip_address=visitor_ip,
+                    visit_date=today
+                ).first()
+                
+                if existing:
+                    existing.hits = (existing.hits or 1) + 1
+                    existing.page_url = path[:500]
+                    existing.updated_at = now_utc
+                    if ua and not existing.user_agent:
+                        existing.user_agent = ua
+                else:
+                    new_visitor = SiteVisitor(
+                        ip_address=visitor_ip,
+                        visit_date=today,
+                        user_agent=ua,
+                        page_url=path[:500],
+                        hits=1,
+                        created_at=now_utc,
+                        updated_at=now_utc
+                    )
+                    db.session.add(new_visitor)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
     # ── Security Headers ──────────────────────────────────────────────────
     @app.after_request
     def set_security_headers(response):
@@ -461,33 +523,24 @@ def _register_error_handlers(app):
 def _register_context_processors(app):
     @app.context_processor
     def inject_globals():
-        from app.models import Notice, Advertisement, SiteVisitor
-        from datetime import datetime
-        from flask import request
-        
-        # भिजिटर ट्र्याकिङ प्रणाली (Visitor Tracking)
-        if not app.testing:
-            try:
-                visitor_ip = request.remote_addr
-                now_utc = datetime.now(timezone.utc)
-                today = now_utc.date()
-                existing = SiteVisitor.query.filter_by(
-                    ip_address=visitor_ip,
-                    visit_date=today
-                ).first()
-                if not existing:
-                    new_visitor = SiteVisitor(
-                        ip_address=visitor_ip,
-                        visit_date=today,
-                        user_agent=request.headers.get('User-Agent', '')[:255]
-                    )
-                    db.session.add(new_visitor)
-                    db.session.commit()
-            except Exception:
-                db.session.rollback()
-                pass
+        from app.models import Notice, Advertisement, SiteVisitor, db
+        from sqlalchemy import func
+        from datetime import datetime, timezone
         
         now_utc = datetime.now(timezone.utc)
+        today = now_utc.date()
+
+        # भिजिटर मेट्रिक्स (Live Visitor Metrics from Database)
+        total_site_visits = 0
+        total_unique_visitors = 0
+        today_visitors = 0
+        try:
+            total_site_visits = db.session.query(func.coalesce(func.sum(SiteVisitor.hits), 0)).scalar() or 0
+            total_unique_visitors = SiteVisitor.query.count()
+            today_visitors = SiteVisitor.query.filter_by(visit_date=today).count()
+        except Exception:
+            pass
+        
         # सक्रिय सूचनाहरू (Active Notices)
         active_notices = Notice.query.filter(
             Notice.is_active == True,
@@ -508,7 +561,10 @@ def _register_context_processors(app):
             contact_email=app.config.get('CONTACT_EMAIL', ''),
             active_notices=active_notices,
             sidebar_ads=sidebar_ads,
-            current_year=now_utc.year
+            current_year=now_utc.year,
+            total_site_visits=total_site_visits,
+            total_unique_visitors=total_unique_visitors,
+            today_visitors=today_visitors,
         )
     
     @app.context_processor

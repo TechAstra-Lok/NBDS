@@ -110,7 +110,8 @@
     ('Pending Events', pending_events, 'fa-calendar-alt', 'warning', url_for('admin.news'), 'Upcoming programs'),
     ('Notifications Sent', notifications_sent, 'fa-paper-plane', 'success', url_for('admin.delivery_logs'), 'Delivered notices'),
     ('Notifications Failed', notifications_failed, 'fa-exclamation-triangle', 'danger', url_for('admin.delivery_logs'), 'Dispatch errors'),
-    ('Today Visitors', today_visitors, 'fa-eye', 'secondary', '#', 'Traffic today')
+    ('Today Visitors', today_visitors, 'fa-eye', 'secondary', '#', today_visits ~ ' page hits today'),
+    ('Total Site Visits', total_visits, 'fa-chart-line', 'info', '#', total_visitors ~ ' unique visitors')
   ] %}
   {% for label, val, icon, color, link, sub in ops_cards %}
   <div class="col-6 col-md-4 col-xl-3">

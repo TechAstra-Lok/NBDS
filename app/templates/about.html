@@ -54,27 +54,22 @@
 <div class="rounded-4 p-4 p-md-5 mb-5" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
   <h2 class="text-center fw-bold mb-4">{% if lang == 'ne' %}हाम्रो उपलब्धि{% else %}Our Achievement{% endif %}</h2>
   <div class="row g-4 text-center">
-    {% if lang == 'ne' %}
-    {% set stats = [
-    ('१०,०००+','दर्ता भएका रक्तदाताहरू','fas fa-users','danger'),
-    ('५,०००+','बचाइएका जीवनहरू','fas fa-heart','success'),
-    ('७७','जिल्लाहरू कभर गरिएको','fas fa-map','primary'),
-    ('२४/७','आपतकालीन सहायता','fas fa-phone','warning'),
-    ] %}
-    {% else %}
-    {% set stats = [
-    ('10,000+','Registered Donors','fas fa-users','danger'),
-    ('5,000+','Lives Saved','fas fa-heart','success'),
-    ('77','Districts Covered','fas fa-map','primary'),
-    ('24/7','Emergency Support','fas fa-phone','warning'),
-    ] %}
-    {% endif %}
-    {% for val, label, icon, color in stats %}
     <div class="col-6 col-md-3">
-      <div class="fw-black text-{{ color }}" style="font-size:2.5rem;">{{ val }}</div>
-      <div class="text-muted small mt-1"><i class="{{ icon }} me-1"></i>{{ label }}</div>
+      <div class="fw-black text-danger" style="font-size:2.5rem;">{{ total_donors | default(0) }}+</div>
+      <div class="text-muted small mt-1"><i class="fas fa-users me-1"></i>{% if lang == 'ne' %}दर्ता भएका रक्तदाताहरू{% else %}Registered Donors{% endif %}</div>
     </div>
-    {% endfor %}
+    <div class="col-6 col-md-3">
+      <div class="fw-black text-success" style="font-size:2.5rem;">{{ fulfilled | default(0) }}+</div>
+      <div class="text-muted small mt-1"><i class="fas fa-heart me-1"></i>{% if lang == 'ne' %}बचाइएका जीवनहरू{% else %}Lives Saved{% endif %}</div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fw-black text-primary" style="font-size:2.5rem;">{{ districts_covered | default(0) }}</div>
+      <div class="text-muted small mt-1"><i class="fas fa-map me-1"></i>{% if lang == 'ne' %}जिल्लाहरू कभर गरिएको{% else %}Districts Covered{% endif %}</div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fw-black text-warning" style="font-size:2.5rem;">{{ total_site_visits | default(0) }}+</div>
+      <div class="text-muted small mt-1"><i class="fas fa-eye me-1"></i>{% if lang == 'ne' %}साइट भ्रमणहरू{% else %}Site Visits{% endif %}</div>
+    </div>
   </div>
 </div>
 
