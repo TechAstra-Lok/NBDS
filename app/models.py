@@ -795,8 +795,9 @@ class Donor(UserMixin, db.Model):
                 self.available_after = self.available_after_date
 
         # Recalculate latest donation date from history if history exists
-        if self.donation_history:
-            valid_dates = [h.donation_date for h in self.donation_history if h.donation_date]
+        history_items = list(self.donation_history) if self.donation_history is not None else []
+        if history_items:
+            valid_dates = [h.donation_date for h in history_items if getattr(h, 'donation_date', None)]
             if valid_dates:
                 latest_history = max(valid_dates)
                 if not self.last_donation_date or latest_history > self.last_donation_date:
@@ -808,7 +809,7 @@ class Donor(UserMixin, db.Model):
                         self.available_after = self.available_after_date
 
         # Calculate total donations = baseline previous donations (donation_times) + history records
-        history_count = len(self.donation_history) if self.donation_history else 0
+        history_count = len(history_items)
         self.total_donations = (self.donation_times or 0) + history_count
         self.last_status_recalculated_at = utc_now()
     
