@@ -1,4 +1,5 @@
 import os
+from typing import Any
 from datetime import timedelta
 from dotenv import load_dotenv
 try:
@@ -36,17 +37,20 @@ def get_database_uri():
     return db_url
 
 
-def get_engine_options():
-    """Return SQLAlchemy engine options. Enforce SSL for PostgreSQL (Neon, Render, etc.)."""
+def get_engine_options() -> dict[str, Any]:
+    """Return SQLAlchemy engine options. Enforce connection pooling and automatic reconnects for CockroachDB / PostgreSQL."""
     db_url = os.environ.get('DATABASE_URL', '')
-    if db_url.startswith('postgresql') or db_url.startswith('postgres'):
-        return {
-            'pool_pre_ping': True,
+    if any(db_url.startswith(prefix) for prefix in ('postgresql', 'postgres', 'cockroachdb')):
+        options: dict[str, Any] = {
+            'pool_pre_ping': True,  # Automatically reconnects if connection drops
             'pool_recycle': 300,
-            'connect_args': {'sslmode': 'require'},
         }
-    # SQLite: no SSL needed
-    return {}
+        # Enforce SSL if not already explicitly stated in the URL
+        if 'sslmode' not in db_url:
+            options['connect_args'] = {'sslmode': 'require'}
+        return options
+    # SQLite: Enable pool_pre_ping for resilient connections
+    return {'pool_pre_ping': True}
 
 
 class Config:

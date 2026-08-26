@@ -232,15 +232,16 @@ web: gunicorn --bind 0.0.0.0:$PORT wsgi:app
 
 ---
 
-## Summary — Zero Cost Hosting Stack
+## Summary — Zero Cost Production Stack
 
-| Component | Provider | Cost |
-|---|---|---|
-| Domain (`.com.np`) | Nepal Mercantile | FREE |
-| DNS + Subdomain + SSL Proxy | Cloudflare Free | FREE |
-| App Hosting | Render Free Tier | FREE |
-| SSL Certificate | Let's Encrypt (via Render) | FREE |
-| Database | Render PostgreSQL Free Tier | FREE |
-| **Live URL** | `https://raktadata.lokeshprasai.com.np` | **FREE** |
+| Component | Provider / Solution | Details | Cost |
+|---|---|---|---|
+| **Domain** (`.com.np`) | Nepal Mercantile / MOSST | `lokeshprasai.com.np` | FREE |
+| **DNS & SSL Proxy** | Cloudflare Free Tier | Proxied (Full SSL mode), CNAME to Render | FREE |
+| **App Hosting** | Render Web Service | `Python 3`, `gunicorn wsgi:app` | FREE |
+| **Database** | CockroachDB Serverless | 10 GB Storage, Persistent, PostgreSQL-compatible | FREE |
+| **Uptime / Keep-Alive** | UptimeRobot | Pings `/health` every 5 minutes (prevents cold-starts) | FREE |
+| **Email System** | Cloudflare Email Routing + Gmail | `info@lokeshprasai.com.np` routed to Gmail with SMTP outbound | FREE |
+| **Live URL** | **`https://raktadata.lokeshprasai.com.np`** | Fully HTTPS Secured & Monitored | **FREE** |
 
 

@@ -1549,7 +1549,8 @@ def global_search():
 @public_bp.route('/sw.js')
 def service_worker():
     """Serve service worker from root domain with full scope permission."""
-    response = make_response(send_from_directory(current_app.static_folder, 'sw.js'))
+    static_folder = current_app.static_folder or os.path.join(current_app.root_path, 'static')
+    response = make_response(send_from_directory(static_folder, 'sw.js'))
     response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
     response.headers['Service-Worker-Allowed'] = '/'
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -1559,7 +1560,8 @@ def service_worker():
 @public_bp.route('/manifest.json')
 def manifest():
     """Serve PWA Web App Manifest from root domain."""
-    response = make_response(send_from_directory(current_app.static_folder, 'manifest.json'))
+    static_folder = current_app.static_folder or os.path.join(current_app.root_path, 'static')
+    response = make_response(send_from_directory(static_folder, 'manifest.json'))
     response.headers['Content-Type'] = 'application/manifest+json; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=86400'
     return response
