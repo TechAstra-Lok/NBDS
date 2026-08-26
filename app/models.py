@@ -795,7 +795,7 @@ class Donor(UserMixin, db.Model):
                 self.available_after = self.available_after_date
 
         # Recalculate latest donation date from history if history exists
-        history_items = list(self.donation_history) if self.donation_history is not None else []
+        history_items = list(self.donation_history) if self.donation_history is not None else []  # type: ignore
         if history_items:
             valid_dates = [h.donation_date for h in history_items if getattr(h, 'donation_date', None)]
             if valid_dates:

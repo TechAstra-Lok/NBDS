@@ -241,7 +241,7 @@ class DonorEditForm(FlaskForm):
             current_id = self.record_id.data
             if existing and current_id is not None:
                 try:
-                    if int(existing.id) != int(current_id):
+                    if existing.id != int(current_id):
                         raise ValidationError(f'Phone {field.data} is already registered to another donor.')
                 except (TypeError, ValueError):
                     pass
@@ -252,7 +252,7 @@ class DonorEditForm(FlaskForm):
             current_id = self.record_id.data
             if existing and current_id is not None:
                 try:
-                    if int(existing.id) != int(current_id):
+                    if existing.id != int(current_id):
                         raise ValidationError(f'Email {field.data} is already registered to another donor.')
                 except (TypeError, ValueError):
                     pass
