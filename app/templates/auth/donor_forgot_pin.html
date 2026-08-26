@@ -20,6 +20,12 @@
             Please contact our authorized administrators directly — they will reset your PIN and guide you through
             setting a new one.
           </p>
+          {% if donor_info %}
+          <div class="alert alert-info border-0 rounded-3 mt-3 mb-0 py-2 px-3 small d-flex align-items-center gap-2">
+            <i class="fas fa-circle-info text-primary"></i>
+            <span>Your <strong>Donor ID ({{ donor_info.donor_id }})</strong> and <strong>contact number ({{ donor_info.phone }})</strong> will be automatically included in the WhatsApp message to help identify your account faster.</span>
+          </div>
+          {% endif %}
         </div>
 
         <!-- Contact Admin Card -->
@@ -45,7 +51,7 @@
                 </a>
               </div>
               <div class="col-sm-6">
-                <a href="https://wa.me/9779824915245?text=Hello%2C%20I%20need%20help%20resetting%20my%20NBDS%20Donor%20Portal%20PIN."
+                <a href="{{ wa_admin_url }}"
                   target="_blank"
                   class="btn btn-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
                   <i class="fab fa-whatsapp fa-lg"></i>
@@ -82,7 +88,7 @@
                 </a>
               </div>
               <div class="col-sm-6">
-                <a href="https://wa.me/9779816003020?text=Hello%2C%20I%20need%20help%20resetting%20my%20NBDS%20Donor%20Portal%20PIN."
+                <a href="{{ wa_super_url }}"
                   target="_blank"
                   class="btn btn-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 fw-semibold">
                   <i class="fab fa-whatsapp fa-lg"></i>

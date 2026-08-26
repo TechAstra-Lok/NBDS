@@ -1059,7 +1059,36 @@ def donor_login():
 @public_bp.route('/donor/forgot-pin')
 def donor_forgot_pin():
     """Contact portal for donor PIN reset assistance through Admin and Super Admin."""
-    return render_template('auth/donor_forgot_pin.html')
+    from urllib.parse import quote
+
+    base_msg = 'Hello, I need help resetting my NBDS Donor Portal PIN.'
+    donor_info = None
+
+    if current_user.is_authenticated and hasattr(current_user, 'donor_id'):
+        donor_info = {
+            'donor_id': current_user.donor_id,
+            'phone': current_user.phone1,
+            'full_name': current_user.full_name,
+        }
+        full_msg = (
+            f"Hello, I need help resetting my NBDS Donor Portal PIN.\n\n"
+            f"Donor ID: {current_user.donor_id}\n"
+            f"Contact No: {current_user.phone1}\n"
+            f"Full Name: {current_user.full_name}"
+        )
+    else:
+        full_msg = base_msg
+
+    encoded_msg = quote(full_msg, safe='')
+    wa_admin_url  = f"https://wa.me/9779824915245?text={encoded_msg}"
+    wa_super_url  = f"https://wa.me/9779816003020?text={encoded_msg}"
+
+    return render_template(
+        'auth/donor_forgot_pin.html',
+        donor_info=donor_info,
+        wa_admin_url=wa_admin_url,
+        wa_super_url=wa_super_url,
+    )
 
 
 @public_bp.route('/donor/force-change-pin', methods=['GET', 'POST'])
