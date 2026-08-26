@@ -768,16 +768,48 @@ class Donor(UserMixin, db.Model):
             'available_after_date': format_bs(self.available_after_date),
             'last_donation_date': format_bs(self.last_donation_date),
             'availability_display': self.availability_display,
+            'total_donations': self.total_donations or self.donation_times or 0,
             'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%S') if self.created_at else None,
         }
 
-    def recalculate_and_save(self):
+    def recalculate_and_save(self, keep_manual_status=False):
         """Recalculate availability and update summary fields in-place."""
         status, after_date = self.calculate_availability()
-        self.availability_status = status
-        self.available_after_date = after_date
-        # Also sync the legacy field
-        self.available_after = after_date
+        
+        # If donor was explicitly set to unavailable (or keep_manual_status is True and status is unavailable),
+        # respect the manual unavailable setting unless last_donation_date triggers recently_donated.
+        if self.availability_status == 'unavailable' and status == 'available':
+            # Keep manual unavailable status
+            pass
+        else:
+            self.availability_status = status
+            self.available_after_date = after_date
+            self.available_after = after_date
+
+        # If last_donation_date changed, sync available_after
+        if self.last_donation_date:
+            today = utc_now().date()
+            if (today - self.last_donation_date).days < self.UNAVAILABLE_DAYS:
+                self.availability_status = 'recently_donated'
+                self.available_after_date = self.last_donation_date + timedelta(days=self.UNAVAILABLE_DAYS)
+                self.available_after = self.available_after_date
+
+        # Recalculate latest donation date from history if history exists
+        if self.donation_history:
+            valid_dates = [h.donation_date for h in self.donation_history if h.donation_date]
+            if valid_dates:
+                latest_history = max(valid_dates)
+                if not self.last_donation_date or latest_history > self.last_donation_date:
+                    self.last_donation_date = latest_history
+                    today = utc_now().date()
+                    if (today - latest_history).days < self.UNAVAILABLE_DAYS:
+                        self.availability_status = 'recently_donated'
+                        self.available_after_date = latest_history + timedelta(days=self.UNAVAILABLE_DAYS)
+                        self.available_after = self.available_after_date
+
+        # Calculate total donations = baseline previous donations (donation_times) + history records
+        history_count = len(self.donation_history) if self.donation_history else 0
+        self.total_donations = (self.donation_times or 0) + history_count
         self.last_status_recalculated_at = utc_now()
     
     @property

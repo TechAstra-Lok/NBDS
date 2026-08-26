@@ -201,7 +201,7 @@ class DonorEditForm(FlaskForm):
         ('available', 'Available to Donate'),
         ('recently_donated', 'Recently Donated (0-30 Days)'),
         ('unavailable', 'Currently Unavailable'),
-    ])
+    ], validators=[Optional()])
     last_donation_date  = DateField('Last Donation Date', format='%Y-%m-%d', validators=[Optional()])
     donation_times      = IntegerField('Total Donations', default=0, validators=[Optional(), NumberRange(min=0)])
     social_link         = StringField('Social Media Link', validators=[Optional(), Length(max=300)])
@@ -230,17 +230,32 @@ class DonorEditForm(FlaskForm):
     
     submit = SubmitField('Update Donor Profile')
 
+    def __init__(self, *args, donor_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if donor_id is not None:
+            self.record_id.data = donor_id
+
     def validate_phone1(self, field):
         if field.data and field.data.strip():
             existing = Donor.query.filter_by(phone1=field.data.strip()).first()
-            if existing and existing.id != self.record_id.data:
-                raise ValidationError(f'Phone {field.data} is already registered to another donor.')
+            current_id = self.record_id.data
+            if existing and current_id is not None:
+                try:
+                    if int(existing.id) != int(current_id):
+                        raise ValidationError(f'Phone {field.data} is already registered to another donor.')
+                except (TypeError, ValueError):
+                    pass
 
     def validate_email(self, field):
         if field.data and field.data.strip():
             existing = Donor.query.filter_by(email=field.data.strip()).first()
-            if existing and existing.id != self.record_id.data:
-                raise ValidationError(f'Email {field.data} is already registered to another donor.')
+            current_id = self.record_id.data
+            if existing and current_id is not None:
+                try:
+                    if int(existing.id) != int(current_id):
+                        raise ValidationError(f'Email {field.data} is already registered to another donor.')
+                except (TypeError, ValueError):
+                    pass
 
 
 class DonorProfileEditForm(FlaskForm):

@@ -189,7 +189,7 @@
           </div>
           <div class="d-flex align-items-center">
             <i class="fas fa-droplet text-danger me-2" style="width:14px;"></i>
-            Donated {{ donor.donation_times }} time(s)
+            Donated {{ donor.total_donations or donor.donation_times or 0 }} time(s)
           </div>
         </div>
 

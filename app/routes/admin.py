@@ -1300,20 +1300,22 @@ def edit_donor(id):
     donor = Donor.query.get_or_404(id)
     
     if request.method == 'GET':
-        form = DonorEditForm(obj=donor)
+        form = DonorEditForm(obj=donor, donor_id=donor.id)
     else:
-        form = DonorEditForm()
-    form.record_id.data = donor.id
+        form = DonorEditForm(donor_id=donor.id)
     
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
+                selected_status = form.availability_status.data if form.availability_status.data else donor.availability_status
                 form.populate_obj(donor)
                 donor.email = form.email.data.strip() if form.email.data and form.email.data.strip() else None
                 donor.phone2 = form.phone2.data.strip() if form.phone2.data and form.phone2.data.strip() else None
                 donor.social_link = form.social_link.data.strip() if form.social_link.data and form.social_link.data.strip() else None
+                if selected_status:
+                    donor.availability_status = selected_status
                 donor.updated_at = datetime.now(timezone.utc)
-                donor.recalculate_and_save()
+                donor.recalculate_and_save(keep_manual_status=True)
                 db.session.commit()
                 flash(f'✅ Donor {donor.donor_id} ({donor.full_name}) updated successfully!', 'success')
                 return redirect(url_for('admin.donors'))
@@ -1385,12 +1387,9 @@ def delete_donor_history(donor_id, history_id):
     donor = Donor.query.get_or_404(donor_id)
     history = DonorDonationHistory.query.filter_by(id=history_id, donor_id=donor.id).first_or_404()
     db.session.delete(history)
+    db.session.flush()
     
-    # Recalculate donor summary
-    donor.donation_times = max(0, (donor.donation_times or 0) - 1)
-    donor.total_donations = max(0, (donor.total_donations or 0) - 1)
-    
-    # Update last donation date
+    # Update last donation date from remaining records
     last_donation = DonorDonationHistory.query.filter_by(donor_id=donor.id).filter(DonorDonationHistory.id != history_id).order_by(DonorDonationHistory.donation_date.desc()).first()
     donor.last_donation_date = last_donation.donation_date if last_donation else None
     

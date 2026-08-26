@@ -104,11 +104,11 @@
         </div>
         <div class="col-md-6">
             {{ profile_form.curr_district.label(class="form-label small fw-bold text-muted") }}
-            {{ profile_form.curr_district(class="form-select rounded-3", id="curr_district") }}
+            {{ profile_form.curr_district(class="form-select rounded-3", id="curr_district", **{'data-selected': donor.curr_district or ''}) }}
         </div>
         <div class="col-md-4">
             {{ profile_form.curr_local_level.label(class="form-label small fw-bold text-muted") }}
-            {{ profile_form.curr_local_level(class="form-select rounded-3", id="curr_local_level") }}
+            {{ profile_form.curr_local_level(class="form-select rounded-3", id="curr_local_level", **{'data-selected': donor.curr_local_level or ''}) }}
         </div>
         <div class="col-md-4">
             {{ profile_form.curr_ward.label(class="form-label small fw-bold text-muted") }}
@@ -203,19 +203,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Use existing address.js for cascade loading -->
+<!-- Address cascading script -->
 <script src="{{ url_for('static', filename='js/address.js') }}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const addressScript = document.createElement('script');
-        addressScript.src = "{{ url_for('static', filename='js/address.js') }}";
-        document.body.appendChild(addressScript);
-        
-        addressScript.onload = function() {
-            if (typeof initAddressFields === 'function') {
-                initAddressFields('curr_province', 'curr_district', 'curr_local_level', 
-                                  '{{ donor.curr_district }}', '{{ donor.curr_local_level }}');
+    // Ensure that when the Edit Profile tab is clicked, if dropdowns need re-populating, it triggers
+    document.addEventListener('shown.bs.tab', function(e) {
+        if (e.target && (e.target.id === 'edit-tab' || e.target.getAttribute('data-bs-target') === '#edit')) {
+            const provSelect = document.getElementById('curr_province');
+            const distSelect = document.getElementById('curr_district');
+            if (provSelect && distSelect && distSelect.options.length <= 1 && provSelect.value) {
+                provSelect.dispatchEvent(new Event('change'));
             }
-        };
+        }
     });
 </script>

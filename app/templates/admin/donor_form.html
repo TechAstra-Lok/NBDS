@@ -21,9 +21,6 @@
       action="{{ url_for('admin.edit_donor', id=donor.id) if action == 'Edit' and donor else url_for('admin.add_donor') }}"
       novalidate id="donorForm">
   {{ form.hidden_tag() }}
-  {% if action == 'Edit' and donor %}
-    {{ form.record_id() }}
-  {% endif %}
 
   <!-- ══════ PERSONAL INFORMATION ══════ -->
   <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -286,6 +283,10 @@
             <option value="occasional" {{ 'selected' if form.donor_type.data == 'occasional' }}>Occasional</option>
             <option value="regular"    {{ 'selected' if form.donor_type.data == 'regular' }}>Regular</option>
             <option value="emergency"  {{ 'selected' if form.donor_type.data == 'emergency' }}>Emergency Only</option>
+            <option value="platelet"   {{ 'selected' if form.donor_type.data == 'platelet' }}>Platelet</option>
+            <option value="rare"       {{ 'selected' if form.donor_type.data == 'rare' }}>Rare Blood</option>
+            <option value="volunteer"  {{ 'selected' if form.donor_type.data == 'volunteer' }}>Volunteer</option>
+            <option value="other"      {{ 'selected' if form.donor_type.data == 'other' }}>Other</option>
           </select>
           {% for e in form.donor_type.errors %}
           <div class="invalid-feedback">{{ e }}</div>
@@ -295,16 +296,17 @@
         <div class="col-md-3">
           <label class="form-label fw-semibold">Last Donation Date</label>
           <input type="date" class="form-control" name="last_donation_date"
-                 value="{{ form.last_donation_date.data.strftime('%Y-%m-%d') if form.last_donation_date.data else '' }}"
+                 value="{{ form.last_donation_date.data.strftime('%Y-%m-%d') if form.last_donation_date.data and form.last_donation_date.data.strftime is defined else (form.last_donation_date.data or '') }}"
                  max="{{ now.strftime('%Y-%m-%d') if now is defined else '' }}">
           <div class="form-text">Leave blank if never donated.</div>
         </div>
         <!-- Total Donations -->
         <div class="col-md-3">
-          <label class="form-label fw-semibold">Total Donations Made</label>
+          <label class="form-label fw-semibold">Previous Donations Count</label>
           <input type="number" class="form-control" name="donation_times"
                  min="0" max="500" placeholder="0"
                  value="{{ form.donation_times.data if form.donation_times.data is not none else 0 }}">
+          <div class="form-text">Offline/previous donations before logging.</div>
         </div>
 
         <!-- Availability Status — EDIT ONLY -->
@@ -313,8 +315,9 @@
           <label class="form-label fw-semibold">Availability Status <span class="text-danger">*</span></label>
           <select class="form-select {% if form.availability_status.errors %}is-invalid{% endif %}"
                   name="availability_status">
-            <option value="available"   {{ 'selected' if form.availability_status.data == 'available' }}>✅ Available to Donate</option>
-            <option value="unavailable" {{ 'selected' if form.availability_status.data == 'unavailable' }}>⛔ Currently Unavailable</option>
+            <option value="available"        {{ 'selected' if form.availability_status.data == 'available' }}>✅ Available to Donate</option>
+            <option value="recently_donated" {{ 'selected' if form.availability_status.data == 'recently_donated' }}>⏳ Recently Donated (0-30 Days)</option>
+            <option value="unavailable"      {{ 'selected' if form.availability_status.data == 'unavailable' }}>⛔ Currently Unavailable</option>
           </select>
           {% for e in form.availability_status.errors %}
           <div class="invalid-feedback">{{ e }}</div>

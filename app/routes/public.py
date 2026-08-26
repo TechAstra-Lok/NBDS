@@ -1237,41 +1237,68 @@ def donor_profile(donor_id):
     is_owner = current_user.is_authenticated and getattr(current_user, 'donor_id', None) == donor.donor_id
     
     if is_owner and request.method == 'POST':
-        if 'profile_submit' in request.form and profile_form.validate_on_submit():
-            # Handle profile photo upload (before populate_obj to avoid FileStorage being written to text field)
-            photo_file = request.files.get('profile_photo')
-            if photo_file and photo_file.filename:
-                try:
-                    from PIL import Image
-                    import io
-                    # Open and compress the image
-                    img = Image.open(photo_file.stream)  # type: ignore[arg-type]
-                    img = img.convert('RGB')  # Convert to RGB (handles PNG transparency, etc.)
-                    # Resize to max 400x400 maintaining aspect ratio
-                    resample_filter = getattr(Image, 'Resampling', Image).LANCZOS  # type: ignore[attr-defined]
-                    img.thumbnail((400, 400), resample_filter)
-                    # Save as compressed JPEG
-                    buffer = io.BytesIO()
-                    img.save(buffer, format='JPEG', quality=65, optimize=True)
-                    donor.profile_photo_data = buffer.getvalue()
-                    donor.profile_photo_mimetype = 'image/jpeg'
-                except Exception as photo_err:
-                    flash(f'Photo upload failed: {photo_err}', 'warning')
-            
-            profile_form.populate_obj(donor)
-            
-            # Save Notification Preferences
-            from app.models import DonorNotificationPreference
-            if not donor.preference:
-                donor.preference = DonorNotificationPreference(donor_id=donor.id)
-            donor.preference.email_alerts = profile_form.email_alerts.data
-            donor.preference.sms_alerts = profile_form.sms_alerts.data
-            donor.preference.in_app_alerts = profile_form.in_app_alerts.data
-            
-            donor.updated_at = datetime.now(timezone.utc)
-            db.session.commit()
-            flash('Your profile has been updated.', 'success')
-            return redirect(url_for('public.donor_profile', donor_id=donor_id))
+        if 'profile_submit' in request.form:
+            # Fallback safeguard: if frontend didn't send district/local_level, preserve donor's existing address
+            if not profile_form.curr_province.data and donor.curr_province:
+                profile_form.curr_province.data = donor.curr_province
+            if not profile_form.curr_district.data and donor.curr_district:
+                profile_form.curr_district.data = donor.curr_district
+            if not profile_form.curr_local_level.data and donor.curr_local_level:
+                profile_form.curr_local_level.data = donor.curr_local_level
+
+            if profile_form.validate_on_submit():
+                # Handle profile photo upload (before populate_obj to avoid FileStorage being written to text field)
+                photo_file = request.files.get('profile_photo')
+                if photo_file and photo_file.filename:
+                    try:
+                        from PIL import Image
+                        import io
+                        # Open and compress the image
+                        img = Image.open(photo_file.stream)  # type: ignore[arg-type]
+                        img = img.convert('RGB')  # Convert to RGB (handles PNG transparency, etc.)
+                        # Resize to max 400x400 maintaining aspect ratio
+                        resample_filter = getattr(Image, 'Resampling', Image).LANCZOS  # type: ignore[attr-defined]
+                        img.thumbnail((400, 400), resample_filter)
+                        # Save as compressed JPEG
+                        buffer = io.BytesIO()
+                        img.save(buffer, format='JPEG', quality=65, optimize=True)
+                        donor.profile_photo_data = buffer.getvalue()
+                        donor.profile_photo_mimetype = 'image/jpeg'
+                    except Exception as photo_err:
+                        flash(f'Photo upload failed: {photo_err}', 'warning')
+                
+                # Remember existing address before populate_obj in case of empty input
+                prev_province = donor.curr_province
+                prev_district = donor.curr_district
+                prev_local_level = donor.curr_local_level
+
+                profile_form.populate_obj(donor)
+
+                if not donor.curr_province and prev_province:
+                    donor.curr_province = prev_province
+                if not donor.curr_district and prev_district:
+                    donor.curr_district = prev_district
+                if not donor.curr_local_level and prev_local_level:
+                    donor.curr_local_level = prev_local_level
+                
+                # Save Notification Preferences
+                from app.models import DonorNotificationPreference
+                if not donor.preference:
+                    donor.preference = DonorNotificationPreference(donor_id=donor.id)
+                donor.preference.email_alerts = profile_form.email_alerts.data
+                donor.preference.sms_alerts = profile_form.sms_alerts.data
+                donor.preference.in_app_alerts = profile_form.in_app_alerts.data
+                
+                donor.updated_at = datetime.now(timezone.utc)
+                donor.recalculate_and_save(keep_manual_status=True)
+                db.session.commit()
+                flash('Your profile has been updated.', 'success')
+                return redirect(url_for('public.donor_profile', donor_id=donor_id))
+            else:
+                for field_name, errors in profile_form.errors.items():
+                    label = getattr(profile_form, field_name).label.text if hasattr(profile_form, field_name) and hasattr(getattr(profile_form, field_name), 'label') else field_name
+                    for error in errors:
+                        flash(f'⚠️ {label}: {error}', 'danger')
             
         if 'donation_submit' in request.form and donation_form.validate_on_submit():
             from app.models import DonorDonationHistory
@@ -1299,9 +1326,6 @@ def donor_profile(donor_id):
                 # Update donor summary fields
                 if not donor.last_donation_date or new_donation.donation_date > donor.last_donation_date:
                     donor.last_donation_date = new_donation.donation_date
-                
-                donor.donation_times = (donor.donation_times or 0) + 1
-                donor.total_donations = (donor.total_donations or 0) + 1
                 
                 donor.recalculate_and_save()
                 db.session.commit()
