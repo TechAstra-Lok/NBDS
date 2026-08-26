@@ -31,6 +31,22 @@ def test_robots_txt(client):
     assert 'Sitemap:' in data
 
 
+def test_pwa_root_endpoints(client):
+    # Test Service Worker
+    res_sw = client.get('/sw.js')
+    assert res_sw.status_code == 200
+    assert 'javascript' in res_sw.headers.get('Content-Type', '')
+    assert res_sw.headers.get('Service-Worker-Allowed') == '/'
+
+    # Test Web App Manifest
+    res_mf = client.get('/manifest.json')
+    assert res_mf.status_code == 200
+    assert 'manifest+json' in res_mf.headers.get('Content-Type', '')
+    data = res_mf.get_json()
+    assert data['display'] == 'standalone'
+    assert len(data['icons']) >= 2
+
+
 def test_sitemap_xml(client, app):
     with app.app_context():
         bank = BloodBank(

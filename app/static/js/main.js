@@ -254,27 +254,36 @@ function copyText(text) {
   });
 }
 
+// ── Global Early PWA Install Prompt Capture ───
+window.__nbdsDeferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.__nbdsDeferredPrompt = e;
+  if (typeof ActionPopup !== 'undefined') {
+    ActionPopup.deferredPrompt = e;
+    const btn = document.getElementById('btnInstallApp');
+    if (btn) btn.classList.remove('d-none');
+  }
+});
+
 // ── Action Opening Popup & PWA Installation ───
 const ActionPopup = {
   STORAGE_KEY: 'nbds_action_popup_seen',
   COOLDOWN_HOURS: 48,
-  deferredPrompt: null,
+  deferredPrompt: window.__nbdsDeferredPrompt || null,
 
   init() {
-    // Listen for browser install prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
-      const btn = document.getElementById('btnInstallApp');
-      if (btn) {
-        btn.classList.remove('d-none');
-      }
-    });
+    if (window.__nbdsDeferredPrompt) {
+      this.deferredPrompt = window.__nbdsDeferredPrompt;
+    }
 
     window.addEventListener('appinstalled', () => {
       this.recordInstalled();
-      const modal = bootstrap.Modal.getInstance(document.getElementById('nbdsActionModal'));
-      modal?.hide();
+      const modalEl = document.getElementById('nbdsActionModal');
+      if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal?.hide();
+      }
     });
 
     // Bind install button
@@ -283,9 +292,12 @@ const ActionPopup = {
     // Bind dismiss button
     document.getElementById('btnDismissActionPopup')?.addEventListener('click', () => this.recordDismissed());
 
+    // Allow opening globally via helper
+    window.openInstallPopup = (force = true) => this.show(force);
+
     // Evaluate display after DOM load
     if (this.shouldShow()) {
-      setTimeout(() => this.show(), 1800);
+      setTimeout(() => this.show(false), 1200);
     }
   },
 
@@ -298,6 +310,12 @@ const ActionPopup = {
   shouldShow() {
     if (this.isStandalone()) return false;
     
+    // Check URL parameters for testing force-open (e.g. ?install=1 or ?popup=1)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('install') || urlParams.has('popup') || urlParams.has('pwa')) {
+      return true;
+    }
+
     // Do not show on portal/admin pages
     const path = window.location.pathname;
     if (path.startsWith('/bloodbank') || path.startsWith('/admin')) return false;
@@ -305,18 +323,18 @@ const ActionPopup = {
     try {
       const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
       if (state.installed) return false;
-      if (!state.lastSeen) return true;
+      if (!state.lastDismissed) return true;
 
-      const hoursPassed = (Date.now() - state.lastSeen) / (1000 * 60 * 60);
+      const hoursPassed = (Date.now() - state.lastDismissed) / (1000 * 60 * 60);
       return hoursPassed >= this.COOLDOWN_HOURS;
     } catch (e) {
       return true;
     }
   },
 
-  show() {
+  show(force = false) {
     const modalEl = document.getElementById('nbdsActionModal');
-    if (!modalEl) return;
+    if (!modalEl || typeof bootstrap === 'undefined') return;
 
     if (this.isStandalone()) {
       document.getElementById('pwaInstallContainer')?.classList.add('d-none');
@@ -324,43 +342,84 @@ const ActionPopup = {
 
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
-    this.recordSeen();
-  },
-
-  recordSeen() {
-    try {
-      const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
-      state.lastSeen = Date.now();
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {}
   },
 
   recordDismissed() {
-    this.recordSeen();
+    try {
+      const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+      state.lastDismissed = Date.now();
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
   },
 
   recordInstalled() {
     try {
       const state = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
       state.installed = true;
-      state.lastSeen = Date.now();
+      state.lastDismissed = Date.now();
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     } catch (e) {}
   },
 
   async handleInstallClick() {
-    if (this.deferredPrompt) {
-      this.deferredPrompt.prompt();
-      const choice = await this.deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
+    const promptEvent = this.deferredPrompt || window.__nbdsDeferredPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice && choice.outcome === 'accepted') {
         this.recordInstalled();
+        const modalEl = document.getElementById('nbdsActionModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          modal?.hide();
+        }
       }
       this.deferredPrompt = null;
+      window.__nbdsDeferredPrompt = null;
     } else {
-      // Manual instruction fallback (e.g. iOS Safari)
+      // Dynamic platform instruction fallback
       const manualBox = document.getElementById('installManualInstructions');
       if (manualBox) {
         manualBox.classList.remove('d-none');
+        
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        const isAndroid = /Android/.test(ua);
+
+        if (isIOS) {
+          manualBox.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+              <i class="fab fa-apple fs-4 text-dark mt-1"></i>
+              <div>
+                <strong>Install on iPhone / iPad:</strong><br>
+                1. Tap the <i class="fas fa-arrow-up-from-bracket mx-1 text-primary"></i> <strong>Share</strong> button in Safari toolbar.<br>
+                2. Scroll down and tap <i class="fas fa-plus-square mx-1 text-dark"></i> <strong>"Add to Home Screen"</strong>.
+              </div>
+            </div>
+          `;
+        } else if (isAndroid) {
+          manualBox.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+              <i class="fab fa-android fs-4 text-success mt-1"></i>
+              <div>
+                <strong>Install on Android:</strong><br>
+                1. Tap the <i class="fas fa-ellipsis-vertical mx-1"></i> <strong>Menu</strong> (3 dots) in your browser.<br>
+                2. Select <i class="fas fa-mobile-screen mx-1"></i> <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong>.
+              </div>
+            </div>
+          `;
+        } else {
+          manualBox.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+              <i class="fas fa-desktop fs-4 text-primary mt-1"></i>
+              <div>
+                <strong>Install on Computer / Laptop:</strong><br>
+                1. Click the <i class="fas fa-download mx-1 text-danger"></i> <strong>Install icon</strong> in your browser address bar.<br>
+                2. Or open browser Menu <i class="fas fa-ellipsis-vertical mx-1"></i> $\\rightarrow$ <strong>"Install Nepali Blood Donors"</strong>.
+              </div>
+            </div>
+          `;
+        }
       }
     }
   }
@@ -368,20 +427,21 @@ const ActionPopup = {
 
 // ── Initialize All ────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  ThemeManager.init();
-  FormEnhancements.init();
-  LiveSearch.init();
-  ScrollAnimations.init();
-  CounterAnimation.init();
-  AdTracker.init();
-  PWA.init();
-  ActionPopup.init();
+  try { ThemeManager?.init(); } catch (e) {}
+  try { FormEnhancements?.init(); } catch (e) {}
+  try { LiveSearch?.init(); } catch (e) {}
+  try { ScrollAnimations?.init(); } catch (e) {}
+  try { CounterAnimation?.init(); } catch (e) {}
+  try { AdTracker?.init(); } catch (e) {}
+  try { ActionPopup?.init(); } catch (e) {}
   
   // Initialize Bootstrap tooltips
-  document.querySelectorAll('[data-bs-toggle="tooltip"]')
-    .forEach(el => new bootstrap.Tooltip(el));
-  
-  // Initialize Bootstrap popovers
-  document.querySelectorAll('[data-bs-toggle="popover"]')
-    .forEach(el => new bootstrap.Popover(el));
+  if (typeof bootstrap !== 'undefined') {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      .forEach(el => new bootstrap.Tooltip(el));
+    
+    // Initialize Bootstrap popovers
+    document.querySelectorAll('[data-bs-toggle="popover"]')
+      .forEach(el => new bootstrap.Popover(el));
+  }
 });

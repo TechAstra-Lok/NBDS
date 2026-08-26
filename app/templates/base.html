@@ -38,7 +38,7 @@
   <meta name="twitter:image" content="https://raktadata.lokeshprasai.com.np/static/images/logo.png" />
 
   <!-- PWA & Favicons -->
-  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/static/images/logo.png" />
   <link rel="icon" type="image/png" href="/static/images/logo.png" />
 
@@ -629,6 +629,11 @@
                 <i class="fas fa-heart fa-xs me-2 text-danger"></i>सफलताका कथाहरू (Success Stories)
               </a>
             </li>
+            <li class="mb-2">
+              <a href="#" onclick="window.openInstallPopup && window.openInstallPopup(true); return false;" class="footer-link text-warning fw-semibold">
+                <i class="fas fa-download fa-xs me-2"></i>📱 Install Web App (PWA)
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -726,9 +731,13 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/sw.js')
-          .then(reg => console.log('Service Worker registered successfully.'))
-          .catch(err => console.log('Service Worker registration failed.', err));
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(reg => {
+            // Service worker active
+          })
+          .catch(err => {
+            console.error('Service Worker registration error:', err);
+          });
       });
     }
   </script>

@@ -5,7 +5,8 @@ from difflib import SequenceMatcher
 
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, abort, current_app, Response, jsonify, session
+    url_for, flash, abort, current_app, Response, jsonify, session,
+    make_response, send_from_directory
 )
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1540,3 +1541,25 @@ def global_search():
         results['notices'] = notice_query.limit(10).all()
         
     return render_template('search_results.html', query=query, results=results)
+
+
+# ════════════════════════════════════════════
+#   PWA ROOT ASSETS (/sw.js & /manifest.json)
+# ════════════════════════════════════════════
+@public_bp.route('/sw.js')
+def service_worker():
+    """Serve service worker from root domain with full scope permission."""
+    response = make_response(send_from_directory(current_app.static_folder, 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
+@public_bp.route('/manifest.json')
+def manifest():
+    """Serve PWA Web App Manifest from root domain."""
+    response = make_response(send_from_directory(current_app.static_folder, 'manifest.json'))
+    response.headers['Content-Type'] = 'application/manifest+json; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response
