@@ -816,11 +816,6 @@ def blood_request_form():
     
     return render_template('blood_request_form.html', form=form)
 
-    if request.method == 'POST':
-        flash('Please fix the errors in the blood request form and resubmit.', 'danger')
-    
-    return render_template('blood_request_form.html', form=form)
-
 
 @public_bp.route('/blood-requests')
 def blood_request_board():

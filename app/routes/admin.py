@@ -5,7 +5,7 @@ import re
 from urllib.parse import urljoin, urlparse
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, flash, jsonify, session, Response
+    url_for, flash, jsonify, session, Response, current_app
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
