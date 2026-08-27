@@ -1442,29 +1442,34 @@ def create_blood_bank():
     form = BloodBankForm()
     
     if form.validate_on_submit():
-        bank = BloodBank(
-            name=form.name.data,
-            display_name=form.display_name.data,
-            hospital_name=form.hospital_name.data,
-            branch_type=form.branch_type.data,
-            service_type=form.service_type.data,
-            province=form.province.data,
-            district=form.district.data,
-            city=form.city.data,
-            contact_number=form.contact_number.data,
-            alternate_contact_number=form.alternate_contact_number.data,
-            maps_url=form.maps_url.data,
-            is_emergency_panel=form.is_emergency_panel.data,
-            is_grouped_entry=form.is_grouped_entry.data,
-            is_active=form.is_active.data,
-            notes=form.notes.data,
-            status='active' if form.is_active.data else 'inactive'
-        )
-        
-        db.session.add(bank)
-        db.session.commit()
-        flash('Blood Bank created successfully!', 'success')
-        return redirect(url_for('admin.blood_banks'))
+        try:
+            bank = BloodBank(
+                name=form.name.data,
+                display_name=form.display_name.data,
+                hospital_name=form.hospital_name.data,
+                branch_type=form.branch_type.data,
+                service_type=form.service_type.data,
+                province=form.province.data,
+                district=form.district.data,
+                city=form.city.data,
+                contact_number=form.contact_number.data,
+                alternate_contact_number=form.alternate_contact_number.data,
+                maps_url=form.maps_url.data,
+                is_emergency_panel=form.is_emergency_panel.data,
+                is_grouped_entry=form.is_grouped_entry.data,
+                is_active=form.is_active.data,
+                notes=form.notes.data,
+                status='active' if form.is_active.data else 'inactive'
+            )
+            
+            db.session.add(bank)
+            db.session.commit()
+            flash('Blood Bank created successfully!', 'success')
+            return redirect(url_for('admin.blood_banks'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating blood bank: %s", exc, exc_info=True)
+            flash(f"Failed to create blood bank: {str(exc)}", "danger")
         
     return render_template('admin/blood_bank_form.html', form=form, action='Create')
 
@@ -1476,12 +1481,16 @@ def edit_blood_bank(id):
     form = BloodBankForm(obj=bank)
     
     if form.validate_on_submit():
-        form.populate_obj(bank)
-        bank.status = 'active' if form.is_active.data else 'inactive'
-            
-        db.session.commit()
-        flash('Blood Bank updated successfully!', 'success')
-        return redirect(url_for('admin.blood_banks'))
+        try:
+            form.populate_obj(bank)
+            bank.status = 'active' if form.is_active.data else 'inactive'
+            db.session.commit()
+            flash('Blood Bank updated successfully!', 'success')
+            return redirect(url_for('admin.blood_banks'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating blood bank: %s", exc, exc_info=True)
+            flash(f"Failed to update blood bank: {str(exc)}", "danger")
         
     return render_template('admin/blood_bank_form.html', form=form, action='Edit', bank=bank)
 
@@ -2109,25 +2118,30 @@ def add_news():
     form = NewsForm()
     
     if form.validate_on_submit():
-        image_file = None
-        if form.featured_image.data and form.featured_image.data.filename:
-            image_file = save_image(form.featured_image.data, 'news')
-        
-        post = News(
-            title       = (form.title.data or '').strip(),
-            short_desc  = (form.short_desc.data or '').strip(),
-            content     = sanitize_html(form.content.data or ''),
-            category    = form.category.data,
-            author      = (form.author.data or '').strip(),
-            tags        = (form.tags.data or '').strip() if form.tags.data else None,
-            featured_image = image_file,
-            is_published = form.is_published.data,
-        )
-        db.session.add(post)
-        db.session.commit()
-        
-        flash('✅ News post created!', 'success')
-        return redirect(url_for('admin.news'))
+        try:
+            image_file = None
+            if form.featured_image.data and form.featured_image.data.filename:
+                image_file = save_image(form.featured_image.data, 'news')
+            
+            post = News(
+                title       = (form.title.data or '').strip(),
+                short_desc  = (form.short_desc.data or '').strip(),
+                content     = sanitize_html(form.content.data or ''),
+                category    = form.category.data,
+                author      = (form.author.data or '').strip(),
+                tags        = (form.tags.data or '').strip() if form.tags.data else None,
+                featured_image = image_file,
+                is_published = form.is_published.data,
+            )
+            db.session.add(post)
+            db.session.commit()
+            
+            flash('✅ News post created!', 'success')
+            return redirect(url_for('admin.news'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating news post: %s", exc, exc_info=True)
+            flash(f"Failed to create news post: {str(exc)}", "danger")
     
     return render_template('admin/news_form.html', form=form, action='Add')
 
@@ -2139,22 +2153,28 @@ def edit_news(id):
     form = NewsForm(obj=post)
     
     if form.validate_on_submit():
-        if form.featured_image.data and form.featured_image.data.filename:
-            delete_file(post.featured_image, 'news')
-            post.featured_image = save_image(form.featured_image.data, 'news')
-        
-        post.title      = (form.title.data or '').strip()
-        post.short_desc = (form.short_desc.data or '').strip()
-        post.content    = sanitize_html(form.content.data or '')
-        post.category   = form.category.data
-        post.author     = (form.author.data or '').strip()
-        post.tags       = (form.tags.data or '').strip() if form.tags.data else None
-        post.is_published = form.is_published.data
-        post.updated_at = datetime.now(timezone.utc)
-        
-        db.session.commit()
-        flash('✅ News post updated!', 'success')
-        return redirect(url_for('admin.news'))
+        try:
+            if form.featured_image.data and form.featured_image.data.filename:
+                delete_file(post.featured_image, 'news')
+                post.featured_image = save_image(form.featured_image.data, 'news')
+            
+            post.title      = (form.title.data or '').strip()
+            post.short_desc = (form.short_desc.data or '').strip()
+            post.content    = sanitize_html(form.content.data or '')
+            post.category   = form.category.data
+            post.author     = (form.author.data or '').strip()
+            post.tags       = (form.tags.data or '').strip() if form.tags.data else None
+            post.is_published = form.is_published.data
+            from app.models import utc_now
+            post.updated_at = utc_now()
+            
+            db.session.commit()
+            flash('✅ News post updated!', 'success')
+            return redirect(url_for('admin.news'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating news post: %s", exc, exc_info=True)
+            flash(f"Failed to update news post: {str(exc)}", "danger")
     
     return render_template('admin/news_form.html', form=form, post=post, action='Edit')
 
@@ -2162,11 +2182,15 @@ def edit_news(id):
 @admin_bp.route('/news/<int:id>/delete', methods=['POST'])
 @permission_required('manage_news')
 def delete_news(id):
-    post = News.query.get_or_404(id)
-    delete_file(post.featured_image, 'news')
-    db.session.delete(post)
-    db.session.commit()
-    flash('News post deleted.', 'warning')
+    try:
+        post = News.query.get_or_404(id)
+        delete_file(post.featured_image, 'news')
+        db.session.delete(post)
+        db.session.commit()
+        flash('News post deleted.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete news: {str(exc)}", "danger")
     return redirect(url_for('admin.news'))
 
 
@@ -2189,31 +2213,29 @@ def add_notice():
     form = NoticeForm()
     
     if form.validate_on_submit():
-        file_name, file_ext = None, None
-        if form.attachment.data and form.attachment.data.filename:
-            file_name, file_ext = save_file(form.attachment.data, 'notices')
-        
-        notice = Notice(
-            # pyrefly: ignore [unexpected-keyword]
-            title           = (form.title.data or '').strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            content         = (form.content.data or '').strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            expiry_date     = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None,
-            # pyrefly: ignore [unexpected-keyword]
-            priority        = int(form.priority.data) if form.priority.data is not None else 0,
-            # pyrefly: ignore [unexpected-keyword]
-            attachment      = file_name,
-            # pyrefly: ignore [unexpected-keyword]
-            attachment_type = file_ext,
-            # pyrefly: ignore [unexpected-keyword]
-            is_active       = form.is_active.data,
-        )
-        db.session.add(notice)
-        db.session.commit()
-        
-        flash('✅ Notice published!', 'success')
-        return redirect(url_for('admin.notices'))
+        try:
+            file_name, file_ext = None, None
+            if form.attachment.data and form.attachment.data.filename:
+                file_name, file_ext = save_file(form.attachment.data, 'notices')
+            
+            notice = Notice(
+                title           = (form.title.data or '').strip(),
+                content         = (form.content.data or '').strip(),
+                expiry_date     = datetime.combine(form.expiry_date.data, datetime.min.time()) if form.expiry_date.data else None,
+                priority        = int(form.priority.data) if form.priority.data is not None else 0,
+                attachment      = file_name,
+                attachment_type = file_ext,
+                is_active       = form.is_active.data,
+            )
+            db.session.add(notice)
+            db.session.commit()
+            
+            flash('✅ Notice published!', 'success')
+            return redirect(url_for('admin.notices'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating notice: %s", exc, exc_info=True)
+            flash(f"Failed to publish notice: {str(exc)}", "danger")
     
     return render_template('admin/notice_form.html', form=form, action='Add')
 
@@ -2230,27 +2252,33 @@ def edit_notice(id):
         form = NoticeForm()
     
     if form.validate_on_submit():
-        if form.attachment.data and form.attachment.data.filename:
-            if notice.attachment:
-                delete_file(notice.attachment, 'notices')
-            file_name, file_ext = save_file(form.attachment.data, 'notices')
-            notice.attachment = file_name
-            notice.attachment_type = file_ext
+        try:
+            if form.attachment.data and form.attachment.data.filename:
+                if notice.attachment:
+                    delete_file(notice.attachment, 'notices')
+                file_name, file_ext = save_file(form.attachment.data, 'notices')
+                notice.attachment = file_name
+                notice.attachment_type = file_ext
+                
+            notice.title = (form.title.data or '').strip()
+            notice.content = (form.content.data or '').strip()
+            if form.expiry_date.data:
+                ed = form.expiry_date.data
+                notice.expiry_date = datetime.combine(ed, datetime.min.time()) if not isinstance(ed, datetime) else ed
+            else:
+                notice.expiry_date = None
+            notice.priority = int(form.priority.data) if form.priority.data is not None else 0
+            notice.is_active = form.is_active.data
+            from app.models import utc_now
+            notice.updated_at = utc_now()
             
-        notice.title = (form.title.data or '').strip()
-        notice.content = (form.content.data or '').strip()
-        if form.expiry_date.data:
-            ed = form.expiry_date.data
-            notice.expiry_date = datetime.combine(ed, datetime.min.time()) if not isinstance(ed, datetime) else ed
-        else:
-            notice.expiry_date = None
-        notice.priority = int(form.priority.data) if form.priority.data is not None else 0
-        notice.is_active = form.is_active.data
-        notice.updated_at = datetime.now(timezone.utc)
-        
-        db.session.commit()
-        flash('✅ Notice updated successfully!', 'success')
-        return redirect(url_for('admin.notices'))
+            db.session.commit()
+            flash('✅ Notice updated successfully!', 'success')
+            return redirect(url_for('admin.notices'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating notice: %s", exc, exc_info=True)
+            flash(f"Failed to update notice: {str(exc)}", "danger")
         
     return render_template('admin/notice_form.html', form=form, notice=notice, action='Edit')
 
@@ -2258,22 +2286,30 @@ def edit_notice(id):
 @admin_bp.route('/notices/<int:id>/delete', methods=['POST'])
 @permission_required('manage_notices')
 def delete_notice(id):
-    notice = Notice.query.get_or_404(id)
-    if notice.attachment:
-        delete_file(notice.attachment, 'notices')
-    db.session.delete(notice)
-    db.session.commit()
-    flash('Notice deleted.', 'warning')
+    try:
+        notice = Notice.query.get_or_404(id)
+        if notice.attachment:
+            delete_file(notice.attachment, 'notices')
+        db.session.delete(notice)
+        db.session.commit()
+        flash('Notice deleted.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete notice: {str(exc)}", "danger")
     return redirect(url_for('admin.notices'))
 
 
 @admin_bp.route('/notices/<int:id>/toggle', methods=['POST'])
 @permission_required('manage_notices')
 def toggle_notice(id):
-    notice = Notice.query.get_or_404(id)
-    notice.is_active = not notice.is_active
-    db.session.commit()
-    return jsonify({'is_active': notice.is_active})
+    try:
+        notice = Notice.query.get_or_404(id)
+        notice.is_active = not notice.is_active
+        db.session.commit()
+        return jsonify({'is_active': notice.is_active})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to toggle status'}), 500
 
 
 # ════════════════════════════════════════════
@@ -2291,7 +2327,7 @@ def advertisements():
     try:
         bind = db.session.get_bind()
         dialect_name = bind.dialect.name if bind else 'sqlite'
-        if dialect_name == 'postgresql':
+        if dialect_name in ('postgresql', 'cockroachdb'):
             month_col = func.to_char(Advertisement.created_at, 'YYYY-MM').label('month')
             monthly_clicks = db.session.query(
                 month_col,
@@ -2323,55 +2359,61 @@ def add_advertisement():
             flash('Banner image is required.', 'danger')
             return render_template('admin/ad_form.html', form=form, action='Add')
         
-        image_file = save_image(form.image.data, 'ads', max_width=800, max_height=600)
-        start_dt = datetime.combine(form.start_date.data, datetime.min.time()) if form.start_date.data else datetime.now(timezone.utc)
-        end_dt = datetime.combine(form.end_date.data, datetime.max.time()) if form.end_date.data else datetime.now(timezone.utc)
+        try:
+            image_file = save_image(form.image.data, 'ads', max_width=800, max_height=600)
+            from app.models import utc_now
+            start_dt = datetime.combine(form.start_date.data, datetime.min.time()) if form.start_date.data else utc_now()
+            end_dt = datetime.combine(form.end_date.data, datetime.max.time()) if form.end_date.data else utc_now()
+            
+            ad = Advertisement(
+                title       = (form.title.data or '').strip(),
+                description = (form.description.data or '').strip() if form.description.data else None,
+                image       = image_file,
+                redirect_url= (form.redirect_url.data or '').strip() if form.redirect_url.data else None,
+                ad_type     = form.ad_type.data,
+                start_date  = start_dt,
+                end_date    = end_dt,
+                is_active   = form.is_active.data,
+            )
+            db.session.add(ad)
+            db.session.commit()
+            
+            flash('✅ Advertisement created!', 'success')
+            return redirect(url_for('admin.advertisements'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating advertisement: %s", exc, exc_info=True)
+            flash(f"Failed to create advertisement: {str(exc)}", "danger")
         
-        ad = Advertisement(
-            # pyrefly: ignore [unexpected-keyword]
-            title       = (form.title.data or '').strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            description = (form.description.data or '').strip() if form.description.data else None,
-            # pyrefly: ignore [unexpected-keyword]
-            image       = image_file,
-            # pyrefly: ignore [unexpected-keyword]
-            redirect_url= (form.redirect_url.data or '').strip() if form.redirect_url.data else None,
-            # pyrefly: ignore [unexpected-keyword]
-            ad_type     = form.ad_type.data,
-            # pyrefly: ignore [unexpected-keyword]
-            start_date  = start_dt,
-            # pyrefly: ignore [unexpected-keyword]
-            end_date    = end_dt,
-            # pyrefly: ignore [unexpected-keyword]
-            is_active   = form.is_active.data,
-        )
-        db.session.add(ad)
-        db.session.commit()
-        
-        flash('✅ Advertisement created!', 'success')
-        return redirect(url_for('admin.advertisements'))
-    
     return render_template('admin/ad_form.html', form=form, action='Add')
 
 
 @admin_bp.route('/advertisements/<int:id>/toggle', methods=['POST'])
 @permission_required('manage_users')
 def toggle_ad(id):
-    ad = Advertisement.query.get_or_404(id)
-    ad.is_active = not ad.is_active
-    db.session.commit()
-    flash(f"Advertisement {'activated' if ad.is_active else 'deactivated'}.", 'success')
+    try:
+        ad = Advertisement.query.get_or_404(id)
+        ad.is_active = not ad.is_active
+        db.session.commit()
+        flash(f"Advertisement {'activated' if ad.is_active else 'deactivated'}.", 'success')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to toggle advertisement: {str(exc)}", "danger")
     return redirect(url_for('admin.advertisements'))
 
 
 @admin_bp.route('/advertisements/<int:id>/delete', methods=['POST'])
 @permission_required('manage_users')
 def delete_advertisement(id):
-    ad = Advertisement.query.get_or_404(id)
-    delete_file(ad.image, 'ads')
-    db.session.delete(ad)
-    db.session.commit()
-    flash('Advertisement deleted.', 'warning')
+    try:
+        ad = Advertisement.query.get_or_404(id)
+        delete_file(ad.image, 'ads')
+        db.session.delete(ad)
+        db.session.commit()
+        flash('Advertisement deleted.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete advertisement: {str(exc)}", "danger")
     return redirect(url_for('admin.advertisements'))
 
 
@@ -2469,38 +2511,43 @@ def add_staff():
     all_banks = BloodBank.query.filter_by(is_active=True).order_by(BloodBank.name).all()
     
     if form.validate_on_submit():
-        photo_file = None
-        if form.profile_photo.data and form.profile_photo.data.filename:
-            photo_file = save_image(form.profile_photo.data, 'staff')
-        
-        blood_bank_id = request.form.get('blood_bank_id', type=int) or None
-        
-        member = StaffMember(
-            blood_bank_id=blood_bank_id,
-            full_name=(form.full_name.data or '').strip(),
-            designation=(form.designation.data or '').strip(),
-            qualification=(form.qualification.data or '').strip() if form.qualification.data else None,
-            registration_number=(form.registration_number.data or '').strip() if form.registration_number.data else None,
-            email=(form.email.data or '').strip() if form.email.data else None,
-            contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
-            secondary_contact=(form.secondary_contact.data or '').strip() if form.secondary_contact.data else None,
-            emergency_contact=(form.emergency_contact.data or '').strip() if form.emergency_contact.data else None,
-            profile_photo=photo_file,
-            availability_status=form.availability_status.data or 'available',
-            employment_status=form.employment_status.data or 'active',
-            profile_visibility=form.profile_visibility.data or 'public',
-            province=form.province.data or None,
-            district=form.district.data or None,
-            local_level=form.local_level.data or None,
-            ward_number=form.ward_number.data or None,
-            tole=form.tole.data or None,
-            is_active=form.is_active.data,
-            created_by=current_user.username if hasattr(current_user, 'username') else 'admin'
-        )
-        db.session.add(member)
-        db.session.commit()
-        flash('✅ Staff member added successfully!', 'success')
-        return redirect(url_for('admin.staff'))
+        try:
+            photo_file = None
+            if form.profile_photo.data and form.profile_photo.data.filename:
+                photo_file = save_image(form.profile_photo.data, 'staff')
+            
+            blood_bank_id = request.form.get('blood_bank_id', type=int) or None
+            
+            member = StaffMember(
+                blood_bank_id=blood_bank_id,
+                full_name=(form.full_name.data or '').strip(),
+                designation=(form.designation.data or '').strip(),
+                qualification=(form.qualification.data or '').strip() if form.qualification.data else None,
+                registration_number=(form.registration_number.data or '').strip() if form.registration_number.data else None,
+                email=(form.email.data or '').strip() if form.email.data else None,
+                contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
+                secondary_contact=(form.secondary_contact.data or '').strip() if form.secondary_contact.data else None,
+                emergency_contact=(form.emergency_contact.data or '').strip() if form.emergency_contact.data else None,
+                profile_photo=photo_file,
+                availability_status=form.availability_status.data or 'available',
+                employment_status=form.employment_status.data or 'active',
+                profile_visibility=form.profile_visibility.data or 'public',
+                province=form.province.data or None,
+                district=form.district.data or None,
+                local_level=form.local_level.data or None,
+                ward_number=form.ward_number.data or None,
+                tole=form.tole.data or None,
+                is_active=form.is_active.data,
+                created_by=current_user.username if hasattr(current_user, 'username') else 'admin'
+            )
+            db.session.add(member)
+            db.session.commit()
+            flash('✅ Staff member added successfully!', 'success')
+            return redirect(url_for('admin.staff'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating staff member: %s", exc, exc_info=True)
+            flash(f"Failed to add staff member: {str(exc)}", "danger")
     
     return render_template('admin/staff_form.html', form=form, action='Add', all_banks=all_banks)
 
@@ -2514,35 +2561,42 @@ def edit_staff(id):
     all_banks = BloodBank.query.filter_by(is_active=True).order_by(BloodBank.name).all()
     
     if form.validate_on_submit():
-        if form.profile_photo.data and form.profile_photo.data.filename:
-            if member.profile_photo:
-                delete_file(member.profile_photo, 'staff')
-            member.profile_photo = save_image(form.profile_photo.data, 'staff')
-        
-        blood_bank_id = request.form.get('blood_bank_id', type=int) or None
-        member.blood_bank_id = blood_bank_id
-        member.full_name = (form.full_name.data or '').strip()
-        member.designation = (form.designation.data or '').strip()
-        member.qualification = (form.qualification.data or '').strip() if form.qualification.data else None
-        member.registration_number = (form.registration_number.data or '').strip() if form.registration_number.data else None
-        member.email = (form.email.data or '').strip() if form.email.data else None
-        member.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
-        member.secondary_contact = (form.secondary_contact.data or '').strip() if form.secondary_contact.data else None
-        member.emergency_contact = (form.emergency_contact.data or '').strip() if form.emergency_contact.data else None
-        member.availability_status = form.availability_status.data or member.availability_status
-        member.employment_status = form.employment_status.data or member.employment_status
-        member.profile_visibility = form.profile_visibility.data or member.profile_visibility
-        member.province = form.province.data or None
-        member.district = form.district.data or None
-        member.local_level = form.local_level.data or None
-        member.ward_number = form.ward_number.data or None
-        member.tole = form.tole.data or None
-        member.is_active = form.is_active.data
-        member.updated_by = current_user.username if hasattr(current_user, 'username') else 'admin'
-        
-        db.session.commit()
-        flash('✅ Staff member updated successfully!', 'success')
-        return redirect(url_for('admin.staff'))
+        try:
+            if form.profile_photo.data and form.profile_photo.data.filename:
+                if member.profile_photo:
+                    delete_file(member.profile_photo, 'staff')
+                member.profile_photo = save_image(form.profile_photo.data, 'staff')
+            
+            blood_bank_id = request.form.get('blood_bank_id', type=int) or None
+            member.blood_bank_id = blood_bank_id
+            member.full_name = (form.full_name.data or '').strip()
+            member.designation = (form.designation.data or '').strip()
+            member.qualification = (form.qualification.data or '').strip() if form.qualification.data else None
+            member.registration_number = (form.registration_number.data or '').strip() if form.registration_number.data else None
+            member.email = (form.email.data or '').strip() if form.email.data else None
+            member.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
+            member.secondary_contact = (form.secondary_contact.data or '').strip() if form.secondary_contact.data else None
+            member.emergency_contact = (form.emergency_contact.data or '').strip() if form.emergency_contact.data else None
+            member.availability_status = form.availability_status.data or member.availability_status
+            member.employment_status = form.employment_status.data or member.employment_status
+            member.profile_visibility = form.profile_visibility.data or member.profile_visibility
+            member.province = form.province.data or None
+            member.district = form.district.data or None
+            member.local_level = form.local_level.data or None
+            member.ward_number = form.ward_number.data or None
+            member.tole = form.tole.data or None
+            member.is_active = form.is_active.data
+            member.updated_by = current_user.username if hasattr(current_user, 'username') else 'admin'
+            from app.models import utc_now
+            member.updated_at = utc_now()
+            
+            db.session.commit()
+            flash('✅ Staff member updated successfully!', 'success')
+            return redirect(url_for('admin.staff'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating staff member: %s", exc, exc_info=True)
+            flash(f"Failed to update staff member: {str(exc)}", "danger")
         
     return render_template('admin/staff_form.html', form=form, member=member, action='Edit', all_banks=all_banks)
 
@@ -2550,12 +2604,16 @@ def edit_staff(id):
 @admin_bp.route('/staff/<int:id>/delete', methods=['POST'])
 @permission_required('manage_staff')
 def delete_staff(id):
-    member = StaffMember.query.get_or_404(id)
-    if member.profile_photo:
-        delete_file(member.profile_photo, 'staff')
-    db.session.delete(member)
-    db.session.commit()
-    flash('Staff member deleted.', 'warning')
+    try:
+        member = StaffMember.query.get_or_404(id)
+        if member.profile_photo:
+            delete_file(member.profile_photo, 'staff')
+        db.session.delete(member)
+        db.session.commit()
+        flash('Staff member deleted.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete staff: {str(exc)}", "danger")
     return redirect(url_for('admin.staff'))
 
 
@@ -2577,24 +2635,29 @@ def partners():
 def add_partner():
     form = PartnerForm()
     if form.validate_on_submit():
-        logo_file = None
-        if form.logo_file.data and form.logo_file.data.filename:
-            logo_file = save_image(form.logo_file.data, 'partners')
-            
-        partner = Partner(
-            partner_name=(form.partner_name.data or '').strip(),
-            description=(form.description.data or '').strip() if form.description.data else None,
-            website_url=(form.website_url.data or '').strip() if form.website_url.data else None,
-            email=(form.email.data or '').strip() if form.email.data else None,
-            contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
-            address=(form.address.data or '').strip() if form.address.data else None,
-            logo_file=logo_file,
-            is_active=form.is_active.data
-        )
-        db.session.add(partner)
-        db.session.commit()
-        flash('✅ Partner added successfully!', 'success')
-        return redirect(url_for('admin.partners'))
+        try:
+            logo_file = None
+            if form.logo_file.data and form.logo_file.data.filename:
+                logo_file = save_image(form.logo_file.data, 'partners')
+                
+            partner = Partner(
+                partner_name=(form.partner_name.data or '').strip(),
+                description=(form.description.data or '').strip() if form.description.data else None,
+                website_url=(form.website_url.data or '').strip() if form.website_url.data else None,
+                email=(form.email.data or '').strip() if form.email.data else None,
+                contact_number=(form.contact_number.data or '').strip() if form.contact_number.data else None,
+                address=(form.address.data or '').strip() if form.address.data else None,
+                logo_file=logo_file,
+                is_active=form.is_active.data
+            )
+            db.session.add(partner)
+            db.session.commit()
+            flash('✅ Partner added successfully!', 'success')
+            return redirect(url_for('admin.partners'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating partner: %s", exc, exc_info=True)
+            flash(f"Failed to add partner: {str(exc)}", "danger")
         
     return render_template('admin/partner_form.html', form=form, action='Add')
 
@@ -2606,22 +2669,29 @@ def edit_partner(id):
     form = PartnerForm(obj=partner)
     
     if form.validate_on_submit():
-        if form.logo_file.data and form.logo_file.data.filename:
-            if partner.logo_file:
-                delete_file(partner.logo_file, 'partners')
-            partner.logo_file = save_image(form.logo_file.data, 'partners')
+        try:
+            if form.logo_file.data and form.logo_file.data.filename:
+                if partner.logo_file:
+                    delete_file(partner.logo_file, 'partners')
+                partner.logo_file = save_image(form.logo_file.data, 'partners')
+                
+            partner.partner_name = (form.partner_name.data or '').strip()
+            partner.description = (form.description.data or '').strip() if form.description.data else None
+            partner.website_url = (form.website_url.data or '').strip() if form.website_url.data else None
+            partner.email = (form.email.data or '').strip() if form.email.data else None
+            partner.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
+            partner.address = (form.address.data or '').strip() if form.address.data else None
+            partner.is_active = form.is_active.data
+            from app.models import utc_now
+            partner.updated_at = utc_now()
             
-        partner.partner_name = (form.partner_name.data or '').strip()
-        partner.description = (form.description.data or '').strip() if form.description.data else None
-        partner.website_url = (form.website_url.data or '').strip() if form.website_url.data else None
-        partner.email = (form.email.data or '').strip() if form.email.data else None
-        partner.contact_number = (form.contact_number.data or '').strip() if form.contact_number.data else None
-        partner.address = (form.address.data or '').strip() if form.address.data else None
-        partner.is_active = form.is_active.data
-        
-        db.session.commit()
-        flash('✅ Partner updated successfully!', 'success')
-        return redirect(url_for('admin.partners'))
+            db.session.commit()
+            flash('✅ Partner updated successfully!', 'success')
+            return redirect(url_for('admin.partners'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating partner: %s", exc, exc_info=True)
+            flash(f"Failed to update partner: {str(exc)}", "danger")
         
     return render_template('admin/partner_form.html', form=form, partner=partner, action='Edit')
 
@@ -2629,12 +2699,16 @@ def edit_partner(id):
 @admin_bp.route('/partners/<int:id>/delete', methods=['POST'])
 @permission_required('manage_partners')
 def delete_partner(id):
-    partner = Partner.query.get_or_404(id)
-    if partner.logo_file:
-        delete_file(partner.logo_file, 'partners')
-    db.session.delete(partner)
-    db.session.commit()
-    flash('Partner deleted.', 'warning')
+    try:
+        partner = Partner.query.get_or_404(id)
+        if partner.logo_file:
+            delete_file(partner.logo_file, 'partners')
+        db.session.delete(partner)
+        db.session.commit()
+        flash('Partner deleted.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete partner: {str(exc)}", "danger")
     return redirect(url_for('admin.partners'))
 
 
@@ -2834,30 +2908,33 @@ def users():
 @admin_bp.route('/users/add', methods=['GET', 'POST'])
 @superadmin_required
 def add_user():
-
     form = AdminUserForm()
     
     if form.validate_on_submit():
-        user = User(
-            username=form.username.data or '',
-            email=form.email.data or '',
-            full_name=form.full_name.data or '',
-            role=form.role.data or 'Admin',
-            is_active=form.is_active.data
-        )
-        password = form.password.data if form.password.data else 'admin123'
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Admin user created successfully.', 'success')
-        return redirect(url_for('admin.users'))
+        try:
+            user = User(
+                username=form.username.data or '',
+                email=form.email.data or '',
+                full_name=form.full_name.data or '',
+                role=form.role.data or 'Admin',
+                is_active=form.is_active.data
+            )
+            password = form.password.data if form.password.data else 'admin123'
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            flash('Admin user created successfully.', 'success')
+            return redirect(url_for('admin.users'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating user: %s", exc, exc_info=True)
+            flash(f"Failed to create admin user: {str(exc)}", "danger")
         
     return render_template('admin/user_form.html', form=form, action='Add')
 
 @admin_bp.route('/users/<int:id>/edit', methods=['GET', 'POST'])
 @superadmin_required
 def edit_user(id):
-
     user = User.query.get_or_404(id)
     if user.id == current_user.id:
         flash("You cannot edit your own role here. Use profile settings.", "warning")
@@ -2866,26 +2943,35 @@ def edit_user(id):
     form = AdminUserForm(obj=user)
     
     if form.validate_on_submit():
-        form.populate_obj(user)
-        if form.password.data:
-            user.set_password(form.password.data)
-        db.session.commit()
-        flash('Admin user updated successfully!', 'success')
-        return redirect(url_for('admin.users'))
+        try:
+            form.populate_obj(user)
+            if form.password.data:
+                user.set_password(form.password.data)
+            db.session.commit()
+            flash('Admin user updated successfully!', 'success')
+            return redirect(url_for('admin.users'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error updating user: %s", exc, exc_info=True)
+            flash(f"Failed to update admin user: {str(exc)}", "danger")
         
     return render_template('admin/user_form.html', form=form, action='Edit', user=user)
 
 @admin_bp.route('/users/<int:id>/delete', methods=['POST'])
 @superadmin_required
 def delete_user(id):
-    user = User.query.get_or_404(id)
-    if user.id == current_user.id:
-        flash("You cannot delete yourself.", "danger")
-        return redirect(url_for('admin.users'))
-        
-    db.session.delete(user)
-    db.session.commit()
-    flash('Admin user deleted successfully.', 'warning')
+    try:
+        user = User.query.get_or_404(id)
+        if user.id == current_user.id:
+            flash("You cannot delete yourself.", "danger")
+            return redirect(url_for('admin.users'))
+            
+        db.session.delete(user)
+        db.session.commit()
+        flash('Admin user deleted successfully.', 'warning')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Failed to delete admin user: {str(exc)}", "danger")
     return redirect(url_for('admin.users'))
 
 

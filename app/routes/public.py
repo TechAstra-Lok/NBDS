@@ -203,29 +203,31 @@ def success_stories():
             return redirect(url_for('public.success_stories'))
 
         # डेटाबेसमा सुरक्षित गर्ने
-        new_story = SuccessStory(
-            # pyrefly: ignore [unexpected-keyword]
-            author_name=author_name.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            title=title.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            content=content.strip(),
-            # pyrefly: ignore [unexpected-keyword]
-            image_file=filename,
-            # pyrefly: ignore [unexpected-keyword]
-            social_link='',
-            # pyrefly: ignore [unexpected-keyword]
-            status='pending',
-            # pyrefly: ignore [unexpected-keyword]
-            moderation_logs=f"Text Check: {text_message}"
-        )
-        db.session.add(new_story)
-        db.session.commit()
-        
-        flash("तपाईंको सफलताको कथा सफलतापूर्वक पोस्ट भयो! धन्यवाद।", "success")
-        return redirect(url_for('public.success_stories'))
+        try:
+            new_story = SuccessStory(
+                author_name=author_name.strip(),
+                title=title.strip(),
+                content=content.strip(),
+                image_file=filename,
+                social_link='',
+                status='pending',
+                moderation_logs=f"Text Check: {text_message}"
+            )
+            db.session.add(new_story)
+            db.session.commit()
+            flash("तपाईंको सफलताको कथा सफलतापूर्वक पोस्ट भयो! धन्यवाद।", "success")
+            return redirect(url_for('public.success_stories'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating success story: %s", exc, exc_info=True)
+            flash("कथा सुरक्षित गर्दा त्रुटि भयो। कृपया पुनः प्रयास गर्नुहोस्।", "danger")
+            return redirect(url_for('public.success_stories'))
 
-    stories = SuccessStory.query.filter_by(status='approved').order_by(SuccessStory.created_at.desc()).all()
+    stories = []
+    try:
+        stories = SuccessStory.query.filter_by(status='approved').order_by(SuccessStory.created_at.desc()).all()
+    except Exception:
+        db.session.rollback()
     return render_template('success_stories.html', stories=stories)
 
 
@@ -729,75 +731,90 @@ def blood_request_form():
     form = BloodRequestForm()
     
     if form.validate_on_submit():
-        ten_min_ago = datetime.now() - timedelta(minutes=10)
-        p_name = form.patient_name.data or ''
-        normalized_new = ''.join(e for e in p_name.lower() if e.isalnum())
-        recent = BloodRequest.query.filter(BloodRequest.created_at >= ten_min_ago).all()
-        for r in recent:
-            normalized_existing = ''.join(e for e in (r.patient_name or '').lower() if e.isalnum())
-            if not normalized_existing:
-                continue
-            ratio = SequenceMatcher(None, normalized_new, normalized_existing).ratio()
-            if ratio >= 0.85:
-                flash('A similar blood request for this patient was submitted recently. Please wait 10 minutes before submitting another request for the same patient.', 'warning')
-                return redirect(url_for('public.blood_request_board'))
+        try:
+            from app.models import utc_now
+            ten_min_ago = utc_now() - timedelta(minutes=10)
+            p_name = form.patient_name.data or ''
+            normalized_new = ''.join(e for e in p_name.lower() if e.isalnum())
+            recent = BloodRequest.query.filter(BloodRequest.created_at >= ten_min_ago).all()
+            for r in recent:
+                normalized_existing = ''.join(e for e in (r.patient_name or '').lower() if e.isalnum())
+                if not normalized_existing:
+                    continue
+                ratio = SequenceMatcher(None, normalized_new, normalized_existing).ratio()
+                if ratio >= 0.85:
+                    flash('A similar blood request for this patient was submitted recently. Please wait 10 minutes before submitting another request for the same patient.', 'warning')
+                    return redirect(url_for('public.blood_request_board'))
 
-        req = BloodRequest(
-            patient_name    = (form.patient_name.data or '').strip(),
-            request_message = (form.request_message.data or '').strip(),
-            case_details    = (form.case_details.data or '').strip(),
-            blood_group     = form.blood_group.data,
-            required_component = form.required_component.data or 'Whole Blood',
-            units_needed    = form.units_needed.data,
-            hospital        = (form.hospital.data or '').strip(),
-            province        = form.province.data or "",
-            district        = (form.district.data or '').strip(),
-            local_level     = (form.local_level.data or '').strip(),
-            ward_no         = (form.ward_no.data or '').strip(),
-            contact_person  = (form.contact_person.data or '').strip(),
-            contact_number  = (form.contact_number.data or '').strip(),
-            alt_number      = (form.alt_number.data or '').strip(),
-            pin             = (form.pin.data or '').strip(),
-            is_emergency    = form.is_emergency.data,
-        )
-        db.session.add(req)
-        db.session.flush()  # get req.id before commit
+            req = BloodRequest(
+                patient_name    = (form.patient_name.data or '').strip(),
+                request_message = (form.request_message.data or '').strip(),
+                case_details    = (form.case_details.data or '').strip(),
+                blood_group     = form.blood_group.data,
+                required_component = form.required_component.data or 'Whole Blood',
+                units_needed    = form.units_needed.data,
+                hospital        = (form.hospital.data or '').strip(),
+                province        = form.province.data or "",
+                district        = (form.district.data or '').strip(),
+                local_level     = (form.local_level.data or '').strip(),
+                ward_no         = (form.ward_no.data or '').strip(),
+                contact_person  = (form.contact_person.data or '').strip(),
+                contact_number  = (form.contact_number.data or '').strip(),
+                alt_number      = (form.alt_number.data or '').strip(),
+                pin             = (form.pin.data or '').strip(),
+                is_emergency    = form.is_emergency.data,
+            )
+            db.session.add(req)
+            db.session.flush()  # get req.id before commit
 
-        # Handle hospital paper upload
-        if form.hospital_paper.data:
-            paper_file = form.hospital_paper.data
-            import uuid
-            ext = (paper_file.filename or '').rsplit('.', 1)[-1].lower() if '.' in (paper_file.filename or '') else 'jpg'
-            filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
-            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
-            os.makedirs(upload_dir, exist_ok=True)
-            saved_path = os.path.join(upload_dir, filename)
-            paper_file.save(saved_path)
-            req.hospital_paper_file = filename
+            # Handle hospital paper upload
+            if form.hospital_paper.data:
+                paper_file = form.hospital_paper.data
+                import uuid
+                ext = (paper_file.filename or '').rsplit('.', 1)[-1].lower() if '.' in (paper_file.filename or '') else 'jpg'
+                filename = f"req_{req.id}_{uuid.uuid4().hex[:8]}.{ext}"
+                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'request_papers')
+                os.makedirs(upload_dir, exist_ok=True)
+                saved_path = os.path.join(upload_dir, filename)
+                paper_file.save(saved_path)
+                req.hospital_paper_file = filename
+                
+                # Verify the uploaded paper
+                try:
+                    from app.services.document_verification import verify_blood_request_paper
+                    verified = verify_blood_request_paper(saved_path)
+                    req.hospital_paper_verified = verified
+                except Exception:
+                    pass
+
+            db.session.commit()
             
-            # Verify the uploaded paper
-            from app.services.document_verification import verify_blood_request_paper
-            verified = verify_blood_request_paper(saved_path)
-            req.hospital_paper_verified = verified
+            # Trigger Intelligent Donor Alert
+            try:
+                app_obj = getattr(current_app, '_get_current_object')()
+                alert_matching_donors(app_obj, req.id)
+            except Exception as e:
+                current_app.logger.error(f"Error alerting donors: {e}")
 
-        db.session.commit()
-        
-        # Trigger Intelligent Donor Alert
-        try:
-            app_obj = getattr(current_app, '_get_current_object')()
-            alert_matching_donors(app_obj, req.id)
-        except Exception as e:
-            current_app.logger.error(f"Error alerting donors: {e}")
+            # Trigger Real-Time Alerts to Nearby Blood Banks
+            try:
+                from app.services.bloodbank_alert_service import dispatch_nearby_request_alert
+                dispatch_nearby_request_alert(req)
+            except Exception as bb_alert_err:
+                current_app.logger.warning("Failed to dispatch nearby blood bank alerts: %s", bb_alert_err)
+            
+            flash(f'✅ Blood request submitted! Request ID: {req.request_id}. Donors will be notified.', 'success')
+            return redirect(url_for('public.blood_request_board'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error creating blood request: %s", exc, exc_info=True)
+            flash("An error occurred while submitting your blood request. Please try again.", "danger")
+            return redirect(url_for('public.blood_request_form'))
 
-        # Trigger Real-Time Alerts to Nearby Blood Banks
-        try:
-            from app.services.bloodbank_alert_service import dispatch_nearby_request_alert
-            dispatch_nearby_request_alert(req)
-        except Exception as bb_alert_err:
-            current_app.logger.warning("Failed to dispatch nearby blood bank alerts: %s", bb_alert_err)
-        
-        flash(f'✅ Blood request submitted! Request ID: {req.request_id}. Donors will be notified.', 'success')
-        return redirect(url_for('public.blood_request_board'))
+    if request.method == 'POST':
+        flash('Please fix the errors in the blood request form and resubmit.', 'danger')
+    
+    return render_template('blood_request_form.html', form=form)
 
     if request.method == 'POST':
         flash('Please fix the errors in the blood request form and resubmit.', 'danger')
@@ -1180,34 +1197,31 @@ def become_volunteer():
     form = VolunteerRegistrationForm()
     
     if form.validate_on_submit():
-        volunteer = Volunteer(
-            full_name           = (form.full_name.data or '').strip(),
-            email               = (form.email.data or '').strip(),
+        try:
+            volunteer = Volunteer(
+                full_name           = (form.full_name.data or '').strip(),
+                email               = (form.email.data or '').strip(),
+                pin_hash            = generate_password_hash(form.pin.data or '1234'),
+                phone1              = (form.phone1.data or '').strip(),
+                phone2              = (form.phone2.data or '').strip() if form.phone2.data else None,
+                designation         = form.designation.data,
+                working_field       = (form.working_field.data or '').strip() if form.working_field.data else None,
+                perm_address        = (form.perm_address.data or '').strip(),
+                curr_address        = (form.curr_address.data or '').strip(),
+                curr_district       = (form.curr_district.data or '').strip(),
+                availability_time   = (form.availability_time.data or '').strip() if form.availability_time.data else None
+            )
+            db.session.add(volunteer)
+            db.session.commit()
             
-            pin_hash            = generate_password_hash(form.pin.data or '1234'),
-            
-            phone1              = (form.phone1.data or '').strip(),
-            
-            phone2              = (form.phone2.data or '').strip() if form.phone2.data else None,
-            
-            designation         = form.designation.data,
-            
-            working_field       = (form.working_field.data or '').strip() if form.working_field.data else None,
-            
-            perm_address        = (form.perm_address.data or '').strip(),
-            
-            curr_address        = (form.curr_address.data or '').strip(),
-            
-            curr_district       = (form.curr_district.data or '').strip(),
-            
-            availability_time   = (form.availability_time.data or '').strip() if form.availability_time.data else None
-        )
-        db.session.add(volunteer)
-        db.session.commit()
-        
-        login_user(volunteer)
-        flash('🎉 Thank you for registering as a Volunteer! Your account is pending approval.', 'success')
-        return redirect(url_for('public.index'))
+            login_user(volunteer)
+            flash('🎉 Thank you for registering as a Volunteer! Your account is pending approval.', 'success')
+            return redirect(url_for('public.index'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error registering volunteer: %s", exc, exc_info=True)
+            flash("An error occurred during volunteer registration. Please try again.", "danger")
+            return redirect(url_for('public.become_volunteer'))
     
     return render_template('become_volunteer.html', form=form, districts=ALL_DISTRICTS)
 
@@ -1508,23 +1522,24 @@ def contact():
     form = ContactForm()
     
     if form.validate_on_submit():
-        msg = Contact(
+        try:
+            msg = Contact(
+                name    = (form.name.data or '').strip(),
+                email   = (form.email.data or '').strip(),
+                phone   = (form.phone.data or '').strip() if form.phone.data else None,
+                subject = (form.subject.data or '').strip(),
+                message = (form.message.data or '').strip(),
+            )
+            db.session.add(msg)
+            db.session.commit()
             
-            name    = (form.name.data or '').strip(),
-            
-            email   = (form.email.data or '').strip(),
-            
-            phone   = (form.phone.data or '').strip() if form.phone.data else None,
-            
-            subject = (form.subject.data or '').strip(),
-            
-            message = (form.message.data or '').strip(),
-        )
-        db.session.add(msg)
-        db.session.commit()
-        
-        flash('✅ Your message has been sent! We will respond within 24 hours.', 'success')
-        return redirect(url_for('public.contact'))
+            flash('✅ Your message has been sent! We will respond within 24 hours.', 'success')
+            return redirect(url_for('public.contact'))
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error("Error sending contact message: %s", exc, exc_info=True)
+            flash("Failed to send message. Please try again.", "danger")
+            return redirect(url_for('public.contact'))
     
     return render_template('contact.html', form=form)
 

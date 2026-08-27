@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone, date
 from sqlalchemy import func
 
 def utc_now():
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 def utc_today():
     return datetime.now(timezone.utc).date()
@@ -112,15 +112,14 @@ class BloodBank(db.Model):
     staff_members = db.relationship('StaffMember', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
     shifts = db.relationship('BloodBankShift', backref='blood_bank', lazy=True, cascade='all, delete-orphan')
 
-    # Note: Tenant models (BloodInventory, etc.) are in separate databases, so we cannot use cross-db relationships.
-    # We remove the relationships to BloodInventory, BloodReservation, BloodTransfer, LowStockAlert here.
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if not self.uuid:
             self.uuid = str(uuid.uuid4())
         if not self.display_name and self.name:
             self.display_name = self.name
+        if not self.tenant_id:
+            self.tenant_id = f"bank_{self.uuid[:8]}"
 
 
     @property
@@ -1234,7 +1233,8 @@ class BloodRequest(db.Model):
         super().__init__(**kwargs)
         if not self.request_id:
             ts = utc_now().strftime('%Y%m%d%H%M%S')
-            self.request_id = f"REQ-{ts}"
+            suffix = uuid.uuid4().hex[:4].upper()
+            self.request_id = f"REQ-{ts}-{suffix}"
     
     @property
     def status_badge(self):
