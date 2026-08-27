@@ -403,9 +403,79 @@ def _ensure_legacy_schema_columns(app):
                 db.session.rollback()
                 print(f"[WARN] Failed to make donors.email nullable: {e}")
 
+        # ── Fix integer PK columns: ensure they have auto-increment defaults ──────
+        _ensure_pk_sequences(app, existing_tables)
+
     except Exception as exc:
         db.session.rollback()
         print(f"[WARN] Failed to ensure legacy schema columns: {exc}")
+
+
+def _ensure_pk_sequences(app, existing_tables):
+    """
+    On CockroachDB/PostgreSQL, tables created via Alembic migrations or
+    db.create_all() may have plain INTEGER primary keys without a
+    SERIAL/sequence backing. This causes:
+        psycopg2.errors.NotNullViolation: null value in column "id"
+    when SQLAlchemy omits `id` from the INSERT (expecting the DB to supply it).
+
+    Fix strategy:
+    - CockroachDB: ALTER COLUMN id SET DEFAULT unique_rowid()
+    - PostgreSQL:  CREATE SEQUENCE IF NOT EXISTS + ALTER COLUMN id SET DEFAULT nextval(...)
+    - SQLite:      no-op (SQLite auto-increments INTEGER PKs always)
+    """
+    dialect = db.engine.name
+    if dialect not in ('postgresql', 'cockroachdb'):
+        return  # SQLite handles this automatically
+
+    # All tables that have an integer `id` primary key we must fix
+    pk_tables = [
+        'users', 'donors', 'volunteers', 'partners', 'news', 'notices',
+        'advertisements', 'contacts', 'success_stories', 'blood_requests',
+        'blood_banks', 'blood_bank_accounts', 'blood_inventory',
+        'blood_reservations', 'blood_inventory_movements', 'blood_transfers',
+        'low_stock_alerts', 'notifications', 'audit_logs',
+        'donor_donation_history', 'notification_delivery_logs',
+        'donor_notification_preferences', 'public_blood_bank_cache',
+        'staff_members', 'blood_bank_shifts', 'blood_bank_shift_assignments',
+        'blood_bank_notifications', 'blood_bank_alert_settings',
+        'blood_bank_notification_deliveries', 'site_configs', 'site_visitors',
+        'notification_queue',
+    ]
+
+    for table in pk_tables:
+        if table.lower() not in existing_tables:
+            continue
+        try:
+            if dialect == 'cockroachdb':
+                # unique_rowid() is CockroachDB's built-in monotonic ID generator
+                db.session.execute(text(
+                    f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT unique_rowid()"
+                ))
+            else:
+                # Standard PostgreSQL: create a sequence and wire it up
+                seq_name = f"{table}_id_seq"
+                db.session.execute(text(
+                    f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"
+                ))
+                # Fast-forward the sequence past any existing max id
+                db.session.execute(text(
+                    f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 1))"
+                ))
+                db.session.execute(text(
+                    f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{seq_name}')"
+                ))
+            db.session.commit()
+            print(f"[SCHEMA] Fixed PK sequence for table '{table}' ({dialect}).")
+        except Exception as e:
+            db.session.rollback()
+            # Already has a default — that's fine, ignore
+            if 'already has' in str(e).lower() or 'does not exist' in str(e).lower():
+                pass
+            else:
+                print(f"[WARN] Could not fix PK sequence for '{table}': {e}")
+
+
 
 
 def _seed_admin(app):
