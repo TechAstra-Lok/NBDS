@@ -1,5 +1,4 @@
 import os
-import google.generativeai as genai
 from flask import current_app
 
 def verify_blood_request_paper(file_path: str) -> bool:
@@ -8,7 +7,7 @@ def verify_blood_request_paper(file_path: str) -> bool:
     Returns:
       True if verified valid
       False if rejected
-      None if verification failed (e.g., API key missing, network error)
+      None if verification failed (e.g., API key missing, network error, lib not installed)
     """
     api_key = current_app.config.get('GEMINI_API_KEY')
     if not api_key:
@@ -20,6 +19,12 @@ def verify_blood_request_paper(file_path: str) -> bool:
         return None
 
     try:
+        try:
+            import google.generativeai as genai
+        except ImportError:
+            current_app.logger.warning("google-generativeai package not installed. Skipping verification.")
+            return None
+
         genai.configure(api_key=api_key)
         
         # Use the standard gemini-1.5-flash model which has vision capabilities
