@@ -323,7 +323,7 @@ def _ensure_legacy_schema_columns(app):
                         try:
                             sql_type = str(column.type.compile(db.engine.dialect))
                         except Exception:
-                            is_pg = (db.engine.name == 'postgresql')
+                            is_pg = (db.engine.name in ('postgresql', 'cockroachdb'))
                             col_type_str = str(column.type).upper()
                             if "VARCHAR" in col_type_str or "STRING" in col_type_str:
                                 length = getattr(column.type, 'length', 255) or 255
@@ -368,10 +368,10 @@ def _ensure_legacy_schema_columns(app):
                         db.session.rollback()
                         print(f"[WARN] Failed to add column {column.name} to {table_name}: {col_err}")
 
-        # Ensure donors.email is nullable on PostgreSQL and SQLite
+        # Ensure donors.email is nullable on PostgreSQL/CockroachDB and SQLite
         if 'donors' in existing_tables:
             try:
-                if db.engine.name == 'postgresql':
+                if db.engine.name in ('postgresql', 'cockroachdb'):
                     db.session.execute(text("ALTER TABLE donors ALTER COLUMN email DROP NOT NULL;"))
                     db.session.commit()
                 elif db.engine.name == 'sqlite':
@@ -572,22 +572,30 @@ def _register_context_processors(app):
             pass
         
         # सक्रिय सूचनाहरू (Active Notices)
-        active_notices = Notice.query.filter(
-            Notice.is_active == True,
-            (Notice.expiry_date == None) | (Notice.expiry_date >= now_utc)
-        ).order_by(Notice.published_date.desc()).limit(5).all()
+        active_notices = []
+        try:
+            active_notices = Notice.query.filter(
+                Notice.is_active == True,
+                (Notice.expiry_date == None) | (Notice.expiry_date >= now_utc)
+            ).order_by(Notice.published_date.desc()).limit(5).all()
+        except Exception:
+            pass
         
         # साइडबार विज्ञापनहरू (Active Sidebar Ads)
-        sidebar_ads = Advertisement.query.filter(
-            Advertisement.is_active == True,
-            Advertisement.ad_type == 'sidebar',
-            (Advertisement.end_date == None) | (Advertisement.end_date >= now_utc)
-        ).all()
+        sidebar_ads = []
+        try:
+            sidebar_ads = Advertisement.query.filter(
+                Advertisement.is_active == True,
+                Advertisement.ad_type == 'sidebar',
+                (Advertisement.end_date == None) | (Advertisement.end_date >= now_utc)
+            ).all()
+        except Exception:
+            pass
         
         return dict(
-            site_name=app.config['SITE_NAME'],
-            site_tagline=app.config['SITE_TAGLINE'],
-            ga_tracking_id=app.config['GA_TRACKING_ID'],
+            site_name=app.config.get('SITE_NAME', 'रक्तदान र रक्तदाता'),
+            site_tagline=app.config.get('SITE_TAGLINE', 'Donate Blood, Save Lives'),
+            ga_tracking_id=app.config.get('GA_TRACKING_ID', ''),
             contact_email=app.config.get('CONTACT_EMAIL', ''),
             active_notices=active_notices,
             sidebar_ads=sidebar_ads,

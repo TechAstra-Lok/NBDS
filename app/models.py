@@ -42,7 +42,12 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        if not self.password_hash:
+            return False
+        try:
+            return check_password_hash(self.password_hash, password)
+        except Exception:
+            return False
     
     @property
     def is_superadmin(self):
@@ -191,7 +196,12 @@ class BloodBankAccount(UserMixin, db.Model):
         
     def check_password(self, password):
         from werkzeug.security import check_password_hash
-        return check_password_hash(self.password_hash, password)
+        if not self.password_hash:
+            return False
+        try:
+            return check_password_hash(self.password_hash, password)
+        except Exception:
+            return False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
