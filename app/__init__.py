@@ -276,7 +276,7 @@ def _ensure_legacy_schema_columns(app):
 
         db.create_all()
         inspector = inspect(db.engine)
-        existing_tables = set(inspector.get_table_names())
+        existing_tables = {t.lower() for t in inspector.get_table_names()}
         model_tables = [
             ('users', User),
             ('donors', Donor),
@@ -312,12 +312,16 @@ def _ensure_legacy_schema_columns(app):
         ]
 
         for table_name, model_cls in model_tables:
-            if table_name not in existing_tables:
+            if table_name.lower() not in existing_tables:
                 continue
 
-            table_columns = {col['name'] for col in inspector.get_columns(table_name)}
+            try:
+                table_columns = {col['name'].lower() for col in inspector.get_columns(table_name)}
+            except Exception:
+                table_columns = set()
+
             for column in model_cls.__table__.columns:  # type: ignore[attr-defined]
-                if column.name not in table_columns:
+                if column.name.lower() not in table_columns:
                     try:
                         # Compile type according to the active database dialect (e.g. BYTEA on PostgreSQL, BLOB on SQLite)
                         try:
@@ -361,8 +365,11 @@ def _ensure_legacy_schema_columns(app):
                             elif 'INT' in col_type_upper:
                                 default_val = 0
                         if default_val is not None:
-                            db.session.execute(text(f"UPDATE {table_name} SET {column.name} = :v WHERE {column.name} IS NULL"), {'v': default_val})
-                            db.session.commit()
+                            try:
+                                db.session.execute(text(f"UPDATE {table_name} SET {column.name} = :v WHERE {column.name} IS NULL"), {'v': default_val})
+                                db.session.commit()
+                            except Exception:
+                                db.session.rollback()
                         print(f"[SCHEMA] Successfully added missing column '{column.name}' ({sql_type}) to table '{table_name}'.")
                     except Exception as col_err:
                         db.session.rollback()

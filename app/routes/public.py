@@ -969,54 +969,66 @@ def find_donors():
 @public_bp.route('/become-donor', methods=['GET', 'POST'])
 @rate_limit(limit=10, window=3600)  # 10 registrations per hour
 def become_donor():
-    form = DonorRegistrationForm()
-    
-    if form.validate_on_submit():
-        ad_date = form.last_donation_date.data
-        if ad_date and hasattr(ad_date, 'year') and ad_date.year > 2050 and nepali_datetime:
-            try:
-                bs_date = nepali_datetime.date(ad_date.year, ad_date.month, ad_date.day)
-                ad_date = bs_date.to_datetime_date()
-            except Exception:
-                pass
+    try:
+        form = DonorRegistrationForm()
+        
+        if form.validate_on_submit():
+            ad_date = form.last_donation_date.data
+            if ad_date and hasattr(ad_date, 'year') and ad_date.year > 2050 and nepali_datetime:
+                try:
+                    bs_date = nepali_datetime.date(ad_date.year, ad_date.month, ad_date.day)
+                    ad_date = bs_date.to_datetime_date()
+                except Exception:
+                    pass
 
-        donor = Donor(
-            full_name           = (form.full_name.data or '').strip(),
-            email               = (form.email.data or '').strip() if form.email.data and form.email.data.strip() else None,
-            pin_hash            = generate_password_hash(form.pin.data or '1234'),
-            age                 = form.age.data,
-            weight              = form.weight.data,
-            perm_province       = form.perm_province.data or "",
-            perm_district       = (form.perm_district.data or '').strip(),
-            perm_local_level    = (form.perm_local_level.data or '').strip(),
-            perm_ward           = (form.perm_ward.data or '').strip(),
-            perm_tole           = (form.perm_tole.data or '').strip(),
-            curr_province       = form.curr_province.data or "",
-            curr_district       = (form.curr_district.data or '').strip(),
-            curr_local_level    = (form.curr_local_level.data or '').strip(),
-            curr_ward           = (form.curr_ward.data or '').strip(),
-            curr_tole           = (form.curr_tole.data or '').strip(),
-            phone1              = (form.phone1.data or '').strip(),
-            phone2              = (form.phone2.data or '').strip() if form.phone2.data and form.phone2.data.strip() else None,
-            blood_group         = form.blood_group.data,
-            last_donation_date  = ad_date,
-            donation_times      = form.donation_times.data or 0,
-            donor_type          = form.donor_type.data,
-            social_link         = (form.social_link.data or '').strip(),
-        )
+            donor = Donor(
+                full_name           = (form.full_name.data or '').strip(),
+                email               = (form.email.data or '').strip() if form.email.data and form.email.data.strip() else None,
+                pin_hash            = generate_password_hash(form.pin.data or '1234'),
+                age                 = form.age.data,
+                weight              = form.weight.data,
+                perm_province       = form.perm_province.data or "",
+                perm_district       = (form.perm_district.data or '').strip(),
+                perm_local_level    = (form.perm_local_level.data or '').strip(),
+                perm_ward           = (form.perm_ward.data or '').strip(),
+                perm_tole           = (form.perm_tole.data or '').strip(),
+                curr_province       = form.curr_province.data or "",
+                curr_district       = (form.curr_district.data or '').strip(),
+                curr_local_level    = (form.curr_local_level.data or '').strip(),
+                curr_ward           = (form.curr_ward.data or '').strip(),
+                curr_tole           = (form.curr_tole.data or '').strip(),
+                phone1              = (form.phone1.data or '').strip(),
+                phone2              = (form.phone2.data or '').strip() if form.phone2.data and form.phone2.data.strip() else None,
+                blood_group         = form.blood_group.data,
+                last_donation_date  = ad_date,
+                donation_times      = form.donation_times.data or 0,
+                donor_type          = form.donor_type.data,
+                social_link         = (form.social_link.data or '').strip(),
+            )
+            
+            # Calculate initial availability
+            donor.recalculate_and_save()
+            
+            db.session.add(donor)
+            db.session.commit()
+            
+            login_user(donor)
+            flash(f'🎉 Registration successful! Your Donor ID: {donor.donor_id}.', 'success')
+            return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
         
-        # Calculate initial availability
-        donor.recalculate_and_save()
-        
-        db.session.add(donor)
-        db.session.commit()
-        
-        login_user(donor)
-        flash(f'🎉 Registration successful! Your Donor ID: {donor.donor_id}.', 'success')
-        return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
-    
-    total_donors = Donor.query.count()
-    return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS, total_donors=total_donors)
+        total_donors = 0
+        try:
+            total_donors = Donor.query.count()
+        except Exception as q_err:
+            db.session.rollback()
+            current_app.logger.warning("Failed to count donors: %s", q_err)
+
+        return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS, total_donors=total_donors)
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error("Error loading become_donor page: %s", exc, exc_info=True)
+        flash("Unable to load donor registration form. Please try again in a few moments.", "danger")
+        return redirect(url_for('public.index'))
 
 
 # ── Donor PIN Security Interceptor ────────────────────────
@@ -1119,38 +1131,47 @@ def donor_forgot_pin():
 @login_required
 def donor_force_change_pin():
     """Mandatory PIN change page for donors whose PIN was reset by an administrator."""
-    if not hasattr(current_user, 'donor_id'):
+    try:
+        if not hasattr(current_user, 'donor_id'):
+            return redirect(url_for('public.index'))
+        
+        donor = current_user
+        if not getattr(donor, 'pin_reset_required', False):
+            return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+            
+        from app.forms import DonorForcedPinChangeForm
+        form = DonorForcedPinChangeForm()
+        
+        if form.validate_on_submit():
+            new_pin = (form.new_pin.data or '').strip()
+            donor.set_pin(new_pin)
+            donor.pin_reset_required = False
+            donor.pin_last_changed_at = datetime.now(timezone.utc)
+            donor.failed_pin_attempts = 0
+            donor.pin_locked_until = None
+            
+            from app.models import AuditLog
+            try:
+                log = AuditLog(
+                    action='DONOR_PIN_CHANGED_AFTER_ADMIN_RESET',
+                    entity_id=donor.id,
+                    details=f"Donor {donor.donor_id} ({donor.full_name}) successfully changed temporary PIN 1234 to new private PIN.",
+                    actor=donor.donor_id
+                )
+                db.session.add(log)
+            except Exception:
+                pass
+            db.session.commit()
+            
+            flash('🎉 PIN changed successfully! You can now access your full donor dashboard and donor card.', 'success')
+            return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+            
+        return render_template('auth/donor_force_change_pin.html', form=form, donor=donor)
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error("Error in donor_force_change_pin: %s", exc, exc_info=True)
+        flash("Unable to update PIN at this moment. Please try again.", "danger")
         return redirect(url_for('public.index'))
-    
-    donor = current_user
-    if not getattr(donor, 'pin_reset_required', False):
-        return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
-        
-    from app.forms import DonorForcedPinChangeForm
-    form = DonorForcedPinChangeForm()
-    
-    if form.validate_on_submit():
-        new_pin = (form.new_pin.data or '').strip()
-        donor.set_pin(new_pin)
-        donor.pin_reset_required = False
-        donor.pin_last_changed_at = datetime.now(timezone.utc)
-        donor.failed_pin_attempts = 0
-        donor.pin_locked_until = None
-        
-        from app.models import AuditLog
-        log = AuditLog(
-            action='DONOR_PIN_CHANGED_AFTER_ADMIN_RESET',
-            entity_id=donor.id,
-            details=f"Donor {donor.donor_id} ({donor.full_name}) successfully changed temporary PIN 1234 to new private PIN.",
-            actor=donor.donor_id
-        )
-        db.session.add(log)
-        db.session.commit()
-        
-        flash('🎉 PIN changed successfully! You can now access your full donor dashboard and donor card.', 'success')
-        return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
-        
-    return render_template('auth/donor_force_change_pin.html', form=form, donor=donor)
 
 
 @public_bp.route('/become-volunteer', methods=['GET', 'POST'])
