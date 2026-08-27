@@ -1,7 +1,7 @@
 import os
 from flask import current_app
 
-def verify_blood_request_paper(file_path: str) -> bool:
+def verify_blood_request_paper(file_path: str) -> bool | None:
     """
     Verifies if the uploaded image is a hospital blood request paper.
     Returns:
@@ -12,10 +12,12 @@ def verify_blood_request_paper(file_path: str) -> bool:
     api_key = current_app.config.get('GEMINI_API_KEY')
     if not api_key:
         current_app.logger.warning("GEMINI_API_KEY is not set. Skipping document verification.")
+        
         return None
     
     if not os.path.exists(file_path):
         current_app.logger.error(f"File not found for verification: {file_path}")
+       
         return None
 
     try:
