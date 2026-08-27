@@ -1044,30 +1044,37 @@ def donor_login():
     form = DonorLoginForm()
     if form.validate_on_submit():
         login_val = (form.login_id.data or '').strip()
+        from app.forms import _normalize_nepal_mobile
+        normalized_phone = _normalize_nepal_mobile(login_val)
         
-        # Check if login_val is phone or email
-        normalized_phone = login_val
-        if login_val.isdigit() or (login_val.startswith('+') and login_val[1:].isdigit()):
-            from app.forms import _normalize_nepal_mobile
-            normalized_phone = _normalize_nepal_mobile(login_val)
+        # Query donor by phone, email, or donor_id (NBD-XXXXXX)
+        from sqlalchemy import or_, func
+        filters = [
+            func.lower(Donor.email) == login_val.lower(),
+            func.upper(Donor.donor_id) == login_val.upper()
+        ]
+        if normalized_phone:
+            filters.append(Donor.phone1 == normalized_phone)
+            filters.append(Donor.phone2 == normalized_phone)
         
-        from sqlalchemy import or_
-        donor = Donor.query.filter(or_(Donor.phone1 == normalized_phone, Donor.email == login_val)).first()
+        donor = Donor.query.filter(or_(*filters)).first()
         
-        if donor and check_password_hash(donor.pin_hash, form.pin.data or ''):
+        if donor and donor.check_pin(form.pin.data or ''):
             session.permanent = True
-            login_user(donor, remember=True)
+            login_user(donor, remember=form.remember.data if hasattr(form, 'remember') else True)
             
             # Forced PIN change enforcement
-            if donor.pin_reset_required:
+            if getattr(donor, 'pin_reset_required', False):
                 flash('Your PIN has been reset by an administrator. Please create a new PIN to access your account.', 'warning')
                 return redirect(url_for('public.donor_force_change_pin'))
                 
-            flash('Logged in successfully.', 'success')
+            flash(f'🎉 Welcome back, {donor.full_name}!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
+            if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                return redirect(next_page)
+            return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
         else:
-            flash('Login Unsuccessful. Please check your mobile number / email and PIN.', 'danger')
+            flash('Login Unsuccessful. Please check your mobile number / email / Donor ID and 4-digit PIN.', 'danger')
             
     return render_template('auth/donor_login.html', form=form)
 
@@ -1191,14 +1198,27 @@ def volunteer_login():
         
     form = VolunteerLoginForm()
     if form.validate_on_submit():
-        volunteer = Volunteer.query.filter_by(phone1=(form.phone1.data or '').strip()).first()
-        if volunteer and check_password_hash(volunteer.pin_hash, form.pin.data or ''):
-            login_user(volunteer, remember=form.remember.data)
-            flash('Logged in successfully.', 'success')
+        login_val = (form.phone1.data or '').strip()
+        from app.forms import _normalize_nepal_mobile
+        normalized_phone = _normalize_nepal_mobile(login_val)
+        
+        from sqlalchemy import or_, func
+        filters = [func.lower(Volunteer.email) == login_val.lower()]
+        if normalized_phone:
+            filters.append(Volunteer.phone1 == normalized_phone)
+            filters.append(Volunteer.phone2 == normalized_phone)
+            
+        volunteer = Volunteer.query.filter(or_(*filters)).first()
+        if volunteer and volunteer.check_pin(form.pin.data or ''):
+            session.permanent = True
+            login_user(volunteer, remember=form.remember.data if hasattr(form, 'remember') else True)
+            flash(f'🎉 Welcome back, {volunteer.full_name}!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('public.index'))
+            if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                return redirect(next_page)
+            return redirect(url_for('public.index'))
         else:
-            flash('Login Unsuccessful. Please check your mobile number and PIN.', 'danger')
+            flash('Login Unsuccessful. Please check your mobile number / email and 4-digit PIN.', 'danger')
             
     return render_template('auth/volunteer_login.html', form=form)
 

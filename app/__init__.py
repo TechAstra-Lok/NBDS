@@ -263,6 +263,13 @@ def _ensure_legacy_schema_columns(app):
             BloodBankNotification,
             BloodBankAlertSettings,
             BloodBankNotificationDelivery,
+            Volunteer,
+            Partner,
+            News,
+            Notice,
+            Advertisement,
+            Contact,
+            SuccessStory,
             SiteConfig,
             SiteVisitor,
         )
@@ -273,6 +280,13 @@ def _ensure_legacy_schema_columns(app):
         model_tables = [
             ('users', User),
             ('donors', Donor),
+            ('volunteers', Volunteer),
+            ('partners', Partner),
+            ('news', News),
+            ('notices', Notice),
+            ('advertisements', Advertisement),
+            ('contacts', Contact),
+            ('success_stories', SuccessStory),
             ('blood_requests', BloodRequest),
             ('blood_banks', BloodBank),
             ('blood_bank_accounts', BloodBankAccount),
@@ -331,8 +345,24 @@ def _ensure_legacy_schema_columns(app):
                             else:
                                 sql_type = "VARCHAR(255)"
                         
-                        db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {sql_type}"))
+                        # Always add as nullable to avoid CockroachDB/PG rejection
+                        # of NOT NULL columns on tables with existing rows.
+                        db.session.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {column.name} {sql_type} NULL"))
                         db.session.commit()
+                        # Apply default value for known sentinel columns
+                        default_val = None
+                        col_default = getattr(column, 'default', None)
+                        if col_default is not None and hasattr(col_default, 'arg') and not callable(col_default.arg):
+                            default_val = col_default.arg
+                        if default_val is None:
+                            col_type_upper = str(column.type).upper()
+                            if 'BOOL' in col_type_upper:
+                                default_val = 'FALSE'
+                            elif 'INT' in col_type_upper:
+                                default_val = 0
+                        if default_val is not None:
+                            db.session.execute(text(f"UPDATE {table_name} SET {column.name} = :v WHERE {column.name} IS NULL"), {'v': default_val})
+                            db.session.commit()
                         print(f"[SCHEMA] Successfully added missing column '{column.name}' ({sql_type}) to table '{table_name}'.")
                     except Exception as col_err:
                         db.session.rollback()
@@ -588,6 +618,25 @@ def _register_context_processors(app):
             t=TranslationDict(get_translation(lang)),
             current_lang=lang
         )
+
+
+@login_manager.unauthorized_handler
+def handle_unauthorized():
+    """Smart redirect: send each user type to the correct login page."""
+    from flask import request as _req, redirect as _redir, url_for as _url_for, flash as _flash
+    path = _req.path or ''
+    if path.startswith('/donor'):
+        _flash('Please log in to access your donor account.', 'warning')
+        return _redir(_url_for('public.donor_login'))
+    elif path.startswith('/bloodbank') or path.startswith('/blood-bank'):
+        _flash('Please log in to access the blood bank dashboard.', 'warning')
+        return _redir(_url_for('bloodbank.login'))
+    elif path.startswith('/volunteer'):
+        _flash('Please log in to access the volunteer portal.', 'warning')
+        return _redir(_url_for('public.volunteer_login'))
+    else:
+        _flash('Please log in to access the admin panel.', 'warning')
+        return _redir(_url_for('admin.login'))
 
 
 @login_manager.user_loader

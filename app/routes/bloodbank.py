@@ -58,7 +58,25 @@ def login():
         login_id = request.form.get('login_id', '').strip()
         password = request.form.get('password', '').strip()
 
-        account = BloodBankAccount.query.filter_by(login_id=login_id).first()
+        from sqlalchemy import func, or_
+        from app.models import BloodBank
+        
+        # Look up by login_id (case-insensitive) or by associated blood bank email/phone
+        account = BloodBankAccount.query.filter(
+            func.lower(BloodBankAccount.login_id) == login_id.lower()
+        ).first()
+
+        if not account:
+            bank = BloodBank.query.filter(
+                or_(
+                    func.lower(BloodBank.email) == login_id.lower(),
+                    BloodBank.phone == login_id,
+                    BloodBank.contact_number == login_id,
+                    BloodBank.alternate_contact_number == login_id
+                )
+            ).first()
+            if bank and bank.account:
+                account = bank.account
 
         # Record login attempt
         def record_login(acct, status):

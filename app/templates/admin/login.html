@@ -66,6 +66,17 @@
       background-size: 40px 40px;
       pointer-events: none;
     }
+    .blood-bg-drop {
+      position: absolute;
+      opacity: 0.06;
+      color: #DC2626;
+    }
+    .blood-drop-1 { left: 8%; top: 12%; font-size: 2rem; }
+    .blood-drop-2 { left: 20%; top: 45%; font-size: 1.2rem; }
+    .blood-drop-3 { left: 45%; top: 18%; font-size: 2.5rem; }
+    .blood-drop-4 { left: 60%; top: 70%; font-size: 1.5rem; }
+    .blood-drop-5 { left: 80%; top: 25%; font-size: 1.8rem; }
+    .blood-drop-6 { left: 90%; top: 60%; font-size: 2.2rem; }
   </style>
 </head>
 <body>
@@ -73,17 +84,12 @@
 
   <!-- Floating Blood Drops Decoration -->
   <div class="position-fixed top-0 start-0 w-100 h-100 overflow-hidden" style="pointer-events:none;z-index:0;">
-    {% for i in range(8) %}
-    <div style="position:absolute;
-                left:{{ [5,15,25,40,55,65,75,88][loop.index0] }}%;
-                top:{{ [10,30,50,20,60,15,45,35][loop.index0] }}%;
-                font-size:{{ [1.5,2,1,2.5,1.2,1.8,1,2.2][loop.index0] }}rem;
-                opacity:0.06;
-                animation:float{{ loop.index }} 6s ease-in-out infinite;
-                color:#DC2626;">
-      <i class="fas fa-droplet"></i>
-    </div>
-    {% endfor %}
+    <div class="blood-bg-drop blood-drop-1"><i class="fas fa-droplet"></i></div>
+    <div class="blood-bg-drop blood-drop-2"><i class="fas fa-droplet"></i></div>
+    <div class="blood-bg-drop blood-drop-3"><i class="fas fa-droplet"></i></div>
+    <div class="blood-bg-drop blood-drop-4"><i class="fas fa-droplet"></i></div>
+    <div class="blood-bg-drop blood-drop-5"><i class="fas fa-droplet"></i></div>
+    <div class="blood-bg-drop blood-drop-6"><i class="fas fa-droplet"></i></div>
   </div>
 
   <div class="login-card position-relative" style="z-index:10;">
@@ -195,8 +201,10 @@
     // Submit loading
     document.getElementById('loginForm').addEventListener('submit', function() {
       const btn = document.getElementById('loginBtn');
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Logging in...';
-      btn.disabled = true;
+      if (btn) {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Logging in...';
+        setTimeout(function() { btn.disabled = true; }, 10);
+      }
     });
   </script>
 </body>

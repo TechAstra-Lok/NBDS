@@ -19,7 +19,8 @@
 
         <!-- Export Dropdown -->
         <div class="dropdown">
-          <button class="btn btn-outline-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown">
+          <button class="btn btn-outline-success dropdown-toggle" type="button" id="exportDropdown"
+            data-bs-toggle="dropdown">
             <i class="fas fa-file-export me-1"></i> Export
           </button>
           <ul class="dropdown-menu" aria-labelledby="exportDropdown">
@@ -94,36 +95,40 @@
             </td>
             <td>
               {% if bank.is_emergency_panel or bank.emergency_available %}
-                <span class="badge bg-warning text-dark"><i class="fas fa-bolt"></i> Yes</span>
+              <span class="badge bg-warning text-dark"><i class="fas fa-bolt"></i> Yes</span>
               {% else %}
-                <span class="text-muted">No</span>
+              <span class="text-muted">No</span>
               {% endif %}
             </td>
             <td>
               {% if bank.is_grouped_entry %}
-                <span class="badge bg-info text-dark"><i class="fas fa-layer-group"></i> Yes</span>
+              <span class="badge bg-info text-dark"><i class="fas fa-layer-group"></i> Yes</span>
               {% else %}
-                <span class="text-muted">No</span>
+              <span class="text-muted">No</span>
               {% endif %}
             </td>
             <td>
               {% if bank.account %}
-                <a href="{{ url_for('admin.view_blood_bank_account', id=bank.id) }}" class="text-decoration-none">
-                  <span class="badge bg-success"><i class="fas fa-user-check"></i> {{ bank.account.login_id }}</span>
-                </a>
-                <div class="small text-muted">{{ bank.account.account_status|capitalize }}</div>
+              <a href="{{ url_for('admin.view_blood_bank_account', id=bank.id) }}" class="text-decoration-none">
+                <span class="badge bg-success"><i class="fas fa-user-check"></i> {{ bank.account.login_id }}</span>
+              </a>
+              <div class="small text-muted">{{ bank.account.account_status|capitalize }}</div>
               {% elif current_user.role == 'superadmin' %}
-                <form method="post" action="{{ url_for('admin.generate_blood_bank_account', id=bank.id) }}" class="d-inline" onsubmit="return confirm('Generate account credentials for this blood bank?');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                  <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-key"></i> Generate</button>
-                </form>
+              <form method="post" action="{{ url_for('admin.generate_blood_bank_account', id=bank.id) }}"
+                class="d-inline" onsubmit="return confirm('Generate account credentials for this blood bank?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-key"></i>
+                  Generate</button>
+              </form>
               {% else %}
-                <span class="text-muted">—</span>
+              <span class="text-muted">—</span>
               {% endif %}
             </td>
             <td>
-              <a href="{{ url_for('admin.edit_blood_bank', id=bank.id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i> Edit</a>
-              <form method="post" action="{{ url_for('admin.delete_blood_bank', id=bank.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this blood bank?');">
+              <a href="{{ url_for('admin.edit_blood_bank', id=bank.id) }}" class="btn btn-sm btn-outline-secondary"><i
+                  class="fas fa-edit"></i> Edit</a>
+              <form method="post" action="{{ url_for('admin.delete_blood_bank', id=bank.id) }}" class="d-inline"
+                onsubmit="return confirm('Are you sure you want to delete this blood bank?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
               </form>
@@ -143,15 +148,16 @@
     <nav class="mt-4">
       <ul class="pagination justify-content-center">
         {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-          {% if page_num %}
-            {% if pagination.page == page_num %}
-              <li class="page-item active"><span class="page-link bg-danger border-danger">{{ page_num }}</span></li>
-            {% else %}
-              <li class="page-item"><a class="page-link text-danger" href="{{ url_for('admin.blood_banks', page=page_num, q=search) }}">{{ page_num }}</a></li>
-            {% endif %}
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">...</span></li>
-          {% endif %}
+        {% if page_num %}
+        {% if pagination.page == page_num %}
+        <li class="page-item active"><span class="page-link bg-danger border-danger">{{ page_num }}</span></li>
+        {% else %}
+        <li class="page-item"><a class="page-link text-danger"
+            href="{{ url_for('admin.blood_banks', page=page_num, q=search) }}">{{ page_num }}</a></li>
+        {% endif %}
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
         {% endfor %}
       </ul>
     </nav>
@@ -181,9 +187,12 @@
           <ul class="mb-0 small">
             <li>Download the template below, fill in your data, then upload.</li>
             <li>Supported formats: <strong>.xlsx</strong> and <strong>.csv</strong></li>
-            <li><strong>Required columns:</strong> <code>name</code>, <code>province</code>, <code>district</code>, <code>contact_number</code>, <code>service_type</code>, <code>maps_url</code></li>
-            <li>Existing records are matched by <strong>name + district</strong> (existing will be <em>updated</em>, not duplicated).</li>
-            <li>For boolean columns (<code>is_emergency_panel</code>, <code>is_grouped_entry</code>, <code>is_active</code>), use <code>1</code> for Yes, <code>0</code> for No.</li>
+            <li><strong>Required columns:</strong> <code>name</code>, <code>province</code>, <code>district</code>,
+              <code>contact_number</code>, <code>service_type</code>, <code>maps_url</code></li>
+            <li>Existing records are matched by <strong>name + district</strong> (existing will be <em>updated</em>, not
+              duplicated).</li>
+            <li>For boolean columns (<code>is_emergency_panel</code>, <code>is_grouped_entry</code>,
+              <code>is_active</code>), use <code>1</code> for Yes, <code>0</code> for No.</li>
           </ul>
         </div>
 
@@ -200,28 +209,116 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td><code>name</code></td><td><span class="badge bg-danger">Required</span></td><td>Kathmandu Blood Bank</td></tr>
-                <tr><td><code>display_name</code></td><td>Optional</td><td>KBB Kathmandu</td></tr>
-                <tr><td><code>hospital_name</code></td><td>Optional</td><td>Bir Hospital</td></tr>
-                <tr><td><code>branch_type</code></td><td>Optional</td><td>Main / Sub-branch</td></tr>
-                <tr><td><code>service_type</code></td><td><span class="badge bg-danger">Required</span></td><td>Blood Bank</td></tr>
-                <tr><td><code>province</code></td><td><span class="badge bg-danger">Required</span></td><td>Bagmati Province</td></tr>
-                <tr><td><code>district</code></td><td><span class="badge bg-danger">Required</span></td><td>Kathmandu</td></tr>
-                <tr><td><code>city</code></td><td>Optional</td><td>Kathmandu</td></tr>
-                <tr><td><code>local_level</code></td><td>Optional</td><td>Kathmandu Metropolitan</td></tr>
-                <tr><td><code>ward</code></td><td>Optional</td><td>3</td></tr>
-                <tr><td><code>tole</code></td><td>Optional</td><td>Baneshwor</td></tr>
-                <tr><td><code>contact_number</code></td><td><span class="badge bg-danger">Required</span></td><td>01-4780000</td></tr>
-                <tr><td><code>alternate_contact_number</code></td><td>Optional</td><td>9801234567</td></tr>
-                <tr><td><code>email</code></td><td>Optional</td><td>info@bb.np</td></tr>
-                <tr><td><code>website</code></td><td>Optional</td><td>https://example.com</td></tr>
-                <tr><td><code>latitude</code></td><td>Optional</td><td>27.7172</td></tr>
-                <tr><td><code>longitude</code></td><td>Optional</td><td>85.3240</td></tr>
-                <tr><td><code>maps_url</code></td><td><span class="badge bg-danger">Required</span></td><td>https://maps.google.com/…</td></tr>
-                <tr><td><code>is_emergency_panel</code></td><td>Optional</td><td>1 or 0</td></tr>
-                <tr><td><code>is_grouped_entry</code></td><td>Optional</td><td>1 or 0</td></tr>
-                <tr><td><code>is_active</code></td><td>Optional (default=1)</td><td>1 or 0</td></tr>
-                <tr><td><code>notes</code></td><td>Optional</td><td>Any extra notes</td></tr>
+                <tr>
+                  <td><code>name</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>Kathmandu Blood Bank</td>
+                </tr>
+                <tr>
+                  <td><code>display_name</code></td>
+                  <td>Optional</td>
+                  <td>KBB Kathmandu</td>
+                </tr>
+                <tr>
+                  <td><code>hospital_name</code></td>
+                  <td>Optional</td>
+                  <td>Bir Hospital</td>
+                </tr>
+                <tr>
+                  <td><code>branch_type</code></td>
+                  <td>Optional</td>
+                  <td>Main / Sub-branch</td>
+                </tr>
+                <tr>
+                  <td><code>service_type</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>Blood Bank</td>
+                </tr>
+                <tr>
+                  <td><code>province</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>Bagmati Province</td>
+                </tr>
+                <tr>
+                  <td><code>district</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>Kathmandu</td>
+                </tr>
+                <tr>
+                  <td><code>city</code></td>
+                  <td>Optional</td>
+                  <td>Kathmandu</td>
+                </tr>
+                <tr>
+                  <td><code>local_level</code></td>
+                  <td>Optional</td>
+                  <td>Kathmandu Metropolitan</td>
+                </tr>
+                <tr>
+                  <td><code>ward</code></td>
+                  <td>Optional</td>
+                  <td>3</td>
+                </tr>
+                <tr>
+                  <td><code>tole</code></td>
+                  <td>Optional</td>
+                  <td>Baneshwor</td>
+                </tr>
+                <tr>
+                  <td><code>contact_number</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>01-4780000</td>
+                </tr>
+                <tr>
+                  <td><code>alternate_contact_number</code></td>
+                  <td>Optional</td>
+                  <td>9801234567</td>
+                </tr>
+                <tr>
+                  <td><code>email</code></td>
+                  <td>Optional</td>
+                  <td>info@bb.np</td>
+                </tr>
+                <tr>
+                  <td><code>website</code></td>
+                  <td>Optional</td>
+                  <td>https://example.com</td>
+                </tr>
+                <tr>
+                  <td><code>latitude</code></td>
+                  <td>Optional</td>
+                  <td>27.7172</td>
+                </tr>
+                <tr>
+                  <td><code>longitude</code></td>
+                  <td>Optional</td>
+                  <td>85.3240</td>
+                </tr>
+                <tr>
+                  <td><code>maps_url</code></td>
+                  <td><span class="badge bg-danger">Required</span></td>
+                  <td>https://maps.google.com/…</td>
+                </tr>
+                <tr>
+                  <td><code>is_emergency_panel</code></td>
+                  <td>Optional</td>
+                  <td>1 or 0</td>
+                </tr>
+                <tr>
+                  <td><code>is_grouped_entry</code></td>
+                  <td>Optional</td>
+                  <td>1 or 0</td>
+                </tr>
+                <tr>
+                  <td><code>is_active</code></td>
+                  <td>Optional (default=1)</td>
+                  <td>1 or 0</td>
+                </tr>
+                <tr>
+                  <td><code>notes</code></td>
+                  <td>Optional</td>
+                  <td>Any extra notes</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -240,12 +337,13 @@
         </div>
 
         <!-- Upload Form -->
-        <form method="post" action="{{ url_for('admin.bulk_upload_blood_banks') }}" enctype="multipart/form-data" id="bulkUploadForm">
+        <form method="post" action="{{ url_for('admin.bulk_upload_blood_banks') }}" enctype="multipart/form-data"
+          id="bulkUploadForm">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <div class="mb-3">
             <label class="form-label fw-semibold">Select File to Upload</label>
-            <input type="file" class="form-control" name="bulk_file" id="bulkFileInput"
-                   accept=".xlsx,.xls,.csv" required>
+            <input type="file" class="form-control" name="bulk_file" id="bulkFileInput" accept=".xlsx,.xls,.csv"
+              required>
             <div class="form-text">Accepted: .xlsx, .xls, .csv — Max 10MB</div>
           </div>
 
@@ -268,28 +366,28 @@
 </div>
 
 <script>
-// Show file name after selection
-document.getElementById('bulkFileInput').addEventListener('change', function() {
-  const preview = document.getElementById('filePreview');
-  const nameEl  = document.getElementById('filePreviewName');
-  if (this.files.length > 0) {
-    nameEl.textContent = 'Selected: ' + this.files[0].name + ' (' + (this.files[0].size / 1024).toFixed(1) + ' KB)';
-    preview.classList.remove('d-none');
-  } else {
-    preview.classList.add('d-none');
-  }
-});
+  // Show file name after selection
+  document.getElementById('bulkFileInput').addEventListener('change', function () {
+    const preview = document.getElementById('filePreview');
+    const nameEl = document.getElementById('filePreviewName');
+    if (this.files.length > 0) {
+      nameEl.textContent = 'Selected: ' + this.files[0].name + ' (' + (this.files[0].size / 1024).toFixed(1) + ' KB)';
+      preview.classList.remove('d-none');
+    } else {
+      preview.classList.add('d-none');
+    }
+  });
 
-function submitBulkUpload() {
-  const fileInput = document.getElementById('bulkFileInput');
-  if (!fileInput.files.length) {
-    alert('Please select a file first.');
-    return;
+  function submitBulkUpload() {
+    const fileInput = document.getElementById('bulkFileInput');
+    if (!fileInput.files.length) {
+      alert('Please select a file first.');
+      return;
+    }
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing…';
+    document.getElementById('bulkUploadForm').submit();
   }
-  const btn = document.getElementById('uploadBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing…';
-  document.getElementById('bulkUploadForm').submit();
-}
 </script>
 {% endblock %}

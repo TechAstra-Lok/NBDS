@@ -78,14 +78,14 @@ class DonorLoginForm(FlaskForm):
 
 
 class VolunteerLoginForm(FlaskForm):
-    phone1   = StringField('Mobile Number *', validators=[DataRequired(), validate_nepal_mobile])
+    phone1   = StringField('Mobile Number or Email *', validators=[DataRequired()])
     pin      = PasswordField('4-Digit PIN *', validators=[DataRequired(), Length(min=4, max=4)])
     remember = BooleanField('Remember Me')
     submit   = SubmitField('Login as Volunteer')
 
 
 class AdminLoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=80)])
+    username = StringField('Username or Email', validators=[DataRequired(), Length(min=3, max=120)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     remember = BooleanField('Remember Me')
     submit   = SubmitField('Login to Admin Panel')

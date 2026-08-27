@@ -169,15 +169,21 @@ def build_blood_inventory_report(bank_id):
 # ════════════════════════════════════════════
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and hasattr(current_user, 'role'):
         return redirect(url_for('admin.dashboard'))
     
     form = AdminLoginForm()
     
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        user_val = (form.username.data or '').strip()
+        user = User.query.filter(
+            or_(
+                func.lower(User.username) == user_val.lower(),
+                func.lower(User.email) == user_val.lower()
+            )
+        ).first()
         
-        if user and user.is_active and user.check_password(form.password.data):
+        if user and user.is_active and user.check_password(form.password.data or ''):
             login_user(user, remember=form.remember.data)
             # make admin session permanent for session lifetime tracking
             session.permanent = True
@@ -191,7 +197,7 @@ def login():
             flash(f'✅ Welcome back, {user.full_name or user.username}!', 'success')
             return redirect(next_page or url_for('admin.dashboard'))
         
-        flash('❌ Invalid credentials. Please try again.', 'danger')
+        flash('❌ Invalid username/email or password. Please try again.', 'danger')
     
     return render_template('admin/login.html', form=form)
 
