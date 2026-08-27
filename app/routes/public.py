@@ -991,13 +991,13 @@ def become_donor():
             perm_local_level    = (form.perm_local_level.data or '').strip(),
             perm_ward           = (form.perm_ward.data or '').strip(),
             perm_tole           = (form.perm_tole.data or '').strip(),
-            curr_province       = form.curr_province.data,
+            curr_province       = form.curr_province.data or "",
             curr_district       = (form.curr_district.data or '').strip(),
             curr_local_level    = (form.curr_local_level.data or '').strip(),
             curr_ward           = (form.curr_ward.data or '').strip(),
             curr_tole           = (form.curr_tole.data or '').strip(),
             phone1              = (form.phone1.data or '').strip(),
-            phone2              = (form.phone2.data or '').strip(),
+            phone2              = (form.phone2.data or '').strip() if form.phone2.data and form.phone2.data.strip() else None,
             blood_group         = form.blood_group.data,
             last_donation_date  = ad_date,
             donation_times      = form.donation_times.data or 0,
@@ -1015,7 +1015,8 @@ def become_donor():
         flash(f'🎉 Registration successful! Your Donor ID: {donor.donor_id}.', 'success')
         return redirect(url_for('public.donor_profile', donor_id=donor.donor_id))
     
-    return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS)
+    total_donors = Donor.query.count()
+    return render_template('become_donor.html', form=form, districts=ALL_DISTRICTS, total_donors=total_donors)
 
 
 # ── Donor PIN Security Interceptor ────────────────────────
