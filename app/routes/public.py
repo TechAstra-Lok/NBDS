@@ -1224,11 +1224,20 @@ def volunteer_login():
 
 
 @public_bp.route('/logout')
-@login_required
 def logout():
     logout_user()
+    session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('public.index'))
+    resp = make_response(redirect(url_for('public.index')))
+    resp.delete_cookie('remember_token')
+    resp.delete_cookie('session')
+    rem_name = current_app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
+    if rem_name:
+        resp.delete_cookie(rem_name)
+    sess_name = current_app.config.get('SESSION_COOKIE_NAME', 'session')
+    if sess_name:
+        resp.delete_cookie(sess_name)
+    return resp
 
 
 @public_bp.route('/donor/<string:donor_id>', methods=['GET', 'POST'])

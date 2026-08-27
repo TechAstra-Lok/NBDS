@@ -155,11 +155,15 @@ def login():
 # ── Logout ─────────────────────────────────────────
 @bloodbank_bp.route('/logout')
 def logout():
-    session.pop('bloodbank_account_id', None)
-    session.pop('bloodbank_login_id', None)
-    session.pop('bloodbank_bank_name', None)
+    from flask import make_response, current_app
+    session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('bloodbank.login'))
+    resp = make_response(redirect(url_for('public.index')))
+    resp.delete_cookie('session')
+    sess_name = current_app.config.get('SESSION_COOKIE_NAME', 'session')
+    if sess_name:
+        resp.delete_cookie(sess_name)
+    return resp
 
 
 # ── Password Change ────────────────────────────────

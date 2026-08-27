@@ -211,11 +211,21 @@ def is_safe_url(target):
 
 
 @admin_bp.route('/logout')
-@login_required
 def logout():
+    from flask import make_response, current_app
     logout_user()
+    session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('public.index'))
+    resp = make_response(redirect(url_for('public.index')))
+    resp.delete_cookie('remember_token')
+    resp.delete_cookie('session')
+    rem_name = current_app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
+    if rem_name:
+        resp.delete_cookie(rem_name)
+    sess_name = current_app.config.get('SESSION_COOKIE_NAME', 'session')
+    if sess_name:
+        resp.delete_cookie(sess_name)
+    return resp
 
 
 # ════════════════════════════════════════════
