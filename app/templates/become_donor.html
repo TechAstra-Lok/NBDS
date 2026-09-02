@@ -83,14 +83,24 @@
             <div class="row g-3">
               <div class="col-md-6">
                 {{ form.pin.label(class="form-label fw-semibold") }}
-                {{ form.pin(class="form-control" + (" is-invalid" if form.pin.errors else ""), placeholder=("४-अङ्कको PIN" if lang == 'ne' else "4-Digit PIN")) }}
-                {% for e in form.pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                <div class="input-group">
+                  {{ form.pin(class="form-control" + (" is-invalid" if form.pin.errors else ""), placeholder=("४-अङ्कको PIN" if lang == 'ne' else "4-Digit PIN"), maxlength="4", inputmode="numeric") }}
+                  <button type="button" class="btn btn-outline-secondary toggle-pin-btn" tabindex="-1" title="Toggle PIN visibility">
+                    <i class="fas fa-eye text-muted"></i>
+                  </button>
+                </div>
+                {% for e in form.pin.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
                 <div class="form-text">{% if lang == 'ne' %}तपाईं यो PIN प्रयोग गरेर लगइन र प्रोफाइल अपडेट गर्न सक्नुहुन्छ।{% else %}You will use this PIN to login and update your profile.{% endif %}</div>
               </div>
               <div class="col-md-6">
                 {{ form.confirm_pin.label(class="form-label fw-semibold") }}
-                {{ form.confirm_pin(class="form-control" + (" is-invalid" if form.confirm_pin.errors else ""), placeholder=("PIN पुष्टि गर्नुहोस्" if lang == 'ne' else "Confirm PIN")) }}
-                {% for e in form.confirm_pin.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                <div class="input-group">
+                  {{ form.confirm_pin(class="form-control" + (" is-invalid" if form.confirm_pin.errors else ""), placeholder=("PIN पुष्टि गर्नुहोस्" if lang == 'ne' else "Confirm PIN"), maxlength="4", inputmode="numeric") }}
+                  <button type="button" class="btn btn-outline-secondary toggle-pin-btn" tabindex="-1" title="Toggle PIN visibility">
+                    <i class="fas fa-eye text-muted"></i>
+                  </button>
+                </div>
+                {% for e in form.confirm_pin.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
               </div>
             </div>
           </div>

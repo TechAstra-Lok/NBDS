@@ -5,22 +5,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="{% block meta_desc %}रक्तदान र रक्तदाता - Find blood donors, request emergency blood, check blood banks, and get health guidance across Nepal. Nepal's premier blood donor platform.{% endblock %}" />
+    content="{% block meta_desc %}National Blood Donors Society (राष्ट्रिय रक्तदाता समाज) — Connect with verified blood donors, request emergency blood, and access live blood bank inventory across Nepal.{% endblock %}" />
   <meta name="keywords"
-    content="{% block meta_keywords %}blood donation Nepal, blood donors Nepal, O+ blood donor Kathmandu, emergency blood request Nepal, Nepali blood bank, blood group compatibility, health tips Nepal{% endblock %}" />
-  <meta name="author" content="रक्तदान र रक्तदाता - Nepali Blood Donors System" />
+    content="{% block meta_keywords %}National Blood Donors Society, NBDS Nepal, राष्ट्रिय रक्तदाता समाज, blood donation Nepal, blood donors Nepal, emergency blood request Nepal, Nepali blood bank, blood availability Nepal{% endblock %}" />
+  <meta name="author" content="National Blood Donors Society (राष्ट्रिय रक्तदाता समाज)" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-  <meta name="theme-color" content="#DC2626" />
+  <meta name="theme-color" content="#D32F2F" />
   <meta name="geo.region" content="NP" />
   <meta name="geo.placename" content="Nepal" />
   <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}" />
 
   <!-- Open Graph / Facebook -->
-  <meta property="og:site_name" content="{{ site_name }}" />
+  <meta property="og:site_name" content="National Blood Donors Society (राष्ट्रिय रक्तदाता समाज)" />
   <meta property="og:title"
-    content="{% block og_title %}{{ site_name }} — Emergency Blood Donors & Health Network Nepal{% endblock %}" />
+    content="{% block og_title %}National Blood Donors Society — Emergency Blood Donors & Health Network Nepal{% endblock %}" />
   <meta property="og:description"
-    content="{% block og_desc %}Find active blood donors, locate blood banks, request emergency blood, and get 24/7 AI health guidance across Nepal.{% endblock %}" />
+    content="{% block og_desc %}Find active blood donors, locate blood banks, request emergency blood, and access 24/7 blood services across Nepal.{% endblock %}" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://raktadata.lokeshprasai.com.np/static/images/logo.png" />
   <meta property="og:url" content="{{ request.url }}" />
@@ -32,9 +32,9 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{{ site_name }} — Blood Donors Nepal" />
+  <meta name="twitter:title" content="National Blood Donors Society Nepal" />
   <meta name="twitter:description"
-    content="Find blood donors, request emergency blood, and get health guidance in Nepal." />
+    content="Find blood donors, request emergency blood, and locate blood banks across Nepal." />
   <meta name="twitter:image" content="https://raktadata.lokeshprasai.com.np/static/images/logo.png" />
 
   <!-- PWA & Favicons -->
@@ -42,7 +42,7 @@
   <link rel="apple-touch-icon" href="/static/images/logo.png" />
   <link rel="icon" type="image/png" href="/static/images/logo.png" />
 
-  <title>{% block title %}{{ site_name }} — Emergency Blood Donors & Health Guidance Nepal{% endblock %}</title>
+  <title>{% block title %}National Blood Donors Society (राष्ट्रिय रक्तदाता समाज) — Nepal{% endblock %}</title>
 
   <!-- Structured Data: MedicalOrganization & WebSite SearchBox -->
   <script type="application/ld+json">
@@ -50,26 +50,26 @@
     {
       "@context": "https://schema.org",
       "@type": "MedicalOrganization",
-      "name": "Nepali Blood Donors System",
-      "alternateName": "रक्तदान र रक्तदाता",
+      "name": "National Blood Donors Society",
+      "alternateName": "राष्ट्रिय रक्तदाता समाज",
       "url": "https://raktadata.lokeshprasai.com.np/",
       "logo": "https://raktadata.lokeshprasai.com.np/static/images/logo.png",
-      "description": "Connecting blood donors with patients in need across all 77 districts of Nepal.",
+      "description": "National Blood Donors Society connects blood donors, hospitals, and blood banks across all 77 districts of Nepal.",
       "areaServed": {
         "@type": "Country",
         "name": "Nepal"
       },
       "contactPoint": {
         "@type": "ContactPoint",
-        "email": "contact@lokeshprasai.com.np",
-        "contactType": "Emergency Support",
+        "email": "info@nepaliblooddonors.org",
+        "contactType": "Emergency Blood Support",
         "availableLanguage": ["English", "Nepali"]
       }
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Nepali Blood Donors System",
+      "name": "National Blood Donors Society",
       "url": "https://raktadata.lokeshprasai.com.np/",
       "potentialAction": {
         "@type": "SearchAction",
@@ -119,243 +119,278 @@
   </div>
 
   <!-- ══════════════════════════════════════
-     MAIN NAVBAR
+     MAIN NAVBAR (NATIONAL BLOOD DONORS SOCIETY)
 ══════════════════════════════════════ -->
-  <nav class="navbar navbar-expand-lg navbar-dark sticky-top" id="mainNavbar"
-    style="background: linear-gradient(135deg, #991B1B 0%, #DC2626 100%); box-shadow: 0 2px 20px rgba(0,0,0,0.15);">
+  <nav class="navbar navbar-expand-lg navbar-dark sticky-top nbds-navbar" id="mainNavbar">
     <div class="container-xl">
 
       <!-- Brand -->
-      <a class="navbar-brand d-flex align-items-center gap-2 py-0" href="{{ url_for('public.index') }}">
-        <div class="nav-brand-icon d-flex align-items-center justify-content-center rounded-2"
-          style="width:40px;height:40px;background:rgba(255,255,255,0.15);font-size:1.3rem;">
-          <i class="fas fa-droplet"></i>
+      <a class="navbar-brand d-flex align-items-center gap-2 py-0" href="{{ url_for('public.index') }}" title="National Blood Donors Society">
+        <div class="nav-brand-icon d-flex align-items-center justify-content-center rounded-3 shadow-sm"
+          style="width:40px;height:40px;background:linear-gradient(135deg,#D32F2F,#B71C1C);font-size:1.25rem;">
+          <i class="fas fa-droplet text-white"></i>
         </div>
-        <div class="d-none d-sm-block">
-          <div style="font-size:0.95rem;font-weight:800;line-height:1.2;letter-spacing:-0.3px;">
-            रक्तदान र रक्तदाता
+        <div>
+          <div class="d-none d-sm-block text-white fw-bold" style="font-size:0.95rem;line-height:1.2;letter-spacing:-0.2px;">
+            {% if session.get('lang') == 'ne' %}राष्ट्रिय रक्तदाता समाज{% else %}NATIONAL BLOOD DONORS SOCIETY{% endif %}
           </div>
-          <div style="font-size:0.62rem;opacity:0.75;font-weight:400;">
-            {{ site_tagline }}
+          <div class="d-none d-sm-block" style="font-size:0.65rem;color:rgba(255,255,255,0.75);font-weight:500;">
+            {% if session.get('lang') == 'ne' %}नेपालको राष्ट्रिय रक्तदान सञ्जाल{% else %}Nepal's National Blood Donor Network{% endif %}
           </div>
+          <div class="d-sm-none text-white fw-bold" style="font-size:0.95rem;">NBDS NEPAL</div>
         </div>
-        <div class="d-sm-none fw-bold" style="font-size:0.95rem;">रक्तदान र रक्तदाता</div>
       </a>
 
-      <!-- Mobile Controls -->
+      <!-- Mobile Controls & Offcanvas Toggle -->
       <div class="d-flex align-items-center gap-2 d-lg-none">
+        <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-sm fw-bold px-2 py-1 shadow-sm" style="font-size:0.75rem;">
+          <i class="fas fa-plus me-1"></i>{% if session.get('lang') == 'ne' %}रगत माग{% else %}Request{% endif %}
+        </a>
         <button class="btn btn-sm btn-outline-light px-2 py-1" id="themeToggleMobile" title="Toggle theme">
           <i class="fas fa-moon fa-sm" id="themeIconMobile"></i>
         </button>
-        <button class="navbar-toggler border-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-          aria-controls="mainNav" aria-expanded="false">
-          <span class="navbar-toggler-icon"></span>
+        <button class="navbar-toggler border-0 px-2 shadow-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
+          <i class="fas fa-bars fa-lg text-white"></i>
         </button>
       </div>
 
-      <!-- Nav Links -->
-      <div class="collapse navbar-collapse" id="mainNav">
-        <ul class="navbar-nav mx-auto align-items-lg-center gap-0 gap-lg-1 py-2 py-lg-0">
+      <!-- Desktop Navigation -->
+      <div class="collapse navbar-collapse d-none d-lg-flex" id="desktopNav">
+        <ul class="navbar-nav mx-auto align-items-center gap-1">
+          <!-- Home -->
           <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.index' }}"
-              href="{{ url_for('public.index') }}">
-              <i class="fas fa-house fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.home }}
+            <a class="nav-link {{ 'active bg-white bg-opacity-20 fw-semibold' if request.endpoint == 'public.index' }}" href="{{ url_for('public.index') }}">
+              <i class="fas fa-house me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}गृहपृष्ठ{% else %}Home{% endif %}
             </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if 'blood_request' in (request.endpoint or '') }}"
-              href="{{ url_for('public.blood_request_board') }}">
-              <i class="fas fa-tint fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.blood_requests }}
+
+          <!-- Find Blood Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active bg-white bg-opacity-20 fw-semibold' if request.endpoint in ['public.find_donors', 'public.blood_banks', 'public.blood_bank_detail'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-magnifying-glass me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}रगत खोज्नुहोस्{% else %}Find Blood{% endif %}
             </a>
+            <ul class="dropdown-menu shadow-lg">
+              <li><a class="dropdown-item" href="{{ url_for('public.find_donors') }}"><i class="fas fa-user-group me-2 text-primary"></i>{% if session.get('lang') == 'ne' %}रक्तदाता खोज्नुहोस्{% else %}Find Donors{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.blood_banks') }}"><i class="fas fa-hospital me-2 text-danger"></i>{% if session.get('lang') == 'ne' %}रक्त बैंकहरू खोज्नुहोस्{% else %}Find Blood Banks{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.blood_banks') }}#mapView"><i class="fas fa-map-location-dot me-2 text-success"></i>{% if session.get('lang') == 'ne' %}नजिकको रक्त बैंक{% else %}Nearest Blood Bank{% endif %}</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.blood_banks') }}"><i class="fas fa-boxes-stacked me-2 text-warning"></i>{% if session.get('lang') == 'ne' %}रगत उपलब्धता सूची{% else %}Blood Availability{% endif %}</a></li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.find_donors' }}"
-              href="{{ url_for('public.find_donors') }}">
-              <i class="fas fa-magnifying-glass fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.find_donors }}
+
+          <!-- Request Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active bg-white bg-opacity-20 fw-semibold' if 'blood_request' in (request.endpoint or '') }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-hand-holding-medical me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}माग / अनुरोध{% else %}Request{% endif %}
             </a>
+            <ul class="dropdown-menu shadow-lg">
+              <li><a class="dropdown-item" href="{{ url_for('public.blood_request_form') }}"><i class="fas fa-circle-plus me-2 text-danger"></i>{% if session.get('lang') == 'ne' %}रगत माग फारम{% else %}Post Blood Request{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.blood_request_board') }}"><i class="fas fa-clipboard-list me-2 text-primary"></i>{% if session.get('lang') == 'ne' %}माग बोर्ड / स्थिति हेर्नुहोस्{% else %}Live Request Board{% endif %}</a></li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint in ['public.blood_banks', 'public.blood_bank_detail'] }}"
-              href="{{ url_for('public.blood_banks') }}">
-              <i class="fas fa-hospital fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.blood_banks }}
+
+          <!-- Donate Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active bg-white bg-opacity-20 fw-semibold' if request.endpoint in ['public.become_donor', 'public.donor_guidelines'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-heart-pulse me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}रक्तदान{% else %}Donate{% endif %}
             </a>
+            <ul class="dropdown-menu shadow-lg">
+              <li><a class="dropdown-item" href="{{ url_for('public.become_donor') }}"><i class="fas fa-user-plus me-2 text-danger"></i>{% if session.get('lang') == 'ne' %}रक्तदाता बन्नुहोस्{% else %}Become a Donor{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.donor_guidelines') }}"><i class="fas fa-book-medical me-2 text-primary"></i>{% if session.get('lang') == 'ne' %}रक्तदान सम्बन्धी जानकारी{% else %}Donation Guidelines{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.news_list') }}"><i class="fas fa-calendar-check me-2 text-success"></i>{% if session.get('lang') == 'ne' %}रक्तदान क्याम्पहरू{% else %}Donation Camps{% endif %}</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i class="fas fa-id-card me-2 text-info"></i>{% if session.get('lang') == 'ne' %}रक्तदाता लगइन{% else %}Donor Portal Login{% endif %}</a></li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.become_donor' }}"
-              href="{{ url_for('public.become_donor') }}">
-              <i class="fas fa-user-plus fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.become_donor }}
+
+          <!-- Community Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active bg-white bg-opacity-20 fw-semibold' if request.endpoint in ['public.news_list', 'public.success_stories', 'public.become_volunteer', 'public.volunteer_login'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-users me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}समुदाय{% else %}Community{% endif %}
             </a>
+            <ul class="dropdown-menu shadow-lg">
+              <li><a class="dropdown-item" href="{{ url_for('public.news_list') }}"><i class="fas fa-newspaper me-2 text-primary"></i>{% if session.get('lang') == 'ne' %}समाचार तथा कार्यक्रमहरू{% else %}News & Events{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.success_stories') }}"><i class="fas fa-award me-2 text-warning"></i>{% if session.get('lang') == 'ne' %}सफलताका कथाहरू{% else %}Success Stories{% endif %}</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.become_volunteer') }}"><i class="fas fa-hands-holding-child me-2 text-info"></i>{% if session.get('lang') == 'ne' %}स्वयंसेवक बन्नुहोस्{% else %}Join as Volunteer{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i class="fas fa-handshake me-2 text-success"></i>{% if session.get('lang') == 'ne' %}स्वयंसेवक लगइन{% else %}Volunteer Portal{% endif %}</a></li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if 'news' in (request.endpoint or '') }}"
-              href="{{ url_for('public.news_list') }}">
-              <i class="fas fa-newspaper fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.news_notices }}
+
+          <!-- About Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active bg-white bg-opacity-20 fw-semibold' if request.endpoint in ['public.about', 'public.contact', 'public.faq'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-circle-info me-1 opacity-75"></i>{% if session.get('lang') == 'ne' %}परिचय{% else %}About{% endif %}
             </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.about' }}"
-              href="{{ url_for('public.about') }}">
-              <i class="fas fa-circle-info fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.about_us }}
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-2 small fw-500
-             {{ 'active bg-white bg-opacity-25 fw-semibold' if request.endpoint == 'public.contact' }}"
-              href="{{ url_for('public.contact') }}">
-              <i class="fas fa-envelope fa-sm me-1 d-lg-none d-xl-inline"></i>{{ t.contact }}
-            </a>
+            <ul class="dropdown-menu shadow-lg">
+              <li><a class="dropdown-item" href="{{ url_for('public.about') }}"><i class="fas fa-landmark me-2 text-primary"></i>{% if session.get('lang') == 'ne' %}संस्थाको परिचय{% else %}About NBDS{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.contact') }}"><i class="fas fa-envelope me-2 text-danger"></i>{% if session.get('lang') == 'ne' %}सम्पर्क{% else %}Contact Us{% endif %}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('public.faq') }}"><i class="fas fa-circle-question me-2 text-info"></i>{% if session.get('lang') == 'ne' %}प्राय: सोधिने प्रश्नहरू (FAQ){% else %}Frequently Asked Questions{% endif %}</a></li>
+            </ul>
           </li>
         </ul>
 
+        <!-- Right Side Desktop Action Buttons -->
         <div class="d-flex align-items-center gap-2">
-
-          <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm border-0"
-            title="{{ t.search }}">
-            <i class="fas fa-search"></i>
+          <!-- Quick Search -->
+          <a href="{{ url_for('public.global_search') }}" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;" title="Search">
+            <i class="fas fa-search fa-sm"></i>
           </a>
 
-
-
-          <a href="{{ url_for('public.blood_request_form') }}"
-            class="btn btn-light text-danger btn-sm fw-bold shadow-sm">
-            <i class="fas fa-circle-plus me-1"></i>
-            <span class="d-none d-xl-inline">{{ t.request_blood }}</span>
-            <span class="d-xl-none">{{ t.request_blood }}</span>
+          <!-- Primary Emergency CTA -->
+          <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger btn-sm fw-bold shadow-sm px-3" style="background-color:#D32F2F;border-color:#D32F2F;">
+            <i class="fas fa-plus me-1"></i>{% if session.get('lang') == 'ne' %}रगत माग गर्नुहोस्{% else %}Request Blood{% endif %}
           </a>
 
-          {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_')
-          %}
-          <!-- Notification Bell -->
-          <div class="dropdown me-1" id="notifBellDropdown">
-            <button class="btn btn-outline-light btn-sm border-0 position-relative" type="button"
-              data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
-              <i class="fas fa-bell"></i>
-              <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle d-none"
-                id="notifBadge" style="font-size:0.6rem;min-width:16px;padding:2px 5px;">0</span>
-            </button>
-            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
-              style="width:380px;max-height:480px;border-radius:12px;overflow:hidden;">
-              <!-- Notification Header -->
-              <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
-                style="background:linear-gradient(135deg,#DC2626,#991B1B);">
-                <h6 class="fw-bold text-white mb-0"><i class="fas fa-bell me-1"></i> Notifications</h6>
-                <button class="btn btn-sm btn-outline-light border-0 py-0 px-2" id="markAllReadBtn"
-                  title="Mark all as read" style="font-size:0.75rem;">
-                  <i class="fas fa-check-double me-1"></i>All Read
-                </button>
-              </div>
-              <!-- Notification List -->
-              <div id="notifList" style="max-height:360px;overflow-y:auto;">
-                <div class="text-center text-muted py-4">
-                  <i class="fas fa-spinner fa-spin me-1"></i> Loading...
-                </div>
-              </div>
-              <!-- Footer -->
-              <div class="border-top text-center py-2 bg-body-tertiary">
-                <a href="{{ url_for('notifications.preferences') }}"
-                  class="text-danger text-decoration-none small fw-semibold">
-                  <i class="fas fa-cog me-1"></i>Notification Preferences
-                </a>
-              </div>
+          <!-- Role-Specific Auth Menu -->
+          {% if current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('donor_') %}
+            <!-- Donor Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-light text-primary btn-sm dropdown-toggle fw-semibold shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-user-circle me-1 text-danger"></i>{{ current_user.full_name[:14] }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                <li><a class="dropdown-item" href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i class="fas fa-id-card text-danger me-2"></i>{% if session.get('lang') == 'ne' %}मेरो प्रोफाइल{% else %}My Profile & Card{% endif %}</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('notifications.preferences') }}"><i class="fas fa-bell text-primary me-2"></i>{% if session.get('lang') == 'ne' %}सूचना सेटिङहरू{% else %}Notification Preferences{% endif %}</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>{% if session.get('lang') == 'ne' %}लगआउट{% else %}Logout{% endif %}</a></li>
+              </ul>
             </div>
-          </div>
+          {% elif session.get('bloodbank_account_id') %}
+            <!-- Blood Bank Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-warning text-dark btn-sm dropdown-toggle fw-semibold shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-hospital-user me-1"></i>Blood Bank Portal
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i class="fas fa-gauge text-primary me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('bloodbank.inventory') }}"><i class="fas fa-boxes-stacked text-danger me-2"></i>Live Inventory</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('bloodbank.reservations') }}"><i class="fas fa-clipboard-check text-success me-2"></i>Reservations</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+              </ul>
+            </div>
+          {% elif current_user.is_authenticated and current_user.get_id() and current_user.get_id().startswith('user_') %}
+            <!-- Admin Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-dark btn-sm dropdown-toggle fw-semibold shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-shield-halved me-1 text-warning"></i>Admin Portal
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-gauge-high text-primary me-2"></i>Dashboard</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.donors') }}"><i class="fas fa-users text-danger me-2"></i>Manage Donors</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.blood_requests') }}"><i class="fas fa-hand-holding-medical text-danger me-2"></i>Blood Requests</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('admin.blood_banks') }}"><i class="fas fa-hospital text-info me-2"></i>Blood Banks</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item text-danger" href="{{ url_for('admin.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+              </ul>
+            </div>
+          {% else %}
+            <!-- Public Login Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-outline-light btn-sm dropdown-toggle fw-medium px-3" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-arrow-right-to-bracket me-1"></i>{% if session.get('lang') == 'ne' %}लगइन{% else %}Login{% endif %}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
+                <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i class="fas fa-id-card text-danger me-2"></i>{% if session.get('lang') == 'ne' %}रक्तदाता लगइन{% else %}Donor Login{% endif %}</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i class="fas fa-hospital text-primary me-2"></i>{% if session.get('lang') == 'ne' %}रक्त बैंक लगइन{% else %}Blood Bank Login{% endif %}</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i class="fas fa-hand-holding-medical text-success me-2"></i>{% if session.get('lang') == 'ne' %}स्वयंसेवक लगइन{% else %}Volunteer Login{% endif %}</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item text-muted small" href="{{ url_for('admin.login') }}"><i class="fas fa-lock me-2"></i>Admin Access</a></li>
+              </ul>
+            </div>
           {% endif %}
 
-          {% if current_user.is_authenticated or session.get('bloodbank_account_id') %}
-          <div class="dropdown">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle me-1"></i>
-              {% if session.get('bloodbank_account_id') %}
-              Blood Bank Panel
-              {% elif current_user.get_id() and current_user.get_id().startswith('donor_') %}
-              Donor Panel
-              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-              Volunteer Panel
-              {% else %}
-              Admin Panel
-              {% endif %}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-              {% if session.get('bloodbank_account_id') %}
-              <li><a class="dropdown-item" href="{{ url_for('bloodbank.dashboard') }}"><i
-                    class="fas fa-hospital-user me-2 text-info"></i>Blood Bank Dashboard</a></li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item text-danger" href="{{ url_for('bloodbank.logout') }}"><i
-                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-              {% else %}
-              {% if current_user.get_id() and current_user.get_id().startswith('donor_') %}
-              <li><a class="dropdown-item"
-                  href="{{ url_for('public.donor_profile', donor_id=current_user.donor_id) }}"><i
-                    class="fas fa-id-card me-2 text-danger"></i>My Profile</a></li>
-              {% elif current_user.get_id() and current_user.get_id().startswith('volunteer_') %}
-              <li><a class="dropdown-item" href="{{ url_for('public.index') }}"><i
-                    class="fas fa-hand-holding-medical me-2 text-primary"></i>Volunteer Dashboard</a></li>
-              {% else %}
-              <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i
-                    class="fas fa-gauge-high me-2"></i>Admin Dashboard</a></li>
-              {% endif %}
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item text-danger" href="{{ url_for('public.logout') }}"><i
-                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-              {% endif %}
-            </ul>
-          </div>
-          {% else %}
-          <div class="dropdown">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-sign-in-alt me-1"></i> Login
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-              <li><a class="dropdown-item" href="{{ url_for('public.donor_login') }}"><i
-                    class="fas fa-user text-danger me-2"></i>Donor Login</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('public.volunteer_login') }}"><i
-                    class="fas fa-hand-holding-medical text-primary me-2"></i>Volunteer Login</a></li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item" href="{{ url_for('bloodbank.login') }}"><i
-                    class="fas fa-hospital text-info me-2"></i>Blood Bank Login</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('admin.login') }}"><i
-                    class="fas fa-lock text-secondary me-2"></i>Admin Login</a></li>
-            </ul>
-          </div>
-          {% endif %}
-          <button class="btn btn-outline-light btn-sm px-2 d-none d-lg-flex" id="themeToggle" title="Toggle dark mode">
+          <!-- Theme Toggle -->
+          <button class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;" id="themeToggle" title="Toggle Theme">
             <i class="fas fa-moon fa-sm" id="themeIcon"></i>
           </button>
 
-
           <!-- Language Switcher -->
           <div class="dropdown">
-            <button class="btn btn-outline-light btn-sm dropdown-toggle border-0" type="button"
-              data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fas fa-globe me-1"></i>{{ 'ने' if session.get('lang') == 'ne' else 'Eng' }}
+            <button class="btn btn-outline-light btn-sm dropdown-toggle border-0 fw-bold" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-globe me-1"></i>{{ 'ने' if session.get('lang') == 'ne' else 'EN' }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="min-width: 120px;">
-              <li><a class="dropdown-item {{ 'active' if session.get('lang') != 'ne' }}"
-                  href="{{ url_for('public.set_language', lang='en') }}">English</a></li>
-              <li><a class="dropdown-item {{ 'active' if session.get('lang') == 'ne' }}"
-                  href="{{ url_for('public.set_language', lang='ne') }}">नेपाली</a></li>
+              <li><a class="dropdown-item {{ 'active' if session.get('lang') != 'ne' }}" href="{{ url_for('public.set_language', lang='en') }}">English</a></li>
+              <li><a class="dropdown-item {{ 'active' if session.get('lang') == 'ne' }}" href="{{ url_for('public.set_language', lang='ne') }}">नेपाली</a></li>
             </ul>
           </div>
 
-
-        </div><!-- end right-side controls -->
+        </div><!-- end right controls -->
       </div>
     </div>
-    </div>
   </nav>
+
+  <!-- ══════════════════════════════════════
+     MOBILE OFFCANVAS NAVIGATION DRAWER
+══════════════════════════════════════ -->
+  <div class="offcanvas offcanvas-start offcanvas-nbds" tabindex="-1" id="mobileNavOffcanvas" aria-labelledby="mobileNavOffcanvasLabel">
+    <div class="offcanvas-header nbds-navbar text-white py-3">
+      <div class="d-flex align-items-center gap-2">
+        <div class="nav-brand-icon d-flex align-items-center justify-content-center rounded-2 bg-white text-danger" style="width:32px;height:32px;">
+          <i class="fas fa-droplet"></i>
+        </div>
+        <div>
+          <div class="fw-bold fs-6">NBDS NEPAL</div>
+          <div style="font-size:0.68rem;opacity:0.8;">राष्ट्रिय रक्तदाता समाज</div>
+        </div>
+      </div>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-3">
+      <!-- Quick Action Buttons -->
+      <div class="d-grid gap-2 mb-3">
+        <a href="{{ url_for('public.blood_request_form') }}" class="btn btn-danger fw-bold py-2">
+          <i class="fas fa-plus-circle me-1"></i>{% if session.get('lang') == 'ne' %}रगत माग गर्नुहोस्{% else %}Request Blood{% endif %}
+        </a>
+        <a href="{{ url_for('public.become_donor') }}" class="btn btn-outline-primary fw-bold py-2">
+          <i class="fas fa-user-plus me-1"></i>{% if session.get('lang') == 'ne' %}रक्तदाता बन्नुहोस्{% else %}Become a Donor{% endif %}
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="list-group list-group-flush border-0">
+        <a href="{{ url_for('public.index') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-house text-primary" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}गृहपृष्ठ{% else %}Home{% endif %}
+        </a>
+        <a href="{{ url_for('public.find_donors') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-users text-danger" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}रक्तदाता खोज्नुहोस्{% else %}Find Donors{% endif %}
+        </a>
+        <a href="{{ url_for('public.blood_banks') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-hospital text-info" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}रक्त बैंकहरू{% else %}Blood Banks{% endif %}
+        </a>
+        <a href="{{ url_for('public.blood_request_board') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-clipboard-list text-warning" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}रगत माग बोर्ड{% else %}Blood Requests Board{% endif %}
+        </a>
+        <a href="{{ url_for('public.news_list') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-newspaper text-success" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}समाचार तथा कार्यक्रमहरू{% else %}News & Events{% endif %}
+        </a>
+        <a href="{{ url_for('public.about') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-circle-info text-secondary" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}हाम्रो बारेमा{% else %}About NBDS{% endif %}
+        </a>
+        <a href="{{ url_for('public.contact') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-envelope text-primary" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}सम्पर्क{% else %}Contact Us{% endif %}
+        </a>
+      </div>
+
+      <hr class="my-3">
+
+      <!-- Mobile Login Links -->
+      <div class="small fw-bold text-muted text-uppercase mb-2">{% if session.get('lang') == 'ne' %}पहुँच / लगइन{% else %}Portal Access{% endif %}</div>
+      <div class="list-group list-group-flush border-0">
+        <a href="{{ url_for('public.donor_login') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-id-card text-danger" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}रक्तदाता लगइन{% else %}Donor Login{% endif %}
+        </a>
+        <a href="{{ url_for('bloodbank.login') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-hospital-user text-primary" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}रक्त बैंक लगइन{% else %}Blood Bank Login{% endif %}
+        </a>
+        <a href="{{ url_for('public.volunteer_login') }}" class="list-group-item list-group-item-action border-0 py-2 d-flex align-items-center gap-2">
+          <i class="fas fa-hand-holding-medical text-success" style="width:20px;"></i>{% if session.get('lang') == 'ne' %}स्वयंसेवक लगइन{% else %}Volunteer Login{% endif %}
+        </a>
+      </div>
+    </div>
+  </div>
 
   <!-- ══════════════════════════════════════
       NOTICE BAR (MARQUEE & RESPONSIVE)
@@ -681,23 +716,20 @@
     </div>
 
     <!-- Bottom Bar -->
-    <div class="border-top py-3" style="border-color:#8de67d!important;">
+    <div class="border-top py-3" style="border-color:rgba(255,255,255,0.1)!important;background:rgba(0,0,0,0.15);">
       <div class="container-xl">
         <div class="row align-items-center">
           <div class="col-md-6 text-center text-md-start">
-            <small style="color:#ff2323;">
-              &copy; {{ current_year }} {{ site_name }}. All rights reserved.
-              <B>Founded By <a href="https://lokeshprasai.com.np" target="_blank">Lokesh Prasai</a> in Nepal.</B>
+            <small style="color:#94a3b8;">
+              &copy; {{ current_year }} <strong>NATIONAL BLOOD DONORS SOCIETY (राष्ट्रिय रक्तदाता समाज)</strong>. All rights reserved.
             </small>
           </div>
           <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
-            <small style="color:#98b2d5;">
+            <small style="color:#94a3b8;">
               <a href="/privacy" class="footer-link me-3">Privacy Policy</a>
               <a href="/terms" class="footer-link me-3">Terms of Use</a>
-              <a href="{{ url_for('admin.login') }}" class="footer-link me-3">Admin Portal</a>
-              <a href="https://lokeshprasai.com.np/#contact" target="_blank" rel="noopener" class="footer-link">
-                <i class="fas fa-code me-1"></i>Contact Developer
-              </a>
+              <a href="{{ url_for('public.about') }}" class="footer-link me-3">About NBDS</a>
+              <a href="{{ url_for('admin.login') }}" class="footer-link">Admin Access</a>
             </small>
           </div>
         </div>

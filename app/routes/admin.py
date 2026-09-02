@@ -29,33 +29,40 @@ from werkzeug.security import generate_password_hash
 admin_bp = Blueprint('admin', __name__)
 
 
-# Enforce short admin session (5 minutes) based on last activity
+# Enforce strict RBAC and admin session timeout
 @admin_bp.before_request
-def enforce_admin_session_timeout():
-    # Only apply to logged-in users accessing admin blueprint
-    if not current_user.is_authenticated:
+def enforce_admin_access_and_timeout():
+    # Public admin endpoints that do not require prior admin authentication
+    if request.endpoint in ('admin.login', 'admin.logout'):
         return
 
-    # Only track and check timeout for authenticated admin users
-    if current_user.is_authenticated:
-        last = session.get('admin_last_active')
-        if last:
-            try:
-                last_dt = datetime.fromisoformat(last)
-                if getattr(last_dt, 'tzinfo', None) is None:
-                    last_dt = last_dt.replace(tzinfo=timezone.utc)
-                now_dt = datetime.now(timezone.utc)
-                if (now_dt - last_dt) > timedelta(minutes=15):
-                    # expire session
-                    logout_user()
-                    session.pop('admin_last_active', None)
-                    flash('Your admin session has expired due to inactivity. Please log in again.', 'warning')
-                    return redirect(url_for('admin.login'))
-            except Exception:
-                pass
+    # Reject non-admin users (e.g. logged-in Donors or Volunteers attempting to view /admin)
+    if not current_user.is_authenticated:
+        flash('Please log in to access the administrator portal.', 'warning')
+        return redirect(url_for('admin.login', next=request.url))
 
-        # update last active timestamp for admins
-        session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
+    if not isinstance(current_user, User) or not getattr(current_user, 'role', None):
+        flash('Access denied: Administrator privileges required.', 'danger')
+        return redirect(url_for('admin.login', next=request.url))
+
+    # Track session timeout for authenticated admins (15 minutes inactivity)
+    last = session.get('admin_last_active')
+    if last:
+        try:
+            last_dt = datetime.fromisoformat(last)
+            if getattr(last_dt, 'tzinfo', None) is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+            now_dt = datetime.now(timezone.utc)
+            if (now_dt - last_dt) > timedelta(minutes=15):
+                logout_user()
+                session.pop('admin_last_active', None)
+                flash('Your admin session has expired due to inactivity. Please log in again.', 'warning')
+                return redirect(url_for('admin.login'))
+        except Exception:
+            pass
+
+    # Update last active timestamp
+    session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
 
 
 # ─── Auth Decorators ──────────────────────────

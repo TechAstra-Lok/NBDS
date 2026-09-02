@@ -1,37 +1,78 @@
 /* ══════════════════════════════════════════════
-   रक्तदान र रक्तदाता - COMPLETE CSS
+   NATIONAL BLOOD DONORS SOCIETY — DESIGN SYSTEM
+   राष्ट्रिय रक्तदाता समाज (NBDS)
    ══════════════════════════════════════════════ */
 
-/* ── CSS Custom Properties ───────────────────── */
+/* ── NBDS Healthcare Design Tokens ────────────── */
 :root {
-  --blood: #DC2626;
-  --blood-dark: #991B1B;
-  --blood-light: #FEE2E2;
-  --blood-soft: rgba(220, 38, 38, 0.08);
-  --text-base: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --bg-page: #F9FAFB;
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .04);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, .07), 0 2px 4px rgba(0, 0, 0, .05);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, .1), 0 4px 6px rgba(0, 0, 0, .06);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, .1), 0 10px 10px rgba(0, 0, 0, .04);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --transition: all 0.25s cubic-bezier(.4, 0, .2, 1);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Brand Red (Action, Emergency, Blood, Critical CTAs) */
+  --nbds-red: #D32F2F;
+  --nbds-red-dark: #B71C1C;
+  --nbds-red-light: #FFEBEE;
+  --nbds-red-soft: rgba(211, 47, 47, 0.08);
+
+  /* Brand Blue (Healthcare, Trust, System Navigation, Secondary CTAs) */
+  --nbds-blue: #1565C0;
+  --nbds-blue-dark: #0D47A1;
+  --nbds-blue-light: #E3F2FD;
+  --nbds-blue-soft: rgba(21, 101, 192, 0.08);
+
+  /* Status Colors */
+  --nbds-green: #2E7D32;
+  --nbds-green-light: #E8F5E9;
+  --nbds-amber: #ED6C02;
+  --nbds-amber-light: #FFF4E5;
+
+  /* Surfaces & Neutrals */
+  --nbds-surface: #FFFFFF;
+  --nbds-bg-page: #F8FAFC;
+  --nbds-border: #E2E8F0;
+  --nbds-text-primary: #0F172A;
+  --nbds-text-secondary: #475569;
+  --nbds-text-muted: #64748B;
+
+  /* Backward Compatible Aliases */
+  --blood: var(--nbds-red);
+  --blood-dark: var(--nbds-red-dark);
+  --blood-light: var(--nbds-red-light);
+  --blood-soft: var(--nbds-red-soft);
+  --text-base: var(--nbds-text-primary);
+  --text-muted: var(--nbds-text-muted);
+  --border: var(--nbds-border);
+  --bg-page: var(--nbds-bg-page);
+
+  /* Elevation & Shadows */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, .05);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, .08), 0 2px 4px -2px rgba(15, 23, 42, .04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, .1), 0 4px 6px -4px rgba(15, 23, 42, .06);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, .1), 0 8px 10px -6px rgba(15, 23, 42, .04);
+
+  /* Radii & Transitions */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+  --transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ── Dark Mode Variables ─────────────────────── */
 [data-bs-theme="dark"] {
-  --text-base: #f8fafc;
-  --text-muted: #cbd5e1;
-  --border: #334155;
-  --bg-page: #0f172a;
-  --blood-soft: rgba(220, 38, 38, 0.18);
+  --nbds-surface: #1E293B;
+  --nbds-bg-page: #0F172A;
+  --nbds-border: #334155;
+  --nbds-text-primary: #F8FAFC;
+  --nbds-text-secondary: #94A3B8;
+  --nbds-text-muted: #64748B;
+  --nbds-red-soft: rgba(239, 68, 68, 0.15);
+  --nbds-blue-soft: rgba(59, 130, 246, 0.15);
+
+  --text-base: var(--nbds-text-primary);
+  --text-muted: var(--nbds-text-muted);
+  --border: var(--nbds-border);
+  --bg-page: var(--nbds-bg-page);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, .3);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, .4);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, .5);
@@ -924,4 +965,160 @@ a.hover-lift {
   background: rgba(14, 165, 233, 0.25) !important;
   border: 1px solid #0ea5e9 !important;
   color: #bae6fd !important;
+}
+
+/* ══════════════════════════════════════════════
+   NBDS COMPONENT SUITE (RED + BLUE HEALTHCARE)
+   ══════════════════════════════════════════════ */
+
+/* ── Primary Action (Red) ── */
+.btn-nbds-danger, .btn-danger {
+  background-color: var(--nbds-red) !important;
+  border-color: var(--nbds-red) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.btn-nbds-danger:hover, .btn-danger:hover {
+  background-color: var(--nbds-red-dark) !important;
+  border-color: var(--nbds-red-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Primary Healthcare / Navigation (Blue) ── */
+.btn-nbds-primary, .btn-primary {
+  background-color: var(--nbds-blue) !important;
+  border-color: var(--nbds-blue) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.btn-nbds-primary:hover, .btn-primary:hover {
+  background-color: var(--nbds-blue-dark) !important;
+  border-color: var(--nbds-blue-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Outlined Action Buttons ── */
+.btn-outline-danger {
+  color: var(--nbds-red) !important;
+  border-color: var(--nbds-red) !important;
+  font-weight: 600;
+}
+.btn-outline-danger:hover {
+  background-color: var(--nbds-red) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.25);
+}
+
+.btn-outline-primary {
+  color: var(--nbds-blue) !important;
+  border-color: var(--nbds-blue) !important;
+  font-weight: 600;
+}
+.btn-outline-primary:hover {
+  background-color: var(--nbds-blue) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.25);
+}
+
+/* ── Clean Healthcare Navbar & Dropdowns ── */
+.nbds-navbar {
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(13, 71, 161, 0.15);
+}
+
+.nbds-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  padding: 0.5rem 0.85rem !important;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.nbds-navbar .nav-link:hover,
+.nbds-navbar .nav-link:focus,
+.nbds-navbar .nav-link.active {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Navbar Dropdowns ── */
+.dropdown-menu {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 0.5rem !important;
+  background-color: var(--nbds-surface) !important;
+}
+
+.dropdown-item {
+  padding: 0.55rem 0.9rem !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-base) !important;
+  transition: var(--transition);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--nbds-blue-light) !important;
+  color: var(--nbds-blue-dark) !important;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+  background-color: var(--nbds-blue-soft) !important;
+  color: #93c5fd !important;
+}
+
+/* ── Live PIN Match Feedback ── */
+.pin-match-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.35rem;
+  transition: var(--transition);
+}
+
+.pin-match-success {
+  background-color: var(--nbds-green-light);
+  color: var(--nbds-green);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.pin-match-danger {
+  background-color: var(--nbds-red-light);
+  color: var(--nbds-red);
+  border: 1px solid rgba(211, 47, 47, 0.2);
+}
+
+/* ── Mobile Navigation Drawer ── */
+.offcanvas-nbds {
+  background-color: var(--nbds-surface) !important;
+  max-width: 320px;
+}
+
+.offcanvas-nbds .nav-link {
+  color: var(--text-base) !important;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.offcanvas-nbds .nav-link:hover {
+  background-color: var(--nbds-blue-light);
+  color: var(--nbds-blue-dark) !important;
 }

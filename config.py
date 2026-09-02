@@ -119,9 +119,12 @@ class Config:
     # Analytics
     GA_TRACKING_ID = os.environ.get('GA_TRACKING_ID', '')
     
-    # Site Info
-    SITE_NAME = "रक्तदान र रक्तदाता"
+    # Site Info & Official Branding
+    SITE_NAME = "NATIONAL BLOOD DONORS SOCIETY"
+    SITE_NAME_NEPALI = "राष्ट्रिय रक्तदाता समाज"
+    SITE_SHORT_NAME = "NBDS"
     SITE_TAGLINE = "Donate Blood, Save Lives"
+    SITE_TAGLINE_NEPALI = "रक्तदान गर्नुहोस्, जीवन बचाउनुहोस्"
     CONTACT_EMAIL = "info@nepaliblooddonors.org"
     CONTACT_PHONE = "+977 9816003020"
     CONTACT_ADDRESS = "Jhapa, Nepal"

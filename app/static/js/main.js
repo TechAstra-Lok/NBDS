@@ -86,6 +86,79 @@ const FormEnhancements = {
         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
       });
     });
+
+    // Real-Time PIN & Confirm PIN Match Assistant
+    document.querySelectorAll('form').forEach(form => {
+      const pinInput = form.querySelector('input[name="pin"]');
+      const confirmInput = form.querySelector('input[name="confirm_pin"]');
+
+      if (pinInput && confirmInput) {
+        // Enforce 4-digit numbers only
+        [pinInput, confirmInput].forEach(inp => {
+          inp.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 4);
+          });
+        });
+
+        let feedbackBadge = form.querySelector('.pin-match-feedback');
+        if (!feedbackBadge) {
+          feedbackBadge = document.createElement('div');
+          feedbackBadge.className = 'pin-match-feedback small mt-1';
+          confirmInput.parentElement.appendChild(feedbackBadge);
+        }
+
+        const validatePinMatch = () => {
+          const pVal = pinInput.value.trim();
+          const cVal = confirmInput.value.trim();
+
+          if (!cVal) {
+            feedbackBadge.innerHTML = '';
+            confirmInput.classList.remove('is-invalid', 'is-valid');
+            return;
+          }
+
+          if (pVal.length === 4 && cVal.length === 4) {
+            if (pVal === cVal) {
+              confirmInput.classList.remove('is-invalid');
+              confirmInput.classList.add('is-valid');
+              feedbackBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2"><i class="fas fa-check-circle me-1"></i>PIN Matched</span>';
+            } else {
+              confirmInput.classList.remove('is-valid');
+              confirmInput.classList.add('is-invalid');
+              feedbackBadge.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2"><i class="fas fa-times-circle me-1"></i>PINs do not match</span>';
+            }
+          } else if (cVal.length > 0 && cVal !== pVal.slice(0, cVal.length)) {
+            confirmInput.classList.remove('is-valid');
+            confirmInput.classList.add('is-invalid');
+            feedbackBadge.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2"><i class="fas fa-times-circle me-1"></i>PINs do not match</span>';
+          } else {
+            confirmInput.classList.remove('is-invalid', 'is-valid');
+            feedbackBadge.innerHTML = '';
+          }
+        };
+
+        pinInput.addEventListener('input', validatePinMatch);
+        confirmInput.addEventListener('input', validatePinMatch);
+      }
+    });
+
+    // Global Password / PIN Eye Toggle
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.toggle-password-btn, .toggle-pin-btn');
+      if (!btn) return;
+      const container = btn.closest('.input-group') || btn.parentElement;
+      const input = container ? container.querySelector('input[name*="pin"], input[name*="password"], input[type="password"], input[type="text"]') : null;
+      const icon = btn.querySelector('i');
+      if (input) {
+        if (input.type === 'password') {
+          input.type = 'text';
+          if (icon) icon.className = 'fas fa-eye-slash text-muted';
+        } else {
+          input.type = 'password';
+          if (icon) icon.className = 'fas fa-eye text-muted';
+        }
+      }
+    });
     
     // Image preview
     document.querySelectorAll('input[type="file"]').forEach(input => {

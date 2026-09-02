@@ -305,23 +305,32 @@
               <label class="form-label fw-semibold">
                 4-Digit PIN <span class="text-danger">*</span>
               </label>
-              <input type="password" class="form-control {{ 'is-invalid' if form.pin.errors }}" name="pin" id="pin"
-                placeholder="Set a 4-digit PIN" maxlength="4" required>
+              <div class="input-group">
+                <input type="password" class="form-control {{ 'is-invalid' if form.pin.errors }}" name="pin" id="pin"
+                  placeholder="Set a 4-digit PIN" maxlength="4" inputmode="numeric" required>
+                <button type="button" class="btn btn-outline-secondary toggle-pin-btn" tabindex="-1" title="Toggle PIN visibility">
+                  <i class="fas fa-eye text-muted"></i>
+                </button>
+              </div>
               {% for e in form.pin.errors %}
-              <div class="invalid-feedback">{{ e }}</div>
+              <div class="invalid-feedback d-block">{{ e }}</div>
               {% endfor %}
-              <div class="form-text" align="center"><b>You will need this PIN to manage or cancel your request
-                  later.</b></div>
+              <div class="form-text">You will need this PIN to manage or cancel your request later.</div>
             </div>
 
             <div class="col-md-6">
               <label class="form-label fw-semibold">
                 Confirm PIN <span class="text-danger">*</span>
               </label>
-              <input type="password" class="form-control {{ 'is-invalid' if form.confirm_pin.errors }}"
-                name="confirm_pin" id="confirm_pin" placeholder="Confirm your 4-digit PIN" maxlength="4" required>
+              <div class="input-group">
+                <input type="password" class="form-control {{ 'is-invalid' if form.confirm_pin.errors }}"
+                  name="confirm_pin" id="confirm_pin" placeholder="Confirm your 4-digit PIN" maxlength="4" inputmode="numeric" required>
+                <button type="button" class="btn btn-outline-secondary toggle-pin-btn" tabindex="-1" title="Toggle PIN visibility">
+                  <i class="fas fa-eye text-muted"></i>
+                </button>
+              </div>
               {% for e in form.confirm_pin.errors %}
-              <div class="invalid-feedback">{{ e }}</div>
+              <div class="invalid-feedback d-block">{{ e }}</div>
               {% endfor %}
             </div>
           </div>
