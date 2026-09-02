@@ -645,7 +645,7 @@ class Donor(UserMixin, db.Model):
     # Current Address
     curr_province           = db.Column(db.String(60), nullable=False)
     curr_district           = db.Column(db.String(80), nullable=False, index=True)
-    curr_local_level        = db.Column(db.String(100), nullable=False)
+    curr_local_level        = db.Column(db.String(100), nullable=True)
     curr_ward               = db.Column(db.String(10))
     curr_tole               = db.Column(db.String(100))
     
@@ -655,7 +655,7 @@ class Donor(UserMixin, db.Model):
     donation_times          = db.Column(db.Integer, default=0)
     
     # Donor Meta
-    donor_type              = db.Column(db.String(30), nullable=False)  # regular|emergency|platelet|rare|volunteer|other
+    donor_type              = db.Column(db.String(30), default='regular')  # regular|emergency|platelet|rare|volunteer|other
     social_link             = db.Column(db.String(300))
     availability_status     = db.Column(db.String(30), default='available', index=True) # available | recently_donated | unavailable
     available_after         = db.Column(db.Date)

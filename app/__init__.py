@@ -72,7 +72,11 @@ scheduler = APScheduler()
 
 def create_app(config_name=None):
     if config_name is None:
-        config_name = os.environ.get('FLASK_ENV', 'development')
+        import sys
+        if 'pytest' in sys.modules or os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('TESTING') == '1':
+            config_name = 'testing'
+        else:
+            config_name = os.environ.get('FLASK_ENV', 'development')
     
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(config[config_name])
@@ -380,6 +384,8 @@ def _ensure_legacy_schema_columns(app):
             try:
                 if db.engine.name in ('postgresql', 'cockroachdb'):
                     db.session.execute(text("ALTER TABLE donors ALTER COLUMN email DROP NOT NULL;"))
+                    db.session.execute(text("ALTER TABLE donors ALTER COLUMN curr_local_level DROP NOT NULL;"))
+                    db.session.execute(text("ALTER TABLE donors ALTER COLUMN donor_type DROP NOT NULL;"))
                     db.session.commit()
                 elif db.engine.name == 'sqlite':
                     cols = inspector.get_columns('donors')
@@ -428,7 +434,18 @@ def _ensure_pk_sequences(app, existing_tables):
     if dialect not in ('postgresql', 'cockroachdb'):
         return  # SQLite handles this automatically
 
-    # All tables that have an integer `id` primary key we must fix
+    # Query which tables already have an auto-increment/sequence default set on column 'id'
+    existing_defaults = set()
+    try:
+        if dialect == 'postgresql':
+            res = db.session.execute(text(
+                "SELECT table_name FROM information_schema.columns "
+                "WHERE column_name = 'id' AND column_default IS NOT NULL AND table_schema = 'public'"
+            )).fetchall()
+            existing_defaults = {r[0].lower() for r in res}
+    except Exception:
+        db.session.rollback()
+
     pk_tables = [
         'users', 'donors', 'volunteers', 'partners', 'news', 'notices',
         'advertisements', 'contacts', 'success_stories', 'blood_requests',
@@ -444,21 +461,18 @@ def _ensure_pk_sequences(app, existing_tables):
     ]
 
     for table in pk_tables:
-        if table.lower() not in existing_tables:
+        if table.lower() not in existing_tables or table.lower() in existing_defaults:
             continue
         try:
             if dialect == 'cockroachdb':
-                # unique_rowid() is CockroachDB's built-in monotonic ID generator
                 db.session.execute(text(
                     f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT unique_rowid()"
                 ))
             else:
-                # Standard PostgreSQL: create a sequence and wire it up
                 seq_name = f"{table}_id_seq"
                 db.session.execute(text(
                     f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"
                 ))
-                # Fast-forward the sequence past any existing max id
                 db.session.execute(text(
                     f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 1))"
                 ))
@@ -469,7 +483,6 @@ def _ensure_pk_sequences(app, existing_tables):
             print(f"[SCHEMA] Fixed PK sequence for table '{table}' ({dialect}).")
         except Exception as e:
             db.session.rollback()
-            # Already has a default — that's fine, ignore
             if 'already has' in str(e).lower() or 'does not exist' in str(e).lower():
                 pass
             else:
