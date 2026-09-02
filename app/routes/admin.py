@@ -36,24 +36,26 @@ def enforce_admin_session_timeout():
     if not current_user.is_authenticated:
         return
 
-    last = session.get('admin_last_active')
-    if last:
-        try:
-            last_dt = datetime.fromisoformat(last)
-        except Exception:
-            last_dt = None
-        if last_dt:
-            # Handle timezone-aware or naive comparison safely
-            now_dt = datetime.now(timezone.utc) if getattr(last_dt, 'tzinfo', None) else datetime.now()
-            if now_dt - last_dt > timedelta(minutes=5):
-                # expire session
-                logout_user()
-                session.pop('admin_last_active', None)
-                flash('Your admin session has expired due to inactivity. Please log in again.', 'warning')
-                return redirect(url_for('admin.login'))
+    # Only track and check timeout for authenticated admin users
+    if current_user.is_authenticated:
+        last = session.get('admin_last_active')
+        if last:
+            try:
+                last_dt = datetime.fromisoformat(last)
+                if getattr(last_dt, 'tzinfo', None) is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                now_dt = datetime.now(timezone.utc)
+                if (now_dt - last_dt) > timedelta(minutes=15):
+                    # expire session
+                    logout_user()
+                    session.pop('admin_last_active', None)
+                    flash('Your admin session has expired due to inactivity. Please log in again.', 'warning')
+                    return redirect(url_for('admin.login'))
+            except Exception:
+                pass
 
-    # update last active timestamp for admins
-    session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
+        # update last active timestamp for admins
+        session['admin_last_active'] = datetime.now(timezone.utc).isoformat()
 
 
 # ─── Auth Decorators ──────────────────────────
@@ -2721,7 +2723,23 @@ def data_quality():
     # Calculate Data Quality Metrics
     total_donors = Donor.query.count()
     if total_donors == 0:
-        return render_template('admin/data_quality.html', total_donors=0)
+        default_age_dist = {'young': 0, 'adult': 0, 'middle': 0, 'senior': 0}
+        default_bg_dist = {g: 0 for g in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
+        return render_template('admin/data_quality.html',
+            total_donors=0,
+            completeness_score=0,
+            accuracy_score=0,
+            consistency_score=0,
+            overall_score=0,
+            age_dist=default_age_dist,
+            blood_group_dist=default_bg_dist,
+            supply_demand=default_bg_dist,
+            duplicate_donors=[],
+            suspicious_donors=[],
+            ml_insights={'trend': 'N/A', 'peak_hour': 'N/A', 'predicted_shortage': []},
+            missing_email=0, missing_phone2=0, missing_last_donation=0,
+            missing_social=0, missing_perm_address=0,
+        )
         
     # Profile completeness check
     missing_email = Donor.query.filter((Donor.email == None) | (Donor.email == '')).count()

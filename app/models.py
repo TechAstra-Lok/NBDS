@@ -29,14 +29,18 @@ class User(UserMixin, db.Model):
     last_login      = db.Column(db.DateTime)
     created_at      = db.Column(db.DateTime, default=utc_now)
     
-    def __init__(self, username: str, email: str, full_name: str = '',
-                 role: str = 'admin', is_active: bool = True, **kwargs):
+    def __init__(self, username: str = None, email: str = None, full_name: str = '',
+                 role: str = 'admin', is_active: bool = True, password_hash: str = None, **kwargs):
         super().__init__(**kwargs)
-        self.username  = username
-        self.email     = email
+        if username:
+            self.username  = username
+        if email:
+            self.email     = email
         self.full_name = full_name
         self.role      = role
         self.is_active = is_active
+        if password_hash:
+            self.password_hash = password_hash
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -1193,7 +1197,7 @@ class BloodRequest(db.Model):
     __tablename__ = 'blood_requests'
     
     id              = db.Column(db.Integer, primary_key=True)
-    request_id      = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    request_id      = db.Column(db.String(50), unique=True, nullable=False, index=True)
     patient_name    = db.Column(db.String(150), nullable=False)
     request_message = db.Column(db.Text, nullable=True)
     case_details    = db.Column(db.String(255), nullable=False)

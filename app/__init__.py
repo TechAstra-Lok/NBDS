@@ -315,14 +315,28 @@ def _ensure_legacy_schema_columns(app):
             ('site_visitors', SiteVisitor),
         ]
 
+        # Pre-fetch existing columns in one fast batch query for PostgreSQL / CockroachDB
+        db_table_columns = {}
+        if db.engine.name in ('postgresql', 'cockroachdb'):
+            try:
+                res = db.session.execute(text("SELECT lower(table_name), lower(column_name) FROM information_schema.columns WHERE table_schema = 'public'")).fetchall()
+                for t_name, c_name in res:
+                    db_table_columns.setdefault(t_name, set()).add(c_name)
+            except Exception:
+                db.session.rollback()
+
         for table_name, model_cls in model_tables:
-            if table_name.lower() not in existing_tables:
+            t_lower = table_name.lower()
+            if t_lower not in existing_tables:
                 continue
 
-            try:
-                table_columns = {col['name'].lower() for col in inspector.get_columns(table_name)}
-            except Exception:
-                table_columns = set()
+            if t_lower in db_table_columns:
+                table_columns = db_table_columns[t_lower]
+            else:
+                try:
+                    table_columns = {col['name'].lower() for col in inspector.get_columns(table_name)}
+                except Exception:
+                    table_columns = set()
 
             for column in model_cls.__table__.columns:  # type: ignore[attr-defined]
                 if column.name.lower() not in table_columns:
@@ -379,7 +393,7 @@ def _ensure_legacy_schema_columns(app):
                         db.session.rollback()
                         print(f"[WARN] Failed to add column {column.name} to {table_name}: {col_err}")
 
-        # Ensure donors.email is nullable on PostgreSQL/CockroachDB and SQLite
+        # Ensure donors columns and blood_requests columns are sized properly on PostgreSQL/CockroachDB
         if 'donors' in existing_tables:
             try:
                 if db.engine.name in ('postgresql', 'cockroachdb'):
@@ -408,6 +422,15 @@ def _ensure_legacy_schema_columns(app):
             except Exception as e:
                 db.session.rollback()
                 print(f"[WARN] Failed to make donors.email nullable: {e}")
+
+        # Ensure blood_requests columns are sized adequately
+        if 'blood_requests' in existing_tables and db.engine.name in ('postgresql', 'cockroachdb'):
+            try:
+                db.session.execute(text("ALTER TABLE blood_requests ALTER COLUMN request_id TYPE VARCHAR(50);"))
+                db.session.execute(text("ALTER TABLE blood_requests ALTER COLUMN status TYPE VARCHAR(50);"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
 
         # ── Fix integer PK columns: ensure they have auto-increment defaults ──────
         _ensure_pk_sequences(app, existing_tables)
@@ -501,6 +524,8 @@ def _seed_admin(app):
     
     if admin_username and admin_password:
         user = User.query.filter_by(username=admin_username).first()
+        # Use pbkdf2:sha256 for consistent cross-platform hash verification
+        pwd_hash = generate_password_hash(admin_password, method='pbkdf2:sha256')
         if not user:
             admin = User(
                 username=admin_username,
@@ -508,14 +533,16 @@ def _seed_admin(app):
                 full_name=os.environ.get('ADMIN_FULL_NAME', 'Super Admin'),
                 role='superadmin',
                 is_active=True,
-                password_hash=generate_password_hash(admin_password)
+                password_hash=pwd_hash
             )
             db.session.add(admin)
+            db.session.flush()
             db.session.commit()
             print(f"[OK] Admin created: {admin_username}")
         else:
             user.is_active = True
-            user.password_hash = generate_password_hash(admin_password)
+            user.password_hash = pwd_hash
+            db.session.flush()
             db.session.commit()
             print(f"[OK] Admin password updated: {admin_username}")
 
@@ -741,16 +768,18 @@ def handle_unauthorized():
 def load_user(user_id):
     from app.models import User, Donor, Volunteer
     try:
+        if not user_id:
+            return None
         parts = str(user_id).split('_')
         if len(parts) == 2:
             model_type, model_id = parts[0], int(parts[1])
             if model_type == 'user':
-                return User.query.get(model_id)
+                return db.session.get(User, model_id)
             elif model_type == 'donor':
-                return Donor.query.get(model_id)
+                return db.session.get(Donor, model_id)
             elif model_type == 'volunteer':
-                return Volunteer.query.get(model_id)
+                return db.session.get(Volunteer, model_id)
         # Fallback for old sessions that might just have integer IDs
-        return User.query.get(int(user_id))
-    except Exception:
+        return db.session.get(User, int(user_id))
+    except Exception as e:
         return None
