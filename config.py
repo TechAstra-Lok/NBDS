@@ -34,6 +34,11 @@ def get_database_uri() -> str:
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
 
+    # Clean quotes/spaces and fix common AWS/Neon region typos (e.g. ap-southeast1 -> ap-southeast-1)
+    db_url = db_url.strip().strip("'\"")
+    if ".ap-southeast1.aws.neon.tech" in db_url:
+        db_url = db_url.replace(".ap-southeast1.aws.neon.tech", ".ap-southeast-1.aws.neon.tech")
+
     # Rewrite postgresql:// → cockroachdb+psycopg2:// for CockroachDB hosts.
     # SQLAlchemy's built-in PostgreSQL dialect cannot parse CockroachDB version
     # strings (e.g. 'CockroachDB CCL v26.2.5 ...'), causing an AssertionError.
