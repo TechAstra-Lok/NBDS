@@ -29,8 +29,8 @@ class User(UserMixin, db.Model):
     last_login      = db.Column(db.DateTime)
     created_at      = db.Column(db.DateTime, default=utc_now)
     
-    def __init__(self, username: str = None, email: str = None, full_name: str = '',
-                 role: str = 'admin', is_active: bool = True, password_hash: str = None, **kwargs):
+    def __init__(self, username: str | None = None, email: str | None = None, full_name: str = '',
+                 role: str = 'admin', is_active: bool = True, password_hash: str | None = None, **kwargs):
         super().__init__(**kwargs)
         if username:
             self.username  = username
